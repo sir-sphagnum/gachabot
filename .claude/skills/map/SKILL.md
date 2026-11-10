@@ -1,9 +1,9 @@
 ---
-name: pathfind
-description: Build a navigable menu tree for the bot under <game>/templates/ while the user clicks through the game, saving each menu's screenshot, its buttons (cropped, named by where they lead) and any identifying UI elements. Use when the user says "create a path to <menu>", "pathfind", "map the path to", or similar.
+name: map
+description: Build a navigable menu tree for the bot under <game>/templates/ while the user clicks through the game, saving each menu's screenshot, its buttons (cropped, named by where they lead) and any identifying UI elements. Use when the user says "create a path to <menu>", "map <menu>", "map the path to", or similar.
 ---
 
-# Pathfind
+# Map
 
 Builds on the `recon` skill: the user drives the game one click at a time, and you record each step as a folder tree the bot can later walk with `core.vision.find` and `core.input.tap`. Everything goes under the game's template folder, `<game>/templates/` (e.g. `e7/templates/`). Run all commands from the project root.
 
@@ -87,7 +87,7 @@ The folders and file names are the whole map: there is no separate index file to
 2. Crop it into the current menu's folder as `info_<here>_<element>_X-Y-W-H.png`, then check it with `core.vision find` the same way as a button.
 3. Prefer elements that are unique to this menu and don't change (titles, fixed icons, panel frames). If the user picks something whose content changes (a counter, a timer, a player name), save it anyway, but point out that it's for reading information, not for identifying the menu.
 
-## Stop: "end path" / "stop pathfind"
+## Stop: "end path" / "stop mapping"
 
 1. Stop recon as the `recon` skill describes.
 2. Run `python -m core.tree` and show the user the tree and any problems it lists. Fix the ones you caused (bad names, misplaced files); ask about the rest.

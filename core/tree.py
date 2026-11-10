@@ -1,4 +1,4 @@
-"""Show the pathfind menu trees under <game>/templates/, read live from the folders.
+"""Show the menu trees under <game>/templates/, read live from the folders.
 
 Usage: python -m core.tree [game]          (no game: show every game)
 
