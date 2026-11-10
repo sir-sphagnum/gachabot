@@ -13,6 +13,12 @@ Usage: python -m e7.routines.lobby
 The start screen is checked before every Back press, as Back does nothing
 useful there (see e7/routines/start_screen.py for how it's recognised).
 
+The quit dialog ("Are you sure you want to quit the game?") is checked before
+every Back press and every candle tap: one Back too many in the lobby opens
+it, and the lobby (barrel included) shows dimmed behind it, so the candle tap
+would do nothing. When it's up, tap its Cancel button (never Confirm, which
+quits the game). Its templates are in common/popups/quit-game/.
+
 The lobby has two states. Active: the HUD shows, with the 4-boxes icon (top
 right) and Sanctuary (left). Rest: the HUD is hidden; the lobby drops back to
 this after a few idle seconds. The barrel is part of the scene, so it shows in
@@ -28,8 +34,9 @@ import sys
 
 from core.device import wait_until
 from core.input import back, capture, tap
-from core.nav import locate
-from e7.config import BACK_KEY, TEMPLATES_DIR
+from core.nav import close_popup, locate, open_popup
+from core.tree import load_popups
+from e7.config import BACK_KEY, GAME, TEMPLATES_DIR
 from e7.routines import start_screen
 
 LOBBY = TEMPLATES_DIR / "start-screen" / "lobby"
@@ -37,6 +44,7 @@ BARREL = LOBBY / "info_lobby_barrel_1240-140-80-120.png"       # scene: both sta
 ACTIVE = [LOBBY / "btn_lobby_main-menu_1847-20-45-58.png",      # HUD: all must show
           LOBBY / "info_lobby_sanctuary_27-246-112-86.png"]
 WAKE = (198, 975)  # table candle, bottom left: tapping it wakes the HUD (no HUD button there)
+QUIT = "quit-game"  # popup in common/popups/: "quit the game?", closed with Cancel
 
 
 def run(backs=10, taps=5, delay=1.5, verbose=True):
@@ -48,10 +56,31 @@ def run(backs=10, taps=5, delay=1.5, verbose=True):
     """
     say = print if verbose else (lambda *a: None)
 
+    quit_dialog = {QUIT: load_popups(GAME)[0][QUIT]}
+
+    def cancel_quit(screen):
+        """If the quit dialog is up on `screen`, tap Cancel. Returns a fresh
+        capture once it's gone, False if it won't close, None if it wasn't up."""
+        if not open_popup(quit_dialog, screen):
+            return None
+        say("Quit dialog is up; tapping Cancel")
+        if not close_popup(quit_dialog[QUIT], delay, say=say):
+            say("Quit dialog didn't close")
+            return False
+        return capture()
+
     screen = capture()
     presses = 0
     started = False
-    while not locate(BARREL, screen):
+    while True:
+        cancelled = cancel_quit(screen)
+        if cancelled is False:
+            return False
+        if cancelled is not None:
+            screen = cancelled
+            continue
+        if locate(BARREL, screen):
+            break
         if start_screen.at_start_screen(screen):
             if started:
                 say("Back on the start screen after getting past it once")
@@ -69,6 +98,10 @@ def run(backs=10, taps=5, delay=1.5, verbose=True):
         screen = wait_until(lambda: _with(BARREL), delay) or capture()
 
     for attempt in range(1, taps + 1):
+        cancelled = cancel_quit(screen)
+        if cancelled is False:
+            return False
+        screen = cancelled or screen
         if is_active(screen):
             say("Lobby is active")
             return True

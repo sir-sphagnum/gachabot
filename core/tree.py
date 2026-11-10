@@ -98,9 +98,9 @@ def load(game):
 
 
 def load_popups(game):
-    """Read one game's popups from <game>/common/popups/. Returns (popups, problems).
+    """Read one game's popups from <game>/templates/common/popups/. Returns (popups, problems).
 
-    popups: {name: {"path", "screen", "buttons", "info", "close"}}
+    popups: {name: {"path", "screen", "states", "buttons", "info", "close"}}
         "close" is the btn_<popup>_close_ entry (None if missing).
     """
     popups, problems = {}, []

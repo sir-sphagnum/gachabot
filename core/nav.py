@@ -14,7 +14,7 @@ Before each tap it also looks for the game's known popups
 popup's close button until the popup is gone, then carries on. Closing a popup
 doesn't use up one of the `tries`.
 
-BUTTON is a template file or an X,Y point (e.g. 1600,900); EXPECTED are
+BUTTON is a template file or an X,Y point (e.g. 198,975); EXPECTED are
 template files. Template names that follow the pathfind scheme
 (btn_/info_..._X-Y-W-H[_white].png) are searched only in their box, matching
 white-only when the name says so; any other file is searched over the whole
@@ -40,7 +40,7 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
         template is located on the live screen before each tap, so the tap
         lands on the match, not the stored box; if it isn't on screen, that
         round taps nothing and just waits. A point is tapped as is (e.g. an
-        empty spot of the lobby floor to wake its HUD).
+        empty spot of a lobby, to wake its HUD).
     expected: template path, or a list of them; stop when any one is found.
     delay: seconds to keep checking for `expected` after each tap before
         tapping again.

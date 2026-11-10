@@ -44,5 +44,5 @@ When the user says "end recon", "stop recon", or similar: stop the background `t
 
 ## Notes
 
-- Screenshots are about 1.4 MB each. Near-duplicates are skipped, so a still screen costs nothing, but heavily animated screens (battles, summons) may still save one every second.
-- Android's Pointer location overlay (Developer options) appears in every screenshot. It is harmless for recon but should be off for image matching later.
+- Screenshots are about 1–1.5 MB each. Near-duplicates are skipped, so a still screen costs nothing, but heavily animated screens (battles, summons) may still save one every second.
+- When Android's Pointer location overlay (Developer options) is on, it appears in every screenshot. It is harmless for recon but should be off for image matching later.

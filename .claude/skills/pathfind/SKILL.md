@@ -16,7 +16,7 @@ e7/                                          <- game package
   templates/                                 <- game's template folder
     start-screen/                            <- root menu
       screen.png                             <- latest full capture of the start screen
-      info_start-screen_key_1782-950-96-92_white.png
+      btn_start-screen_lobby_805-1023-311-26_white.png
       lobby/
         screen.png
         btn_lobby_summon_1620-940-180-90.png <- button on the lobby that opens summon
