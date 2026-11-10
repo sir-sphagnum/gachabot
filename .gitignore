@@ -1,0 +1,13 @@
+# Game templates (screenshots and crops) stay local: they can show account
+# details. Each game's template folder is kept, empty, through a .gitkeep.
+**/templates/**
+!**/templates/.gitkeep
+**/template/**
+!**/template/.gitkeep
+
+# Recon captures (root folder only, not .claude/skills/recon/)
+/recon/
+
+# Python
+__pycache__/
+*.pyc
