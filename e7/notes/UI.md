@@ -15,7 +15,7 @@ The title screen ("Tap to Start"). Its one indicator is also its button: the cop
 
 Three states: active and rest, each seen by day and by night, and quit. The scene's lighting changes with the time of day: at night the tavern is warmer and brighter. `screen.png` is the night lobby, active (the usable state). `screen-day.png` is the day lobby, active. `screen-night.png` is the night lobby, at rest. `screen-rest.png` is the day lobby, at rest. `screen-quit.png` is the quit dialog over the lobby.
 
-- **active**: HUD shown. Identified by the barrel **and** `info_lobby_sanctuary_27-246-112-86.png` (Sanctuary, left) **and** `btn_lobby_main-menu_1847-20-45-58.png` (blue 4-boxes, top right; also opens the main menu). Neither icon is enough alone:
+- **active**: HUD shown. Identified by the barrel **and** `btn_lobby_sanctuary_27-246-112-86.png` (Sanctuary, left; also opens `sanctuary`) **and** `btn_lobby_main-menu_1847-20-45-58.png` (blue 4-boxes, top right; also opens the main menu). Neither icon is enough alone:
   - the 4-boxes icon also shows on other screens (e.g. the shop);
   - Sanctuary also shows on `main-menu`, a panel drawn over the lobby (there the 4-boxes icon is replaced by an X).
 - **rest**: HUD hidden, only the animated tavern scene. Identified by `info_lobby_barrel_1240-140-80-120.png` (the big barrel on the wall right of the bar, centre ~(1280, 200)) while both the 4-boxes and Sanctuary icons are missing. The barrel is part of the scene, so it shows in every state and on `main-menu` (hence Sanctuary must be missing too). It's covered by some popups and absent on the shop and start screens.
@@ -32,6 +32,21 @@ Behaviour:
 - Escape from daily-shop goes to shop-landing, then a second Escape lands in the lobby already active.
 - Tap the wanted lobby button right after activating; don't pause for screenshots or the tap lands on the resting lobby and does nothing.
 - Automated by `e7/routines/lobby.py` (`python -m e7.bot lobby`).
+
+## sanctuary (`e7/templates/start-screen/lobby/sanctuary/`)
+
+Opened by Sanctuary on the active lobby. Title "Sanctuary" with a back arrow top left; Forest of Souls, Heart of Orbis and Alchemist's Steeple listed on the right.
+
+- Identified by its Forest of Souls entry (`btn_sanctuary_forest-of-souls_1625-238-235-52.png`, the text only, not the sparkle right of it), which also opens `forest-of-souls`. It scored 1.0 on two captures with different flashes behind it and no match on any other saved screen.
+- The background art (crystal tree and sky) flashes without pause: consecutive captures differ by 3–49%, so waiting for two identical screenshots never ends. The HUD and the list on the right stay still; judge settling by those.
+
+## forest-of-souls (`e7/templates/start-screen/lobby/sanctuary/forest-of-souls/`)
+
+Opened by Forest of Souls in `sanctuary`. Lists Penguin Nest, Spirit Well and MolaGora Farm with their timers, a Cultivate count, and Growth Altar.
+
+- Identified by its title, top left (`info_forest-of-souls_title_98-26-260-52.png`): 1.0 on two captures and no match on any other saved screen, Sanctuary included.
+- The timers and the Cultivate (2/3) count change, so they're for reading only, not for identifying the menu.
+- The back arrow (top left) goes straight to the lobby, active, not back to `sanctuary`.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
