@@ -19,10 +19,14 @@ template files. Template names that follow the map skill's scheme
 (btn_/info_..._X-Y-W-H[_white].png) are searched only in their box, matching
 white-only when the name says so; any other file is searched over the whole
 screen. Exits 0 when an expected element was seen, 1 otherwise.
+
+route and goto walk a game's menu tree (core.tree.load) with tap_until: each
+game wires goto up in its own <game>/nav.py (e.g. e7/nav.py).
 """
 
 import argparse
 import sys
+from collections import deque
 from functools import cache
 from pathlib import Path
 
@@ -171,6 +175,92 @@ def _first(templates, screen):
         if match:
             return str(t), match
     return None
+
+
+def route(menus, start, target):
+    """Shortest chain of buttons from menu `start` to menu `target`.
+
+    menus: a game's menus from core.tree.load. Every btn_ image is an edge
+    from the menu it sits on to the menu it opens, links included.
+    Returns a list of (menu, button) pairs, button being a core.tree element
+    entry; [] when start is target; None when no buttons lead there.
+    """
+    before = {start: None}
+    todo = deque([start])
+    while todo:
+        name = todo.popleft()
+        if name == target:
+            steps = []
+            while before[name]:
+                name, button = before[name]
+                steps.append((name, button))
+            return steps[::-1]
+        for b in menus[name]["buttons"]:
+            if b["name"] in menus and b["name"] not in before:
+                before[b["name"]] = (name, b)
+                todo.append(b["name"])
+    return None
+
+
+def identity(menu):
+    """Templates that show `menu` (a core.tree entry) is on screen, any one
+    being enough: its info_ images, or its btn_ images if it has none."""
+    return [e["file"] for e in menu["info"] or menu["buttons"]]
+
+
+def goto(menus, target, home, start, here=None, ready=None, attempts=2,
+         delay=1.5, tries=5, verbose=False):
+    """Take the game to menu `target` by tapping down the tree from `start`.
+
+    home: callable that brings the game to menu `start` from anywhere, in a
+        state where its buttons show; returns True on success.
+    start: name of the menu `home` reaches.
+    here: name of the menu already on screen, to walk from there without
+        calling `home` first. Only for the first attempt.
+    ready: {menu: callable} for menus whose buttons show only in one state
+        (e.g. a lobby that hides its HUD when idle). It is called right before
+        tapping a button on that menu and returns True once they show.
+    attempts: walks to try. A walk that fails (a popup that sends the game
+        elsewhere, a button that isn't on screen) starts over from `home`.
+    Each step is a tap_until on the button, expecting identity(next menu),
+    with the game's popups closed on the way.
+    Returns True once `target` is on screen, False otherwise.
+    """
+    say = print if verbose else (lambda *a: None)
+    if target not in menus:
+        raise ValueError(f"No menu '{target}'")
+    ready = ready or {}
+    for attempt in range(1, attempts + 1):
+        origin = here if attempt == 1 and here else start
+        steps = route(menus, origin, target)
+        if steps is None:
+            say(f"No buttons lead from {origin} to {target}")
+            if origin == start:
+                return False
+            continue
+        if origin == start:
+            say(f"Going to {start}")
+            if not home():
+                say(f"Couldn't reach {start}")
+                continue
+        say("Route: " + " > ".join([origin, *(b["name"] for _, b in steps)]))
+        if _walk(menus, steps, ready, delay, tries, say):
+            say(f"On {target}")
+            return True
+    return False
+
+
+def _walk(menus, steps, ready, delay, tries, say):
+    for menu, button in steps:
+        if menu in ready and not ready[menu]():
+            say(f"{menu} isn't ready for its buttons")
+            return False
+        nxt = button["name"]
+        say(f"{menu} > {nxt}")
+        if not tap_until(button["file"], identity(menus[nxt]), delay, tries, verbose=False):
+            say(f"{nxt} didn't show after tapping {button['file'].name}")
+            return False
+    return True
 
 
 def locate(template, screen):
