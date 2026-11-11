@@ -32,10 +32,7 @@ def find_ports():
 
 @cache
 def connect():
-    """Return (adb_path, serial) for the first BlueStacks port that accepts ADB.
-
-    @cache means this only runs once; later calls return the same result.
-    """
+    """Return (adb_path, serial) for the first BlueStacks port that accepts ADB."""
     adb = find_adb()
     for port in find_ports():
         serial = f"127.0.0.1:{port}"

@@ -6,13 +6,13 @@ Usage: python -m core.nav BUTTON EXPECTED [EXPECTED ...] [--delay S] [--tries N]
 Games sometimes swallow a tap (e.g. a popup that ignores input while it is
 still animating in). tap_until taps BUTTON, then keeps checking the screen for
 EXPECTED for `delay` seconds; if it hasn't appeared, it taps again, up to
-`tries` taps. It stops as soon as any EXPECTED element is on screen, including
-before the first tap.
+`tries` taps. It stops as soon as any EXPECTED element is on screen with no
+known popup open, including before the first tap.
 
-Before each tap it also looks for the game's known popups
-(<game>/templates/common/popups/, see core/tree.py). If one is open, it taps that
-popup's close button until the popup is gone, then carries on. Closing a popup
-doesn't use up one of the `tries`.
+The known popups are the game's common popups (<game>/templates/common/popups/,
+see core/tree.py). Whenever one is open, it taps that popup's close button until
+the popup is gone, then looks again. Closing a popup doesn't use up one of the
+`tries`; up to `tries` popups are closed.
 
 BUTTON is a template file or an X,Y point (e.g. 1869,49); EXPECTED are
 template files. Template names that follow the map skill's scheme
@@ -45,11 +45,12 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
     delay: seconds to keep checking for `expected` after each tap before
         tapping again.
     tries: maximum number of taps on `button`.
-    popups: which popups to close before tapping. True: the popups of the
+    popups: which popups to close before trusting a match or tapping. True: the popups of the
         game the templates live in (<game>/templates/...). A game name: that
         game's popups. A dict from core.tree.load_popups. False/None: none.
     Returns (template, (cx, cy, score)) for the expected element that was
-    found, or None if it never appeared (or a popup couldn't be closed).
+    found with no known popup open, or None if it never appeared, a popup
+    couldn't be closed, or more than `tries` popups were closed.
     """
     if isinstance(button, (list, tuple)):
         button = tuple(int(v) for v in button)  # accept [x, y] as well as (x, y)
@@ -59,14 +60,15 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
     known = _resolve_popups(popups, [button, *expected])
 
     taps = closed = 0
-    while taps < tries:
+    while True:
         screen = capture()
-        hit = _first(expected, screen)
-        if hit:
-            return hit
-
+        # Popups before `expected`: a popup that dims the screen can leave
+        # `expected` matching underneath it.
         popup = open_popup(known, screen)
-        if popup and closed < tries:
+        if popup:
+            if closed == tries:
+                say(f"Popups still showing after closing {tries}")
+                return None
             closed += 1
             say(f"Popup {popup} is open; closing it")
             if not close_popup(known[popup], delay, tries, say):
@@ -74,13 +76,15 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
                 return None
             continue
 
-        taps += 1
-        _tap(button, screen, f"Tap {taps}/{tries}", say)
-        hit = _wait_for(lambda s: _first(expected, s), delay)
+        hit = _first(expected, screen)
         if hit:
             return hit
+        if taps == tries:
+            return None
 
-    return _first(expected, capture())
+        taps += 1
+        _tap(button, screen, f"Tap {taps}/{tries}", say)
+        _wait_for(lambda s: open_popup(known, s) or _first(expected, s), delay)
 
 
 def open_popup(popups, screen):

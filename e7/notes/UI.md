@@ -9,7 +9,7 @@ The title screen ("Tap to Start"). Its one indicator is also its button: the cop
 - The title art is animated, and its colours change behind the text, so the template matches only the text. It's matched on white glyphs (`_white`). Its PNG is also transparent everywhere except the letters and a 1 px ring of their dark outline, and `core.vision.find` ignores transparent pixels. It scores 1.0 on every start-screen capture, including one with different art behind the text, and at most 0.09 elsewhere. A plain white crop of the line (no transparency) drops to ~0.78 when the art behind it changes.
 - The template was built from two captures with different art behind the text. Its letter pixels are white in both, and its ring pixels are white in neither. To rebuild it, do the same; don't just crop one capture.
 - Don't use the corner icons (Repair Resources, Global, key) or "Tap to Start" as indicators. The icons are translucent over the moving art and drop below the threshold. "Tap to Start" pulses. The corner HUD is sometimes drawn at about 0.83× size.
-- The `start_screen` routine (`e7/routines/start_screen.py`, `python -m e7.bot start_screen`) waits up to 60 s for this screen or the lobby. It taps the copyright line until the screen goes, then waits up to 30 s for the lobby's wall barrel. The `lobby` routine checks for this screen before every Back press and hands over to `start_screen` when it's up.
+- Automated by `e7/routines/start_screen.py` (`python -m e7.bot start_screen`).
 
 ## lobby (`e7/templates/start-screen/lobby/`)
 
@@ -27,7 +27,7 @@ Behaviour:
 - Activate by tapping the main-menu icon's spot, (1869, 49), until the icon shows. If the tap opens `main-menu` instead, the panel's X sits on the same spot, so the next tap closes it and leaves the lobby active. Don't tap the floor spot (1600, 900) when the HUD may be up: it's right at the edge of the promo banner at the bottom right (~1560–1880, 905–1040).
 - Escape from daily-shop goes to shop-landing, then a second Escape lands in the lobby already active.
 - Tap the wanted lobby button right after activating; don't pause for screenshots or the tap lands on the resting lobby and does nothing.
-- The `lobby` routine (`e7/routines/lobby.py`, `python -m e7.bot lobby`) does all this: Back until the barrel shows, then tap the main-menu icon's spot with `core.nav.tap_until` until the icon shows. Before each Back it closes any common popup that's open, then looks again, and it hands over to `start_screen` whenever the start screen is up. It checks popups before the barrel because the quit dialog and the Disconnected popup both show over the lobby with the barrel still matching (see below).
+- Automated by `e7/routines/lobby.py` (`python -m e7.bot lobby`).
 
 ## quit-game popup (`e7/templates/common/popups/quit-game/`)
 
@@ -35,8 +35,7 @@ Behaviour:
 
 - Identified by its Cancel button (`info_quit-game_cancel_660-650-280-80.png`, same crop as `btn_quit-game_close_...`). Scored 1.0 on the dialog and no match on any other saved screen.
 - Close it with Cancel, never Confirm (Confirm quits the game).
-- The lobby shows dimmed behind it and the wall barrel still matches (0.96), so barrel alone would say "lobby". The HUD icons don't match through the dim.
-- As a common popup, the `lobby` routine and `core.nav.tap_until` cancel it automatically.
+- The lobby shows dimmed behind it and the wall barrel still matches (0.96). The HUD icons don't match through the dim.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
@@ -53,4 +52,4 @@ Behaviour:
 - Identified by its message (`info_disconnected_message_590-460-740-50.png`): 1.0 on the popup, at most 0.39 elsewhere (the quit dialog).
 - Closed by tapping "Tap to close" (`btn_disconnected_close_860-643-200-90.png`, centre (960, 688)), higher up than date-changed's, so each popup has its own close button.
 - Closing it goes to the start screen.
-- The lobby shows dimmed behind it and the wall barrel still matches (0.98), so check for it before trusting the barrel. The `lobby` routine does.
+- The lobby shows dimmed behind it and the wall barrel still matches (0.98).
