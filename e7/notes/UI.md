@@ -28,7 +28,7 @@ Behaviour:
 - Tapping the candle while `main-menu` is open closes the panel and leaves the lobby active.
 - Escape from daily-shop goes to shop-landing, then a second Escape lands in the lobby already active.
 - Tap the wanted lobby button right after activating; don't pause for screenshots or the tap lands on the resting lobby and does nothing.
-- The `lobby` routine (`e7/routines/lobby.py`, `python -m e7.bot lobby`) does all this: Back until the barrel shows (handing over to `start_screen` whenever the start screen is up), then tap the candle's spot until the HUD icons show. Before every Back press and candle tap it cancels the quit dialog if it's up (see quit-game below).
+- The `lobby` routine (`e7/routines/lobby.py`, `python -m e7.bot lobby`) does all this: Back until the barrel shows (handing over to `start_screen` whenever the start screen is up), then tap the main-menu icon's spot (1869, 49) with `core.nav.tap_until` until the icon shows. tap_until cancels the quit dialog if it's up (see quit-game below). If a tap on the resting lobby opens `main-menu`, the next tap lands on its X and closes it.
 
 ## quit-game popup (`e7/templates/common/popups/quit-game/`)
 
