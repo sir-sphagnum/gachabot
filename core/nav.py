@@ -14,7 +14,7 @@ Before each tap it also looks for the game's known popups
 popup's close button until the popup is gone, then carries on. Closing a popup
 doesn't use up one of the `tries`.
 
-BUTTON is a template file or an X,Y point (e.g. 198,975); EXPECTED are
+BUTTON is a template file or an X,Y point (e.g. 1869,49); EXPECTED are
 template files. Template names that follow the map skill's scheme
 (btn_/info_..._X-Y-W-H[_white].png) are searched only in their box, matching
 white-only when the name says so; any other file is searched over the whole
