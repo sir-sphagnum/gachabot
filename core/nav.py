@@ -132,7 +132,7 @@ def _resolve_popups(popups, templates):
     if isinstance(popups, dict):
         return popups
     if isinstance(popups, str):
-        return _game_popups(popups)
+        return game_popups(popups)
     for t in templates:  # popups=True: infer the game from the template paths
         if isinstance(t, tuple):
             continue
@@ -141,12 +141,14 @@ def _resolve_popups(popups, templates):
         except ValueError:
             continue
         if len(parts) > 1 and parts[1] == "templates":
-            return _game_popups(parts[0])
+            return game_popups(parts[0])
     return {}
 
 
 @cache
-def _game_popups(game):
+def game_popups(game):
+    """The popups of `game` (from core.tree.load_popups) that the bot can both
+    detect (info_ images) and close (a close button), keyed by name."""
     return {n: p for n, p in load_popups(game)[0].items() if p["info"] and p["close"]}
 
 
