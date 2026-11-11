@@ -125,9 +125,18 @@ def _wait_for(check, delay):
     return wait_until(lambda: check(capture()), delay, interval=0)
 
 
+def dialog(info, close):
+    """A dialog that isn't one of the game's common popups (e.g. one a menu
+    opens on a known action), in the form open_popup, close_popup and
+    tap_until's `popups` take. info: template path, or a list of them, that
+    all match while it is open. close: template path of the button that
+    closes it."""
+    info = [info] if isinstance(info, (str, Path)) else info
+    return {"info": [{"file": i} for i in info], "close": {"file": close}}
+
+
 def _is_open(popup, screen):
-    return bool(popup["info"]) and all(
-        find(i["file"], screen, i["box"], white=i["white"]) for i in popup["info"])
+    return bool(popup["info"]) and all(locate(i["file"], screen) for i in popup["info"])
 
 
 def _resolve_popups(popups, templates):

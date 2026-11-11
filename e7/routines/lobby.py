@@ -2,20 +2,21 @@
 
 Usage: python -m e7.routines.lobby
 
-1. Until the lobby's wall barrel shows with no popup over it:
-   - if one of the game's common popups is open (e7/templates/common/popups/),
-     close it and look again;
+1. Until the lobby's wall barrel shows with no popup or quit dialog over it:
+   - if one of the game's common popups (e7/templates/common/popups/) or the
+     lobby's quit dialog is open, close it (Cancel for the quit dialog) and
+     look again;
    - if the start screen is up, hand over to the start_screen routine (and
      reset the Back count);
    - otherwise press Back.
 2. Once the barrel shows, tap the main-menu icon's spot (top right) with
    core.nav.tap_until until the icon itself shows, which means the HUD is up.
 
-Popups are checked before the barrel because some show over the lobby with
-the barrel still matching through the dim: the quit dialog (opened when Back
-is pressed once too many in the lobby) and "Disconnected from server", which
-leads to the start screen once closed. Closing a popup can change where the
-game is, so the loop starts over after each one.
+Popups and the quit dialog are checked before the barrel because some show
+over the lobby with the barrel still matching through the dim: the quit
+dialog (opened when Back is pressed once too many in the lobby) and
+"Disconnected from server", which leads to the start screen once closed.
+Closing one can change where the game is, so the loop starts over after each.
 
 If the HUD is at rest and the tap opens the main-menu panel, the panel's X
 sits on the same spot, so the next tap closes it and the HUD stays up.
@@ -25,26 +26,29 @@ import sys
 
 from core.device import wait_until
 from core.input import back, capture
-from core.nav import close_popup, game_popups, locate, open_popup, tap_until
+from core.nav import close_popup, dialog, game_popups, locate, open_popup, tap_until
 from e7.config import BACK_KEY, GAME, TEMPLATES_DIR
 from e7.routines import start_screen
 
 LOBBY = TEMPLATES_DIR / "start-screen" / "lobby"
-BARREL = LOBBY / "info_lobby_barrel_1240-140-80-120.png"     # scene: both states, day and night
+BARREL = LOBBY / "info_lobby_barrel_1240-140-80-120.png"     # scene: every state, day and night
 MAIN_MENU = LOBBY / "btn_lobby_main-menu_1847-20-45-58.png"  # HUD: shows only when active
 MAIN_MENU_SPOT = (1869, 49)  # centre of MAIN_MENU's box
+QUIT = dialog(LOBBY / "info_lobby_quit-cancel_660-650-280-80.png",  # quit dialog's Cancel
+              LOBBY / "btn_lobby_lobby_660-650-280-80.png")
 
 
 def run(backs=10, taps=5, delay=1.5, verbose=True):
     """Return True once the active lobby is on screen, False if it couldn't get there.
 
-    backs: maximum Back presses to reach the lobby, and maximum popups closed.
+    backs: maximum Back presses to reach the lobby, and maximum popups and
+        quit dialogs closed.
     taps: maximum taps to wake its HUD.
     delay: seconds to keep checking the screen after each press or tap.
     """
     say = print if verbose else (lambda *a: None)
 
-    popups = game_popups(GAME)
+    popups = {**game_popups(GAME), "quit": QUIT}
     screen = capture()
     presses = closed = 0
     while True:
@@ -77,7 +81,7 @@ def run(backs=10, taps=5, delay=1.5, verbose=True):
         screen = wait_until(lambda: _with(BARREL), delay) or capture()
 
     say("In the lobby; waking the HUD")
-    if tap_until(MAIN_MENU_SPOT, MAIN_MENU, delay, taps, popups=True, verbose=verbose):
+    if tap_until(MAIN_MENU_SPOT, MAIN_MENU, delay, taps, popups=popups, verbose=verbose):
         say("Lobby is active")
         return True
     say(f"Lobby HUD not shown after {taps} taps")

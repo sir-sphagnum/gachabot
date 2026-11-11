@@ -48,9 +48,9 @@ One incident can't tell a recurring cause from an accident, and a rule written f
 
 ### Rule 1. Check for popups before trusting a state indicator
 
-A popup that dims the screen leaves what's underneath matching, so an indicator showing is not proof the game is in that state. Before acting on an indicator match, check that none of the game's known popups is open, and close any that is before looking again.
+A popup or dialog that dims the screen leaves what's underneath matching, so an indicator showing is not proof the game is in that state. Before acting on an indicator match, check that none of the game's known popups, nor any dialog the current menu can have open, is open, and close any that is before looking again.
 
 - `891ce78`: the quit dialog dims the lobby; the wall barrel still matched (0.96), so the routine took it for the lobby and tapped the candle, which did nothing.
 - `8c73f0c`: the barrel matched through "Disconnected from server"; the routine handed over to `tap_until`, which closed the popup and kept tapping the main-menu spot on the start screen it led to.
 
-**Scope:** this covers matches that decide what state the game is in. It doesn't cover a popup's own `info_` images, or a wait whose result a popup-checking loop looks at again before acting.
+**Scope:** this covers matches that decide what state the game is in. It doesn't cover a popup's or dialog's own `info_` images, or a wait whose result a popup-checking loop looks at again before acting.

@@ -13,12 +13,16 @@ The title screen ("Tap to Start"). Its one indicator is also its button: the cop
 
 ## lobby (`e7/templates/start-screen/lobby/`)
 
-Two states, each seen by day and by night. The scene's lighting changes with the time of day: at night the tavern is warmer and brighter. `screen.png` is the night lobby, active (the usable state). `screen-day.png` is the day lobby, active. `screen-night.png` is the night lobby, at rest. `screen-rest.png` is the day lobby, at rest.
+Three states: active and rest, each seen by day and by night, and quit. The scene's lighting changes with the time of day: at night the tavern is warmer and brighter. `screen.png` is the night lobby, active (the usable state). `screen-day.png` is the day lobby, active. `screen-night.png` is the night lobby, at rest. `screen-rest.png` is the day lobby, at rest. `screen-quit.png` is the quit dialog over the lobby.
 
 - **active**: HUD shown. Identified by the barrel **and** `info_lobby_sanctuary_27-246-112-86.png` (Sanctuary, left) **and** `btn_lobby_main-menu_1847-20-45-58.png` (blue 4-boxes, top right; also opens the main menu). Neither icon is enough alone:
   - the 4-boxes icon also shows on other screens (e.g. the shop);
   - Sanctuary also shows on `main-menu`, a panel drawn over the lobby (there the 4-boxes icon is replaced by an X).
-- **rest**: HUD hidden, only the animated tavern scene. Identified by `info_lobby_barrel_1240-140-80-120.png` (the big barrel on the wall right of the bar, centre ~(1280, 200)) while both the 4-boxes and Sanctuary icons are missing. The barrel is part of the scene, so it shows in both states and on `main-menu` (hence Sanctuary must be missing too). It's covered by popups and absent on the shop and start screens.
+- **rest**: HUD hidden, only the animated tavern scene. Identified by `info_lobby_barrel_1240-140-80-120.png` (the big barrel on the wall right of the bar, centre ~(1280, 200)) while both the 4-boxes and Sanctuary icons are missing. The barrel is part of the scene, so it shows in every state and on `main-menu` (hence Sanctuary must be missing too). It's covered by some popups and absent on the shop and start screens.
+- **quit**: "Are you sure you want to quit the game?" with Cancel (left, brown) and Confirm (right, blue), over the dimmed lobby. Escape in the lobby opens it, so the `lobby` routine opens it whenever it presses Back one time too many. It's a lobby state rather than a common popup because only the lobby opens it, and always on Escape.
+  - Identified by its Cancel button (`info_lobby_quit-cancel_660-650-280-80.png`, same crop as `btn_lobby_lobby_...`, the tap back to the active lobby). Scored 1.0 on the dialog and no match on any other saved screen.
+  - Close it with Cancel, never Confirm (Confirm quits the game).
+  - The wall barrel still matches through the dim (0.96). The HUD icons don't.
 
 Why the barrel: it scores 1.0 by day, 0.96 at night, 0.99 at rest and 0.96 under `main-menu`, and at most 0.30 on non-lobby screens. The heroes (e.g. the old man's belt, 520,660) match even better day to night (0.99), as they aren't relit. But they're the player's lobby characters and could change, and they're hidden under `main-menu`. If another lighting turns up (e.g. dusk), check the barrel on it.
 
@@ -28,14 +32,6 @@ Behaviour:
 - Escape from daily-shop goes to shop-landing, then a second Escape lands in the lobby already active.
 - Tap the wanted lobby button right after activating; don't pause for screenshots or the tap lands on the resting lobby and does nothing.
 - Automated by `e7/routines/lobby.py` (`python -m e7.bot lobby`).
-
-## quit-game popup (`e7/templates/common/popups/quit-game/`)
-
-"Are you sure you want to quit the game?" with Cancel (left, brown) and Confirm (right, blue). Escape in the lobby opens it, so the `lobby` routine opens it whenever it presses Back one time too many.
-
-- Identified by its Cancel button (`info_quit-game_cancel_660-650-280-80.png`, same crop as `btn_quit-game_close_...`). Scored 1.0 on the dialog and no match on any other saved screen.
-- Close it with Cancel, never Confirm (Confirm quits the game).
-- The lobby shows dimmed behind it and the wall barrel still matches (0.96). The HUD icons don't match through the dim.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
@@ -49,7 +45,7 @@ Behaviour:
 
 "Disconnected from server. Returning to the title screen." with "Tap to close" and a down chevron below, on the same dark band as date-changed but with no title. Seen over the lobby right after closing date-changed.
 
-- Identified by its message (`info_disconnected_message_590-460-740-50.png`): 1.0 on the popup, at most 0.39 elsewhere (the quit dialog).
+- Identified by its message (`info_disconnected_message_590-460-740-50.png`): 1.0 on the popup, at most 0.39 elsewhere (the lobby's quit dialog).
 - Closed by tapping "Tap to close" (`btn_disconnected_close_860-643-200-90.png`, centre (960, 688)), higher up than date-changed's, so each popup has its own close button.
 - Closing it goes to the start screen.
 - The lobby shows dimmed behind it and the wall barrel still matches (0.98).
