@@ -273,10 +273,14 @@ def route(menus, start, target):
     return None
 
 
-def identity(menu):
-    """Templates that show `menu` (a core.tree entry) is on screen, any one
-    being enough: its info_ images, or its btn_ images if it has none."""
-    return [e["file"] for e in menu["info"] or menu["buttons"]]
+def identity(menus, name):
+    """Templates that show menu `name` is on screen, any one being enough: its
+    info_ images, or, if it has none, its buttons to other menus. Buttons that
+    keep the game on the menu (claim, tab) are left out: many show only in some
+    states, e.g. a claim button only while there is something to claim."""
+    menu = menus[name]
+    return [e["file"] for e in menu["info"]
+            or [b for b in menu["buttons"] if b["name"] in menus and b["name"] != name]]
 
 
 def lobby(game):
@@ -351,7 +355,7 @@ def _walk(menus, steps, home, delay, tries):
             return f"{HOME} buttons not showing"
         nxt = button["name"]
         log.info(f"{menu} > {nxt}")
-        if not tap_until(button["file"], identity(menus[nxt]), delay, tries):
+        if not tap_until(button["file"], identity(menus, nxt), delay, tries):
             return f"{nxt} not shown after tapping {button['file'].name}"
     return None
 

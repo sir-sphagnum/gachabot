@@ -2,7 +2,7 @@
 
 Usage: python -m tools.map start GAME
        python -m tools.map shot
-       python -m tools.map click HERE TARGET X Y W H [--fresh]
+       python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay]
        python -m tools.map info HERE ELEMENT X Y W H
        python -m tools.map note TEXT...
        python -m tools.map log
@@ -18,6 +18,8 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         TARGET), wait for the screen to settle and capture it. The box is cut
         from the current screen at finish, so it must show the button: pass
         --fresh to capture just before tapping (e.g. right after a routine).
+        --stay: the button keeps the game on HERE (claim, tab, close a dialog);
+        TARGET names the button itself and finish makes no menu for it.
 info    log box X Y W H of the current screen as element ELEMENT of menu HERE.
 note    log an observation for the game's notes, with the current screen.
 log     print the log.
@@ -123,7 +125,7 @@ def shot():
     print(path)
 
 
-def click(here, target, box, fresh=False):
+def click(here, target, box, fresh=False, stay=False):
     entries = _entries()
     _check_names(here, target)
     if fresh:
@@ -135,10 +137,13 @@ def click(here, target, box, fresh=False):
     tx, ty = tap(cx, cy)
     png, settled = settle()
     after = _save(png, target)
-    _append({"kind": "btn", "here": here, "name": target, "box": box,
-             "source": before, "after": after})
+    entry = {"kind": "btn", "here": here, "name": target, "box": box,
+             "source": before, "after": after}
+    if stay:
+        entry["stay"] = True
+    _append(entry)
     still = "" if settled else " (still changing)"
-    log.info(f"{here} > {target} at ({tx}, {ty}), {after}{still}")
+    log.info(f"{here} {'/' if stay else '>'} {target} at ({tx}, {ty}), {after}{still}")
     print(f"Tapped ({tx}, {ty}); {after}{still}")
 
 
@@ -163,7 +168,8 @@ def finish():
 
     For each logged btn/info, in order:
     - HERE must be a menu in the tree, or a TARGET created earlier in the log.
-    - A btn whose TARGET has no folder gets a new folder inside HERE's, with
+    - A btn logged with --stay is cropped on HERE and makes no menu.
+    - Any other btn whose TARGET has no folder gets a new folder inside HERE's, with
       the click's after-capture as its screen.png. A TARGET that already exists
       is a link; its screen.png is left alone (it may be a chosen state).
     - The box is cut from the screen it was logged on, replacing any earlier
@@ -191,7 +197,7 @@ def finish():
             log.warning(f"{label}: no menu {here} in the tree, skipping")
             continue
         d = folders[here]
-        if e["kind"] == "btn":
+        if e["kind"] == "btn" and not e.get("stay"):
             if name in folders:
                 if name not in made:
                     print(f"{label}: '{name}' exists ({_rel(folders[name])}); "
@@ -262,14 +268,14 @@ def _box(args):
 if __name__ == "__main__":
     setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
-    fresh = "--fresh" in args
-    args = [a for a in args if a != "--fresh"]
+    fresh, stay = "--fresh" in args, "--stay" in args
+    args = [a for a in args if a not in ("--fresh", "--stay")]
     if cmd == "start" and len(args) == 1:
         start(args[0])
     elif cmd == "shot" and not args:
         shot()
     elif cmd == "click" and len(args) == 6:
-        click(args[0], args[1], _box(args[2:]), fresh)
+        click(args[0], args[1], _box(args[2:]), fresh, stay)
     elif cmd == "info" and len(args) == 6:
         info(args[0], args[1], _box(args[2:]))
     elif cmd == "note" and args:

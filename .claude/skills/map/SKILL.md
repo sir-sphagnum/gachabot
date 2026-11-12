@@ -40,13 +40,13 @@ A menu folder can hold:
 | sub-folders | menus reachable from this one with one tap. No sub-folders means this is a leaf. |
 | `screen.png` | the latest full capture of this menu. For a menu with several states, this is the usable one (e.g. the lobby with its HUD showing). |
 | `screen-<state>.png` | a capture of another state of the same menu (e.g. `screen-rest.png`: the lobby idle with its HUD hidden). How to tell the states apart and switch to the usable one doesn't go in the folder: write it to the game's UI notes, `<game>/notes/UI.md` (e.g. `e7/notes/UI.md`), in a section for the menu. Create the file for a new game, and a `<game>/CLAUDE.md` that imports it (`@notes/UI.md`). |
-| `btn_<here>_<target>_<x>-<y>-<w>-<h>.png` | an interactable element on this menu. `<target>` is the folder it opens. Buttons also identify the menu they sit on: if one is found on screen, the bot is on this menu. |
+| `btn_<here>_<target>_<x>-<y>-<w>-<h>.png` | an interactable element on this menu. `<target>` is the folder it opens, or, for a button that keeps the game on this menu (claim, tab, close a dialog), the button's own name. Buttons to other menus also identify the menu they sit on when it has no `info_` images: if one is found on screen, the bot is on this menu. |
 | `info_<here>_<element>_<x>-<y>-<w>-<h>.png` | an informative (non-clickable) element: used to confirm which menu the bot is on, or to read information from. |
 
 Naming rules:
 - Menu and element names are short, lowercase, hyphenated (`banner-list`, `gem-count`). Never use `_` inside a name: `_` separates fields.
 - Game names are the one exception: they may use `_`, since they never appear in file names. A game's package folder must match its short name in `core.device.GAMES` (e.g. `e7`).
-- Menu names are unique within a game. That is what lets a button point at a menu that lives in another branch (a link).
+- Menu names are unique within a game. That is what lets a button point at a menu that lives in another branch (a link). A button whose `<target>` is no menu keeps the game where it is, so a misspelt target doesn't show up as a problem: check names when you crop.
 - `<x>-<y>-<w>-<h>` is the crop box in device pixels (1920x1080): top-left corner, width, height. It is the same box `core.vision find` takes as its search location.
 - Add `_white` before `.png` when the element only matches with `core.vision find --white` (semi-transparent buttons). `finish` adds it on its own when only white matching works.
 - For text over a background that changes (animated art), save the template as a PNG with an alpha channel. Keep only the letters and their outline opaque: `core.vision.find` ignores transparent pixels.
@@ -82,7 +82,7 @@ The folders and file names are the whole map: there is no separate index file to
    - **a menu that exists elsewhere in the tree** (e.g. a "home" button back to the lobby): it's a link; `finish` makes no folder for it. Tell the user it's the same as `<game>/templates/<path>/`.
    - **a popup or dialog over the old menu:** ask the user which of three it is, and log the answer with `python -m tools.map note ...`:
      - a menu of its own: carry on; `finish` makes it a folder.
-     - a state of the old menu: a dialog that this menu always opens on a known action (e.g. a quit prompt on Escape). At finish it becomes `screen-<state>.png` in the old menu's folder, with an `info_<here>_...png` that identifies it and a `btn_<here>_<here>_...png` for the tap that closes it.
+     - a state of the old menu: a dialog that this menu always opens on a known action (e.g. a quit prompt on Escape). At finish it becomes `screen-<state>.png` in the old menu's folder, with an `info_<here>_...png` that identifies it and a `btn_<here>_<button>_...png` for the tap that closes it (log the close with `click ... --stay`).
      - a popup: shows up over any menu, unpredictably and in the way (e.g. a reward notice, a server disconnect). At finish it goes in `<game>/templates/common/popups/<popup>/`, not the menu tree: its `screen.png`, one or more `info_<popup>_<element>_...png` that identify it (the popup counts as open only when **all** of them match), and `btn_<popup>_close_...png` for the tap that closes it. `core.nav.tap_until` closes these automatically before each tap.
 
 ## "Identify this screen by <element>"

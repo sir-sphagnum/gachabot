@@ -13,7 +13,10 @@ nothing else is stored:
                                            how to recognise / switch states is kept
                                            in <game>/notes/UI.md, not here
   <menu>/btn_<menu>_<target>_<x>-<y>-<w>-<h>[_white].png
-                                           a button on <menu> that opens <target>
+                                           a button on <menu>: <target> is the menu
+                                           it opens, or, for a control that keeps
+                                           the game on <menu> (claim, tab, close a
+                                           dialog), the control's own name
   <menu>/info_<menu>_<element>_<x>-<y>-<w>-<h>[_white].png
                                            an element that identifies <menu> or
                                            carries information
@@ -90,11 +93,9 @@ def load(game):
         for child in menu["children"]:
             if child not in targets:
                 problems.append(f"{menu['path']}/{child}: no button on '{name}' opens it")
-        for b in menu["buttons"]:
-            if b["name"] not in menus:
-                problems.append(f"{menu['path']}/{b['file'].name}: target '{b['name']}' has no folder")
-        if not menu["buttons"] and not menu["info"]:
-            problems.append(f"{menu['path']}: no btn_/info_ images, so the bot can't recognise it")
+        if not menu["info"] and not any(b["name"] in menus for b in menu["buttons"]):
+            problems.append(f"{menu['path']}: no info_ images or buttons to other menus, "
+                            "so the bot can't recognise it")
         if not menu["screen"]:
             problems.append(f"{menu['path']}: no screen.png")
     return menus, problems
@@ -167,8 +168,9 @@ def show(game, menus, problems, popups=None):
         for b in menu["buttons"]:
             target = menus.get(b["name"])
             if target is None:
-                where = "  [no folder]"
-            elif target["parent"] != name:
+                print(f"{pad}  btn     {b['name']} {box(b)}")
+                continue
+            if target["parent"] != name:
                 where = f"  [link to {target['path']}]"
             else:
                 where = ""

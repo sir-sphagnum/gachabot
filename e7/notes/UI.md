@@ -44,6 +44,14 @@ Opened by Forest of Souls in `sanctuary`. Lists Penguin Nest, Spirit Well and Mo
 - Identified by its title, top left (`info_forest-of-souls_title_98-26-260-52.png`): 1.0 on two captures and no match on any other saved screen, Sanctuary included.
 - The timers and the Cultivate (2/3) count change, so they're for reading only, not for identifying the menu.
 - The back arrow (top left) goes straight to the lobby, active, not back to `sanctuary`.
+- The title still matches (1.0) under the reward dialog's dim, so it can't tell the dialog is closed (Rule 1).
+
+Two states: the menu, and **reward** (`screen-reward.png`), a dialog over the dimmed menu.
+
+Controls (task `claim-forest`, `e7/routines/claim_forest.py`, `python -m e7.bot claim_forest`):
+- **Penguin Nest, Spirit Well, MolaGora Farm** rows: each shows "Receive Reward" (bright blue pill, orange dot) when ready, else a countdown on a dark pill. One image, `btn_forest-of-souls_receive-reward_1468-378-186-36.png` (the text only, without the sparkles either side), cut on Penguin Nest's row, matches every ready row at its offset: Spirit Well +174 px (1.0), MolaGora Farm +347 px from its label (not seen ready yet). It scores at most 0.19 on a row with a timer and 0.16 under the dialog.
+- Tapping a ready row opens the **reward** dialog: a title naming the reward ("A Penguin has fully grown!", "Lesser Spirit Bloom Growth Completed!"), the items got, and "Tap to close". The titles differ, but "Tap to close" (`btn_forest-of-souls_reward-close_860-765-200-90.png`, centre (960, 810)) sits in the same place on both, so it identifies the dialog and closes it: 0.98–1.0 on the dialog, at most 0.19 on every other saved screen, the common popups included (theirs sit higher). Closing it leaves the row on its timer.
+- **Cultivate (n/3)**: takes 24 h off MolaGora Farm's timer (36:46 → 12:45) and opens no dialog. When no uses are left the button turns grey and loses its orange dot, and it can't be used again. `btn_forest-of-souls_cultivate_1622-810-155-48.png` still scores 0.96 on the grey button, so lit is told by colour: mean green minus blue over the button is +41 lit, -12 grey. The count "(2/3)" doesn't change between captures (mean pixel difference 0) and changes by 30 when it goes up.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
