@@ -3,7 +3,8 @@
 routine, which nav loads by name from the game it is given.
 
 Layers, each importing only the ones above it:
-    adb     connect to BlueStacks, run adb commands
+    log     log line format, per-module loggers (.claude/logging.md)
+    adb    connect to BlueStacks, run adb commands
     input   tap, back, capture/screenshot
     vision  template matching and cropping (no device access)
     device  focus, fullscreen, start/stop apps, wait_until

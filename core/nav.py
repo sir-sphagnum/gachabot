@@ -1,11 +1,11 @@
 """Tap until an element shows (closing popups) and walk a game's menu tree.
 
-Usage: python -m core.nav GAME goto MENU [--here MENU]
+Usage: python -m core.nav GAME goto MENU [--here MENU] [--debug]
        python -m core.nav GAME routes
        python -m core.nav GAME tap BUTTON EXPECTED [EXPECTED ...] [--delay S]
-                                   [--tries N] [--no-popups]
+                                   [--tries N] [--no-popups] [--debug]
 
-GAME is a game's folder name (e.g. e7).
+GAME is a game's folder name (e.g. e7). --debug also logs each tap and wait.
 
 tap: Games sometimes swallow a tap (e.g. a popup that ignores input while it is
 still animating in). tap_until taps BUTTON, then keeps checking the screen for
@@ -46,12 +46,15 @@ from pathlib import Path
 from core import ROOT, tree
 from core.device import floating_window, focused_app, is_running, package, wait_until
 from core.input import capture, tap
+from core.log import logger, setup
 from core.tree import ELEMENT, load_popups
 from core.vision import find, is_black
 
+log = logger(__file__)
+
 # Every game has a menu folder by this name, and a <game>/routines/lobby.py
-# whose run(verbose=...) brings the game there from anywhere, with its buttons
-# showing, and returns True once it has.
+# whose run() brings the game there from anywhere, with its buttons showing,
+# and returns True once it has.
 HOME = "lobby"
 
 BLACK_WAIT = 30  # seconds to wait out a black loading or transition screen
@@ -77,7 +80,7 @@ def check_focus(game):
                          f"fullscreen. Fullscreen it with: python -m core.device fullscreen")
 
 
-def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
+def tap_until(button, expected, delay=1.5, tries=5, popups=True):
     """Tap `button` until one of `expected` is on screen.
 
     button: template path of the element to tap, or an (x, y) point. A
@@ -94,30 +97,29 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
         game's popups. A dict from core.tree.load_popups. False/None: none.
     Returns (template, (cx, cy, score)) for the expected element that was
     found with no known popup open, or None if it never appeared, a popup
-    couldn't be closed, or more than `tries` popups were closed.
+    couldn't be closed, or more than `tries` popups were closed. Each None
+    logs its reason as a WARNING, so the caller logs only what it gives up on.
     While the screen is black it neither taps nor looks: it waits (past_black).
     """
     if isinstance(button, (list, tuple)):
         button = tuple(int(v) for v in button)  # accept [x, y] as well as (x, y)
     if isinstance(expected, (str, Path)):
         expected = [expected]
-    say = print if verbose else (lambda *a: None)
     known = _resolve_popups(popups, [button, *expected])
 
     taps = closed = 0
     while True:
-        screen = past_black(say=say)
+        screen = past_black()
         # Popups before `expected`: a popup that dims the screen can leave
         # `expected` matching underneath it.
         popup = open_popup(known, screen)
         if popup:
             if closed == tries:
-                say(f"Popups still showing after closing {tries}")
+                log.warning(f"popups still showing after closing {tries}")
                 return None
             closed += 1
-            say(f"Popup {popup} is open; closing it")
-            if not close_popup(known[popup], delay, tries, say):
-                say(f"Couldn't close popup {popup}")
+            log.warning(f"popup_{popup} open, closing")
+            if not close_popup(popup, known[popup], delay, tries):
                 return None
             continue
 
@@ -125,14 +127,15 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
         if hit:
             return hit
         if taps == tries:
+            log.warning(f"expected element not seen in {tries} tries")
             return None
 
         taps += 1
-        _tap(button, screen, f"Tap {taps}/{tries}", say)
+        _tap(button, screen, f"tap {taps}/{tries}")
         _wait_for(lambda s: open_popup(known, s) or _first(expected, s), delay)
 
 
-def past_black(screen=None, timeout=BLACK_WAIT, say=lambda *a: None):
+def past_black(screen=None, timeout=BLACK_WAIT):
     """The current screen once it isn't black (core.vision.is_black).
 
     A black screen is a load or a transition: nothing on it matches yet, so
@@ -144,8 +147,12 @@ def past_black(screen=None, timeout=BLACK_WAIT, say=lambda *a: None):
     screen = capture() if screen is None else screen
     if not is_black(screen):
         return screen
-    say("Screen is black; waiting for it to load")
-    return wait_until(lambda: _unless_black(capture()), timeout) or capture()
+    log.debug("black screen, waiting")
+    screen = wait_until(lambda: _unless_black(capture()), timeout)
+    if screen is None:
+        log.warning(f"still black after {timeout}s, going on")
+        return capture()
+    return screen
 
 
 def _unless_black(screen):
@@ -161,27 +168,31 @@ def open_popup(popups, screen):
     return None
 
 
-def close_popup(popup, delay=1.5, tries=5, say=lambda *a: None):
+def close_popup(name, popup, delay=1.5, tries=5):
     """Tap `popup`'s close button until the popup is gone. Returns True once
-    it is gone, False if it is still open after `tries` taps."""
+    it is gone, False (logged as a WARNING) if it is still open after `tries`
+    taps. name: the popup's key in its popups dict, for the log."""
     for attempt in range(1, tries + 1):
         screen = capture()
         if not _is_open(popup, screen):
             return True
-        _tap(popup["close"]["file"], screen, f"  close tap {attempt}/{tries}", say)
+        _tap(popup["close"]["file"], screen, f"popup_{name}: close tap {attempt}/{tries}")
         if _wait_for(lambda s: not _is_open(popup, s), delay):
             return True
-    return not _is_open(popup, capture())
+    if not _is_open(popup, capture()):
+        return True
+    log.warning(f"popup_{name} still open after {tries} close taps")
+    return False
 
 
-def _tap(button, screen, label, say):
+def _tap(button, screen, label):
     match = (*button, 1.0) if isinstance(button, tuple) else locate(button, screen)
     if match:
         cx, cy, _ = match
         tap(cx, cy)
-        say(f"{label} at ({cx}, {cy})")
+        log.debug(f"{label} at ({cx}, {cy})")
     else:
-        say(f"{label} skipped: {Path(button).name} not on screen")
+        log.warning(f"{label} skipped: {Path(button).name} not on screen")
 
 
 def _wait_for(check, delay):
@@ -286,7 +297,7 @@ def routes(game):
     return out
 
 
-def goto(game, target, here=None, attempts=2, delay=1.5, tries=5, verbose=False):
+def goto(game, target, here=None, attempts=2, delay=1.5, tries=5):
     """Take `game` to menu `target` by tapping down its tree from HOME.
 
     here: name of the menu already on screen, to walk from there without
@@ -299,48 +310,51 @@ def goto(game, target, here=None, attempts=2, delay=1.5, tries=5, verbose=False)
     NotInFocus, before touching anything, unless `game` is the app in focus
     and fullscreen.
     """
-    say = print if verbose else (lambda *a: None)
     menus, _ = tree.load(game)
     for name in (target, here, HOME):
         if name and name not in menus:
             raise ValueError(f"No menu '{name}' in {game}")
     check_focus(game)
-    run_lobby = lobby(game)
-    home = lambda: run_lobby(verbose=verbose)
+    home = lobby(game)
     for attempt in range(1, attempts + 1):
+        last = attempt == attempts
         origin = here if attempt == 1 and here else HOME
         steps = route(menus, origin, target)
         if steps is None:
-            say(f"No buttons lead from {origin} to {target}")
             if origin == HOME:
+                log.error(f"no route from {HOME} to {target}")
                 return False
+            log.warning(f"no route from {origin} to {target}"
+                        + ("" if last else f", walking from {HOME}"))
             continue
         if origin == HOME:
-            say(f"Going to {HOME}")
+            log.info(f"going to {HOME}")
             if not home():
-                say(f"Couldn't reach {HOME}")
+                log.warning(f"{HOME} not reached" + ("" if last else ", restarting walk"))
                 continue
-        say("Route: " + " > ".join([origin, *(b["name"] for _, b in steps)]))
-        if _walk(menus, steps, home, delay, tries, say):
-            say(f"On {target}")
+        log.info("route: " + " > ".join([origin, *(b["name"] for _, b in steps)]))
+        stopped = _walk(menus, steps, home, delay, tries)
+        if not stopped:
+            log.info(f"on {target}")
             return True
+        log.warning(stopped + ("" if last else ", restarting walk"))
+    log.error(f"{target} not reached after {attempts} attempts")
     return False
 
 
-def _walk(menus, steps, home, delay, tries, say):
+def _walk(menus, steps, home, delay, tries):
+    """Tap down `steps`. Returns None once done, or why it stopped."""
     for menu, button in steps:
         # A lobby may hide its buttons when idle (E7's after ~9 s), so run the
         # lobby routine right before each tap on it. When they already show,
         # that costs only a few captures.
         if menu == HOME and not home():
-            say(f"{HOME} isn't showing its buttons")
-            return False
+            return f"{HOME} buttons not showing"
         nxt = button["name"]
-        say(f"{menu} > {nxt}")
-        if not tap_until(button["file"], identity(menus[nxt]), delay, tries, verbose=False):
-            say(f"{nxt} didn't show after tapping {button['file'].name}")
-            return False
-    return True
+        log.info(f"{menu} > {nxt}")
+        if not tap_until(button["file"], identity(menus[nxt]), delay, tries):
+            return f"{nxt} not shown after tapping {button['file'].name}"
+    return None
 
 
 def locate(template, screen):
@@ -358,11 +372,15 @@ def _main():
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("game", help="the game's folder name (e.g. e7)")
     sub = p.add_subparsers(dest="cmd", required=True)
-    g = sub.add_parser("goto", help="take the game to MENU, starting from its lobby")
+    debug = argparse.ArgumentParser(add_help=False)
+    debug.add_argument("--debug", action="store_true", help="also log each tap and wait")
+    g = sub.add_parser("goto", parents=[debug],
+                       help="take the game to MENU, starting from its lobby")
     g.add_argument("menu")
     g.add_argument("--here", help="the menu already on screen")
     sub.add_parser("routes", help="print each menu's route from the lobby")
-    t = sub.add_parser("tap", help="tap BUTTON until an EXPECTED element shows")
+    t = sub.add_parser("tap", parents=[debug],
+                       help="tap BUTTON until an EXPECTED element shows")
     t.add_argument("button")
     t.add_argument("expected", nargs="+")
     t.add_argument("--delay", type=float, default=1.5,
@@ -370,6 +388,7 @@ def _main():
     t.add_argument("--tries", type=int, default=5, help="maximum taps (default 5)")
     t.add_argument("--no-popups", action="store_true", help="don't look for popups")
     a = p.parse_args()
+    setup(getattr(a, "debug", False))
     if a.game not in tree.games():
         sys.exit(f"No game '{a.game}'. Games: {', '.join(tree.games())}")
     try:
@@ -389,13 +408,13 @@ def _run(a):
         for name in (a.menu, a.here):
             if name and name not in menus:
                 sys.exit(f"No menu '{name}'. Menus: {', '.join(menus)}")
-        return 0 if goto(a.game, a.menu, a.here, verbose=True) else 1
+        return 0 if goto(a.game, a.menu, a.here) else 1
 
     if "," in a.button and not Path(a.button).exists():
         a.button = tuple(int(v) for v in a.button.split(","))
     check_focus(a.game)
     result = tap_until(a.button, a.expected, a.delay, a.tries,
-                       popups=None if a.no_popups else a.game, verbose=True)
+                       popups=None if a.no_popups else a.game)
     if not result:
         print(f"Expected element not seen after {a.tries} taps")
         return 1

@@ -1,9 +1,9 @@
 """Get to the E7 lobby with its HUD showing, from wherever the game is.
 
-Usage: python -m e7.routines.lobby
+Usage: python -m e7.routines.lobby [--debug]
 
 core.nav loads this module by name as E7's lobby routine, the start of every
-menu walk, so keep its path and run(verbose=...) returning True on success.
+menu walk, so keep its path and run() returning True on success.
 
 1. Until the lobby's wall barrel shows with no popup or quit dialog over it:
    - while the screen is black (the game loading), wait; Back pressed then
@@ -31,10 +31,13 @@ import sys
 
 from core.device import wait_until
 from core.input import back, capture
+from core.log import logger, setup
 from core.nav import (close_popup, dialog, game_popups, locate, open_popup, past_black,
                       tap_until)
 from e7.config import BACK_KEY, GAME, TEMPLATES_DIR
 from e7.routines import start_screen
+
+log = logger(__file__)
 
 LOBBY = TEMPLATES_DIR / "start-screen" / "lobby"
 BARREL = LOBBY / "info_lobby_barrel_1240-140-80-120.png"     # scene: every state, day and night
@@ -44,7 +47,7 @@ QUIT = dialog(LOBBY / "info_lobby_quit-text_690-462-540-50.png",  # "Are you sur
               LOBBY / "btn_lobby_lobby_660-650-280-80.png")    # its Cancel button
 
 
-def run(backs=10, taps=5, delay=1.5, verbose=True):
+def run(backs=10, taps=5, delay=1.5):
     """Return True once the active lobby is on screen, False if it couldn't get there.
 
     backs: maximum Back presses to reach the lobby, and maximum popups and
@@ -52,46 +55,44 @@ def run(backs=10, taps=5, delay=1.5, verbose=True):
     taps: maximum taps to wake its HUD.
     delay: seconds to keep checking the screen after each press or tap.
     """
-    say = print if verbose else (lambda *a: None)
-
     popups = {**game_popups(GAME), "quit": QUIT}
     screen = capture()
     presses = closed = 0
     while True:
-        screen = past_black(screen, say=say)
+        screen = past_black(screen)
         popup = open_popup(popups, screen)
         if popup:
             if closed == backs:
-                say(f"Popups still showing after closing {backs}")
+                log.error(f"popups still showing after closing {backs}")
                 return False
             closed += 1
-            say(f"Popup {popup} is open; closing it")
-            if not close_popup(popups[popup], delay, say=say):
-                say(f"Couldn't close popup {popup}")
+            log.warning(f"popup_{popup} open, closing")
+            if not close_popup(popup, popups[popup], delay):
+                log.error(f"popup_{popup} not closed")
                 return False
             screen = capture()
             continue
         if locate(BARREL, screen):
             break
         if start_screen.at_start_screen(screen):
-            say("On the start screen; handing over to start_screen")
-            start_screen.run(appear=delay, verbose=verbose)
+            log.info("start screen, handing over")
+            start_screen.run(appear=delay)
             screen = capture()
             presses = 0
             continue
         if presses == backs:
-            say(f"Lobby barrel not seen after {backs} Back presses")
+            log.error(f"not reached after {backs} backs")
             return False
         presses += 1
-        say(f"Not in the lobby; Back {presses}/{backs}")
+        log.debug(f"back {presses}/{backs}")
         back(BACK_KEY)
         screen = wait_until(lambda: _with(BARREL), delay) or capture()
 
-    say("In the lobby; waking the HUD")
-    if tap_until(MAIN_MENU_SPOT, MAIN_MENU, delay, taps, popups=popups, verbose=verbose):
-        say("Lobby is active")
+    log.info("reached, waking HUD")
+    if tap_until(MAIN_MENU_SPOT, MAIN_MENU, delay, taps, popups=popups):
+        log.info("HUD showing")
         return True
-    say(f"Lobby HUD not shown after {taps} taps")
+    log.error("HUD not shown")
     return False
 
 
@@ -102,4 +103,5 @@ def _with(template):
 
 
 if __name__ == "__main__":
+    setup(debug="--debug" in sys.argv[1:])
     sys.exit(0 if run() else 1)

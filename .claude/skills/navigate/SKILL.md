@@ -36,7 +36,7 @@ Run all commands from the project root.
 
 Every game needs two things before it can be navigated:
 - a menu folder named `lobby` in its template tree, the menu the game's buttons fan out from;
-- `<game>/routines/lobby.py` with `run(verbose=True)`, which brings the game to that lobby from anywhere, with its buttons showing, and returns True once it has (see `e7/routines/lobby.py`).
+- `<game>/routines/lobby.py` with `run()`, which brings the game to that lobby from anywhere, with its buttons showing, and returns True once it has (see `e7/routines/lobby.py`).
 
 ## Notes
 

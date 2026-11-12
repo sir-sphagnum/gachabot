@@ -10,3 +10,4 @@ Where text belongs, when it may be deleted, and how lessons become rules: @doc_p
 
 - Always write paths relative to the project root (e.g. `e7/routines/lobby.py`), never absolute ones (`C:\...`), in code, docs, notes, memory and commit messages. Absolute paths expose the user's folder names.
 - Never keep outdated information in memory, notes or code docs (docstrings, comments, `notes/*.md`). When something changes, rewrite the text to describe only how things are now, and put what changed and why in the git commit message.
+- Before adding or changing a log message, or choosing between logging and printing, read `.claude/logging.md`.

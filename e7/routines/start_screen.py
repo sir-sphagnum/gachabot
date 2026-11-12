@@ -1,6 +1,6 @@
 """Get past the E7 start screen (title screen, "Tap to Start") into the lobby.
 
-Usage: python -m e7.routines.start_screen
+Usage: python -m e7.routines.start_screen [--debug]
 
 1. Wait for the start screen, the lobby, or one of the game's common popups
    to show (the game may still be loading, e.g. right after
@@ -20,15 +20,18 @@ import sys
 
 from core.device import wait_until
 from core.input import capture, tap
+from core.log import logger, setup
 from core.nav import game_popups, locate, open_popup
 from e7.config import GAME, TEMPLATES_DIR
+
+log = logger(__file__)
 
 START = TEMPLATES_DIR / "start-screen"
 COPYRIGHT = START / "btn_start-screen_lobby_805-1023-311-26_white.png"
 BARREL = START / "lobby" / "info_lobby_barrel_1240-140-80-120.png"
 
 
-def run(appear=60, taps=3, delay=3, load=30, verbose=True):
+def run(appear=60, taps=3, delay=3, load=30):
     """Return True once past the start screen and the lobby shows, False otherwise.
 
     appear: seconds to wait for the start screen (or the lobby) to show up.
@@ -36,33 +39,31 @@ def run(appear=60, taps=3, delay=3, load=30, verbose=True):
     delay: seconds to wait for the start screen to go after each tap.
     load: seconds to wait for the lobby once the start screen has gone.
     """
-    say = print if verbose else (lambda *a: None)
-
     found = wait_until(_look, appear)
     if found is None:
-        say(f"Neither the start screen nor the lobby showed within {appear}s")
+        log.error(f"no start screen or lobby after {appear}s")
         return False
     state, screen = found
     if state != "start":
-        return _report(state, say)
+        return _report(state)
 
     for attempt in range(1, taps + 1):
         match = locate(COPYRIGHT, screen)
         if not match:
             break
-        say(f"On the start screen; tap {attempt}/{taps} at {match[:2]}")
+        log.debug(f"tap {attempt}/{taps} at ({match[0]}, {match[1]})")
         tap(*match[:2])
         screen = wait_until(_gone, delay) or capture()
     if at_start_screen(screen):
-        say(f"Still on the start screen after {taps} taps")
+        log.error(f"still on start screen after {taps} taps")
         return False
 
-    say("Left the start screen; waiting for the lobby")
+    log.info("left start screen, waiting for lobby")
     found = wait_until(lambda: _look(("popup", "lobby")), load)
     if found is None:
-        say(f"Lobby barrel not seen {load}s after leaving the start screen")
+        log.error(f"no lobby {load}s after start screen")
         return False
-    return _report(found[0], say)
+    return _report(found[0])
 
 
 def at_start_screen(screen=None):
@@ -89,11 +90,11 @@ def _look(states=("popup", "start", "lobby")):
     return (state, screen) if state in states else None
 
 
-def _report(state, say):
+def _report(state):
     if state == "popup":
-        say("A popup is open; leaving it to the caller")
+        log.info("popup open, returning to caller")
         return False
-    say("In the lobby")
+    log.info("in lobby")
     return True
 
 
@@ -103,4 +104,5 @@ def _gone():
 
 
 if __name__ == "__main__":
+    setup(debug="--debug" in sys.argv[1:])
     sys.exit(0 if run() else 1)
