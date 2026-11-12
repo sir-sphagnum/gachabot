@@ -127,12 +127,12 @@ def click(here, target, box, fresh=False):
         before = _current(entries)
     x, y, w, h = box
     cx, cy = x + w // 2, y + h // 2
-    tap(cx, cy)
+    tx, ty = tap(cx, cy)
     png, settled = settle()
     after = _save(png, target)
     _append({"kind": "btn", "here": here, "name": target, "box": box,
              "source": before, "after": after})
-    print(f"Tapped ({cx}, {cy}); {after}" + ("" if settled else " (still changing)"))
+    print(f"Tapped ({tx}, {ty}); {after}" + ("" if settled else " (still changing)"))
 
 
 def info(here, element, box):

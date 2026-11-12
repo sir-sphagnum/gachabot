@@ -5,24 +5,47 @@ Usage: python -m core.input tap X Y
        python -m core.input screenshot [file.png]
 """
 
+import random
 import subprocess
 import sys
+import time
 
 import cv2
 import numpy as np
 
 from core.adb import adb, connect
 
-PRESS_DURATION_MS = 100
+PRESS_MS = (70, 130)      # press length, picked at random per tap
+DELAY_S = (0.05, 0.25)    # pause before each tap, picked at random
+# Max distance (px) a tap lands from the point asked for, on each axis. The
+# smallest button tapped so far is E7's start-screen copyright line, 26 px
+# tall: raising this past ~12 can put taps off it.
+JITTER_PX = 4
 
 # Android keycodes for back(). Games differ: some treat Back as "leave the
 # app" and close menus on Escape instead, so each game picks its own.
 KEYS = {"back": "4", "escape": "111"}
 
 
-def tap(x, y, duration_ms=PRESS_DURATION_MS):
+def tap(x, y, jitter=JITTER_PX):
+    """Tap near (x, y) after a short random pause, with a random press length.
+    Returns the (x, y) actually tapped.
+
+    jitter: max offset in px on each axis, normally distributed so most taps
+        land close to the point; 0 taps the point exactly.
+    """
+    x, y = x + _offset(jitter), y + _offset(jitter)
+    time.sleep(random.uniform(*DELAY_S))
     # `input tap` has no duration option; a zero-distance swipe holds the press.
-    adb("shell", "input", "swipe", str(x), str(y), str(x), str(y), str(duration_ms))
+    adb("shell", "input", "swipe", str(x), str(y), str(x), str(y),
+        str(random.randint(*PRESS_MS)))
+    return x, y
+
+
+def _offset(jitter):
+    if not jitter:
+        return 0
+    return max(-jitter, min(jitter, round(random.gauss(0, jitter / 2))))
 
 
 def back(key="back"):
@@ -62,8 +85,7 @@ if __name__ == "__main__":
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
     if cmd == "tap" and len(args) == 2:
         x, y = map(int, args)
-        tap(x, y)
-        print(f"Tapped ({x}, {y})")
+        print("Tapped ({}, {})".format(*tap(x, y)))
     elif cmd == "back" and len(args) <= 1:
         key = args[0] if args else "back"
         back(key)

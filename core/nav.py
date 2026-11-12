@@ -188,9 +188,8 @@ def close_popup(name, popup, delay=1.5, tries=5):
 def _tap(button, screen, label):
     match = (*button, 1.0) if isinstance(button, tuple) else locate(button, screen)
     if match:
-        cx, cy, _ = match
-        tap(cx, cy)
-        log.debug(f"{label} at ({cx}, {cy})")
+        x, y = tap(*match[:2])
+        log.debug(f"{label} at ({x}, {y})")
     else:
         log.warning(f"{label} skipped: {Path(button).name} not on screen")
 
