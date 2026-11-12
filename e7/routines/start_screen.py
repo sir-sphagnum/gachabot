@@ -13,8 +13,7 @@ Usage: python -m e7.routines.start_screen
 The lobby counts only when no common popup is open: some show over the lobby
 with the barrel still matching through the dim. A popup is left open and the
 routine returns False; the lobby routine, which hands over to this one, closes
-it and looks again. How the copyright line's template is built is in
-e7/notes/UI.md (start-screen).
+it and looks again.
 """
 
 import sys

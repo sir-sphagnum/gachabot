@@ -12,8 +12,7 @@ The title screen ("Tap to Start"). Its one indicator is also its button: the cop
 
 Three states: active and rest, each seen by day and by night, and quit. The scene's lighting changes with the time of day: at night the tavern is warmer and brighter. `screen.png` is the night lobby, active (the usable state). `screen-day.png` is the day lobby, active. `screen-night.png` is the night lobby, at rest. `screen-rest.png` is the day lobby, at rest. `screen-quit.png` is the quit dialog over the lobby.
 
-- **active**: HUD shown. Identified by the barrel **and** `btn_lobby_main-menu_1847-20-45-58.png` (blue 4-boxes, top right; also opens the main menu). Neither icon is enough alone:
-  - the 4-boxes icon also shows on other screens (e.g. the shop) and therefore cannot be used as the sole indicator of a menu;
+- **active**: HUD shown. Identified by the barrel **and** `btn_lobby_main-menu_1847-20-45-58.png` (blue 4-boxes, top right; also opens the main menu). Neither is enough alone: the barrel shows in every lobby state, and the 4-boxes icon also shows on other screens (e.g. the shop).
 - **rest**: HUD hidden, only the animated tavern scene. Identified by `info_lobby_barrel_1240-140-80-120.png` (the big barrel on the wall right of the bar, centre ~(1280, 200)) while the 4-boxes icon is missing. The barrel is part of the scene, so it shows in every state and on `main-menu`. It's covered by some popups and absent on the shop and start screens.
 - **quit**: "Are you sure you want to quit the game?" with Cancel (left, brown) and Confirm (right, blue), over the dimmed lobby. Escape in the lobby opens it, so the `lobby` routine opens it whenever it presses Back one time too many. It's a lobby state rather than a common popup because only the lobby opens it, and always on Escape.
   - Identified by its question (`info_lobby_quit-text_690-462-540-50.png`), matched in colour: 1.0 on the dialog, at most 0.45 elsewhere (the disconnected popup's message).
@@ -45,10 +44,10 @@ Opened by Forest of Souls in `sanctuary`. Lists Penguin Nest, Spirit Well and Mo
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
-"Date Changed" / "The date has changed, proceeding to Lobby." with "Tap to close" and a down chevron below. Shows over whatever menu is open when the server day rolls over;
+"Date Changed" / "The date has changed, proceeding to Lobby." with "Tap to close" and a down chevron below. Shows over whatever menu is open when the server day rolls over.
 
 - Identified by its title (`info_date-changed_title_800-295-320-70.png`, white text on the dark band), matched in colour. It scored 1.0 on the popup and at most 0.24 on every other saved screen.
-- Closed by tapping "Tap to close" (`btn_date-changed_close_860-695-200-90.png`, centre (960, 740));
+- Closed by tapping "Tap to close" (`btn_date-changed_close_860-695-200-90.png`, centre (960, 740)).
 - Closing it loads the lobby.
 
 ## disconnected popup (`e7/templates/common/popups/disconnected/`)

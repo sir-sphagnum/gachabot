@@ -34,7 +34,7 @@ The repo is public, so everything committed is world-readable. Never commit cred
 
 ## 4. Rules earned here
 
-*Empty on purpose.* Rules arrive only by the promotion rule below, never copied from another project: a borrowed rule has no incident behind it, so it fails §1.
+Rules arrive only by the promotion rule below, never copied from another project: a borrowed rule has no incident behind it, so it fails §1.
 
 **Promotion rule: a pattern becomes a rule on its second occurrence, not its first.**
 

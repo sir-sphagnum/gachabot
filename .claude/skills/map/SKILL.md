@@ -49,7 +49,7 @@ Naming rules:
 - Menu names are unique within a game. That is what lets a button point at a menu that lives in another branch (a link).
 - `<x>-<y>-<w>-<h>` is the crop box in device pixels (1920x1080): top-left corner, width, height. It is the same box `core.vision find` takes as its search location.
 - Add `_white` before `.png` when the element only matches with `core.vision find --white` (semi-transparent buttons). `finish` adds it on its own when only white matching works.
-- For text over a background that changes (animated art), save the template as a PNG with an alpha channel. Keep only the letters and their outline opaque: `core.vision.find` ignores transparent pixels. See `e7/notes/UI.md`, start-screen.
+- For text over a background that changes (animated art), save the template as a PNG with an alpha channel. Keep only the letters and their outline opaque: `core.vision.find` ignores transparent pixels.
 
 The folders and file names are the whole map: there is no separate index file to keep in sync. `python -m core.tree [game]` reads the trees live (every game, or just the one named), prints them, and lists anything that doesn't fit the scheme (bad names, menus nothing opens, menus the bot can't recognise, buttons whose target has no folder). Other scripts can call `core.tree.load("<game>")` to get one game's map as a dict, and `core.tree.games()` for the list of games.
 
