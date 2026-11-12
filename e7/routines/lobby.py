@@ -34,8 +34,8 @@ LOBBY = TEMPLATES_DIR / "start-screen" / "lobby"
 BARREL = LOBBY / "info_lobby_barrel_1240-140-80-120.png"     # scene: every state, day and night
 MAIN_MENU = LOBBY / "btn_lobby_main-menu_1847-20-45-58.png"  # HUD: shows only when active
 MAIN_MENU_SPOT = (1869, 49)  # centre of MAIN_MENU's box
-QUIT = dialog(LOBBY / "info_lobby_quit-cancel_660-650-280-80.png",  # quit dialog's Cancel
-              LOBBY / "btn_lobby_lobby_660-650-280-80.png")
+QUIT = dialog(LOBBY / "info_lobby_quit-text_690-462-540-50.png",  # "Are you sure you want to quit the game?"
+              LOBBY / "btn_lobby_lobby_660-650-280-80.png")    # its Cancel button
 
 
 def run(backs=10, taps=5, delay=1.5, verbose=True):

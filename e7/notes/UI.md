@@ -16,6 +16,9 @@ Three states: active and rest, each seen by day and by night, and quit. The scen
   - the 4-boxes icon also shows on other screens (e.g. the shop) and therefore cannot be used as the sole indicator of a menu;
 - **rest**: HUD hidden, only the animated tavern scene. Identified by `info_lobby_barrel_1240-140-80-120.png` (the big barrel on the wall right of the bar, centre ~(1280, 200)) while the 4-boxes icon is missing. The barrel is part of the scene, so it shows in every state and on `main-menu`. It's covered by some popups and absent on the shop and start screens.
 - **quit**: "Are you sure you want to quit the game?" with Cancel (left, brown) and Confirm (right, blue), over the dimmed lobby. Escape in the lobby opens it, so the `lobby` routine opens it whenever it presses Back one time too many. It's a lobby state rather than a common popup because only the lobby opens it, and always on Escape.
+  - Identified by its question (`info_lobby_quit-text_690-462-540-50.png`), matched in colour: 1.0 on the dialog, at most 0.45 elsewhere (the disconnected popup's message).
+  - Closed by tapping Cancel (`btn_lobby_lobby_660-650-280-80.png`, back to the active lobby): 1.0 on the dialog, at most 0.29 elsewhere. Never tap Confirm: it quits the game.
+  - Escape also closes it, but takes ~1.4 s to clear the text. Pressed again before that, it can land on the lobby and open the dialog again; a tap on Cancel can't.
   - The wall barrel still matches through the dim (0.96). The HUD icons don't.
 
 Why the barrel: The score does not change much under all known conditions of the lobby - it scores 1.0 by day, 0.96 at night, 0.99 at rest and 0.96 under `main-menu`, and at most 0.30 on non-lobby screens.
