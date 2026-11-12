@@ -16,6 +16,9 @@ import cv2
 import numpy as np
 
 from core import ROOT
+from core.log import logger, setup
+
+log = logger(__file__)
 
 # --- template matching ------------------------------------------------------
 
@@ -181,6 +184,7 @@ def difference(a, b):
 
 
 if __name__ == "__main__":
+    setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
     if cmd == "find":
         white = "--white" in args
@@ -193,9 +197,15 @@ if __name__ == "__main__":
         if screen is None:
             from core.input import capture
             screen = capture()
-        print(find(element, screen, location, white=white))
+        match = find(element, screen, location, white=white)
+        log.debug(f"find {Path(element).name}"
+                  + (f" on {Path(screen).name}" if isinstance(screen, str) else "")
+                  + (f": ({match[0]}, {match[1]}), score {match[2]:.3f}" if match else ": no match"))
+        print(match)
     elif cmd == "crop" and len(args) == 6:
         x, y, w, h = map(int, args[1:5])
-        print(f"Saved {crop(args[0], x, y, w, h, args[5])}")
+        path = crop(args[0], x, y, w, h, args[5])
+        log.debug(f"cropped {path} from {Path(args[0]).name}")
+        print(f"Saved {path}")
     else:
         sys.exit(__doc__)

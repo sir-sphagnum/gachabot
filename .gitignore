@@ -9,3 +9,6 @@
 # Python
 __pycache__/
 *.pyc
+
+# Skill logs (core/log.py)
+/logs/

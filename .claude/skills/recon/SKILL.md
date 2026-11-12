@@ -9,12 +9,17 @@ Records what happens in BlueStacks while the user asks you to click through the 
 
 ## Start
 
-1. Start the capture loop in the background (run_in_background: true), from the project root:
+1. Open this run's log, from the project root:
+   ```
+   python -m core.log start recon
+   ```
+   It prints the log file. If it says `(inside <skill>)` and you didn't start that skill in this conversation, an earlier run never ended: run `python -m core.log end --all`, then start again (`.claude/logging.md` §5).
+2. Start the capture loop in the background (run_in_background: true), from the project root:
    ```
    python -m tools.recon
    ```
    It takes a screenshot every second and saves it as `recon/YYYYMMDD-HHMMSS.png` only if it differs from the last one saved (more than 1% of pixels changed; see `core/vision.py`), until it is stopped. If it errors right away (BlueStacks not running, ADB off), report the error and stop.
-2. Tell the user recon is running and that they can ask you to click things.
+3. Tell the user recon is running and that they can ask you to click things.
 
 ## When the user asks to click a button
 
@@ -40,7 +45,7 @@ Only click what the user asked for. If a click would spend premium currency or m
 
 ## Stop
 
-When the user says "end recon", "stop recon", or similar: stop the background `tools.recon` task, delete `recon/current.png`, and report how many screenshots are in `recon/`.
+When the user says "end recon", "stop recon", or similar: stop the background `tools.recon` task, delete `recon/current.png`, then close the log with `python -m core.log end`. Report how many screenshots are in `recon/` and the log file it printed.
 
 ## Notes
 

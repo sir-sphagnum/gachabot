@@ -13,14 +13,19 @@ import cv2
 import numpy as np
 
 from core.input import capture
+from core.log import logger, setup
 from core.vision import difference, fingerprint
+
+log = logger(__file__)
 
 THRESHOLD = 1.0  # save only if more than this percent of pixels changed (see core/vision.py)
 
 
 if __name__ == "__main__":
+    setup(console=False)
     folder = sys.argv[1] if len(sys.argv) > 1 else "recon"
     os.makedirs(folder, exist_ok=True)
+    log.info(f"recording to {folder}/")
 
     last_saved = None
     while True:
@@ -30,10 +35,11 @@ if __name__ == "__main__":
         current = fingerprint(gray)
 
         if last_saved is None or difference(current, last_saved) > THRESHOLD:
-            path = os.path.join(folder, datetime.now().strftime("%Y%m%d-%H%M%S") + ".png")
+            path = f"{folder}/{datetime.now():%Y%m%d-%H%M%S}.png"
             with open(path, "wb") as f:
                 f.write(png)
             last_saved = current
+            log.debug(f"saved {path}")
             print(f"Saved {path}", flush=True)
 
         time.sleep(max(0, 1 - (time.time() - start)))

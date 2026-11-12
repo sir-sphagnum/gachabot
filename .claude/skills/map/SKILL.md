@@ -55,7 +55,7 @@ The folders and file names are the whole map: there is no separate index file to
 
 ## Start: "create a path to <menu>"
 
-1. Work out which game is running (ask if unclear) and run `python -m tools.map start <game>`. It clears `recon/map/` and captures the first screen; Read the path it prints.
+1. Work out which game is running (ask if unclear). Open this run's log with `python -m core.log start map`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, an earlier run never ended: run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then run `python -m tools.map start <game>`. It clears `recon/map/` and captures the first screen; Read the path it prints.
    - If the game has no folder yet, ask what to call it, add it to `core.device.GAMES`, and create `<game>/templates/` with an empty `.gitkeep` in it (git ignores everything else under any `templates/` folder, so the `.gitkeep` is what keeps the empty folder in the repo). Then run `start`.
 2. Run `python -m core.tree <game>` and find which menu this is: the folder whose `btn_*`/`info_*` images match (`python -m core.vision find <image> <capture> <x> <y> <w> <h>`, using the box in the file name).
    - If it prints `(no menus yet)`, this screen is the root. Ask the user what to call it if it isn't obvious (e.g. `start-screen`), create `<game>/templates/<root>/` and copy the capture in as `screen.png`.
@@ -104,7 +104,8 @@ Anything else worth keeping for the notes (a menu's states, a quirk, a timing), 
    - dialogs and popups from the notes: move their captures and crops where the click section says.
    - other problems: fix the ones you caused (bad names, misplaced files); ask about the rest.
 4. Write what the session showed into `<game>/notes/UI.md`: a section for each new menu (how it's identified and what scored what), and the logged notes.
-5. Show the user the final tree and tell them which notes changed.
+5. Close the log with `python -m core.log end`.
+6. Show the user the final tree and tell them which notes changed, and give the log file `end` printed.
 
 ## Notes
 

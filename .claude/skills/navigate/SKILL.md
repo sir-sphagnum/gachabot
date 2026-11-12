@@ -20,7 +20,11 @@ Run all commands from the project root.
 2. Match the user's words to a menu folder name. `python -m core.nav <game> routes` prints every menu with its route from the lobby, without touching the game.
    - **Not in the tree**: say so and offer to map it (map skill). Don't tap around looking for it.
    - **Not reachable from the lobby** (e.g. the start screen): say so; no chain of mapped buttons leads there.
-3. Run it:
+3. Open this run's log, then run it:
+   ```
+   python -m core.log start navigate
+   ```
+   It prints the log file. If it says `(inside <skill>)` and you didn't start that skill in this conversation, an earlier run never ended: run `python -m core.log end --all`, then start again (`.claude/logging.md` §5).
    ```
    python -m core.nav <game> goto <menu>
    ```
@@ -31,6 +35,7 @@ Run all commands from the project root.
    - **a button didn't match**: the menu may have a state where it's hidden (like the lobby at rest). Ask, and note what you learn in `<game>/notes/UI.md`.
    - **the next menu didn't show though the tap landed**: its identifying images may not match this time (different lighting, art). Check with `python -m core.vision find <image> recon/navigate.png X Y W H` and tell the user the score.
    Don't retry blindly more than once.
+6. Close the log once you've reported (and taken any capture step 5 calls for): `python -m core.log end`.
 
 ## A game without a lobby routine
 

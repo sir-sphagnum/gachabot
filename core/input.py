@@ -14,6 +14,9 @@ import cv2
 import numpy as np
 
 from core.adb import adb, connect
+from core.log import logger, setup
+
+log = logger(__file__)
 
 PRESS_MS = (70, 130)      # press length, picked at random per tap
 DELAY_S = (0.05, 0.25)    # pause before each tap, picked at random
@@ -82,15 +85,20 @@ def screenshot(path="screenshot.png"):
 
 
 if __name__ == "__main__":
+    setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
     if cmd == "tap" and len(args) == 2:
-        x, y = map(int, args)
-        print("Tapped ({}, {})".format(*tap(x, y)))
+        x, y = tap(*map(int, args))
+        log.debug(f"tap at ({x}, {y})")
+        print(f"Tapped ({x}, {y})")
     elif cmd == "back" and len(args) <= 1:
         key = args[0] if args else "back"
         back(key)
+        log.debug(f"pressed {key}")
         print(f"Pressed {key}")
     elif cmd == "screenshot" and len(args) <= 1:
-        print(f"Saved {screenshot(*args)}")
+        path = screenshot(*args)
+        log.debug(f"saved {path}")
+        print(f"Saved {path}")
     else:
         sys.exit(__doc__)

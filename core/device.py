@@ -14,6 +14,9 @@ import time
 
 from core.adb import adb, connect
 from core.input import tap
+from core.log import logger, setup
+
+log = logger(__file__)
 
 # Short game names -> Android package names. The short name is also the game's
 # package in this repo, which holds its templates/ (e.g. e7/templates/). The package
@@ -166,23 +169,33 @@ def stop_game(game, timeout=10):
     return bool(wait_until(lambda: not is_running(pkg), timeout, interval=0.5))
 
 
+def _answer(msg, ok=True):
+    """Print the command's answer and log it, as ERROR when it failed."""
+    print(msg)
+    (log.info if ok else log.error)(msg[0].lower() + msg[1:])
+
+
 if __name__ == "__main__":
+    setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
     if cmd == "connect":
-        print(f"Connected to {connect()[1]}")
+        _answer(f"Connected to {connect()[1]}")
     elif cmd == "focus":
         focus = focused_app()
-        print(f"{focus[0]}  ({focus[1]})" if focus else "Nothing in focus")
+        _answer(f"{focus[0]}  ({focus[1]})" if focus else "Nothing in focus")
     elif cmd == "fullscreen":
-        print("Fullscreen" if fullscreen() else "Still floating")
+        ok = fullscreen()
+        _answer("Fullscreen" if ok else "Still floating", ok)
     elif cmd in ("start", "stop", "status"):
         full = "--fullscreen" in args
         for game in [a for a in args if a != "--fullscreen"] or list(GAMES):
             if cmd == "start":
-                print(f"{game}: {'started' if start_game(game, fullscreen=full) else 'failed to start'}")
+                ok = start_game(game, fullscreen=full)
+                _answer(f"{game}: {'started' if ok else 'failed to start'}", ok)
             elif cmd == "stop":
-                print(f"{game}: {'stopped' if stop_game(game) else 'still running'}")
+                ok = stop_game(game)
+                _answer(f"{game}: {'stopped' if ok else 'still running'}", ok)
             else:
-                print(f"{game}: {'running' if is_running(game) else 'stopped'}")
+                _answer(f"{game}: {'running' if is_running(game) else 'stopped'}")
     else:
         sys.exit(__doc__)

@@ -36,8 +36,11 @@ import numpy as np
 
 from core import ROOT, templates_dir
 from core.input import capture, tap
+from core.log import logger, setup
 from core.vision import crop, difference, find, fingerprint, is_black
 from core import tree
+
+log = logger(__file__)
 
 DIR = ROOT / "recon" / "map"
 LOG = DIR / "log.jsonl"
@@ -108,6 +111,7 @@ def start(game):
     _append({"game": game})
     path = _save(capture(), "start")
     _append({"shot": path})
+    log.info(f"started {game}, {path}")
     print(path)
 
 
@@ -115,6 +119,7 @@ def shot():
     _entries()
     path = _save(capture(), "shot")
     _append({"shot": path})
+    log.debug(f"shot {path}")
     print(path)
 
 
@@ -132,7 +137,9 @@ def click(here, target, box, fresh=False):
     after = _save(png, target)
     _append({"kind": "btn", "here": here, "name": target, "box": box,
              "source": before, "after": after})
-    print(f"Tapped ({tx}, {ty}); {after}" + ("" if settled else " (still changing)"))
+    still = "" if settled else " (still changing)"
+    log.info(f"{here} > {target} at ({tx}, {ty}), {after}{still}")
+    print(f"Tapped ({tx}, {ty}); {after}{still}")
 
 
 def info(here, element, box):
@@ -140,12 +147,14 @@ def info(here, element, box):
     _check_names(here, element)
     source = _current(entries)
     _append({"kind": "info", "here": here, "name": element, "box": box, "source": source})
+    log.info(f"info {here}/{element} {box} on {source}")
     print(f"Logged info {element} on {here} from {source}")
 
 
 def note(text):
     entries = _entries()
     _append({"note": text, "screen": _current(entries)})
+    log.info(f"note: {text}")
     print("Noted")
 
 
@@ -179,6 +188,7 @@ def finish():
         label = f"{e['kind']} {here} -> {name}" if e["kind"] == "btn" else f"info {here}/{name}"
         if here not in folders:
             print(f"{label}: no menu '{here}' in the tree; skipped")
+            log.warning(f"{label}: no menu {here} in the tree, skipping")
             continue
         d = folders[here]
         if e["kind"] == "btn":
@@ -192,6 +202,7 @@ def finish():
                 shutil.copy(ROOT / e["after"], folders[name] / "screen.png")
                 made.append(name)
                 print(f"{label}: new menu {_rel(folders[name])}")
+                log.info(f"new menu {_rel(folders[name])}")
         stem = f"{e['kind']}_{here}_{name}_"
         for old in d.glob(stem + "*.png"):
             old.unlink()
@@ -205,9 +216,11 @@ def finish():
                 score = white
         flag = "" if score >= GOOD else "  <-- crop doesn't match its source"
         print(f"  {_rel(out)}: {score:.2f} on its source{flag}")
+        (log.debug if score >= GOOD else log.warning)(f"{out.name}: {score:.2f} on its source")
         others = _matches_elsewhere(game, out, d)
         if others:
             print("    also matches: " + ", ".join(f"{p} ({s:.2f})" for p, s in others))
+            log.warning(f"{out.name} also matches " + ", ".join(f"{p} ({s:.2f})" for p, s in others))
     if notes:
         print("\nNotes:")
         for n in notes:
@@ -247,6 +260,7 @@ def _box(args):
 
 
 if __name__ == "__main__":
+    setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
     fresh = "--fresh" in args
     args = [a for a in args if a != "--fresh"]

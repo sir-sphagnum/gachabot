@@ -6,6 +6,7 @@ How routines and navigation report what they are doing: what logs and what print
 
 - **Log** (Python `logging`, set up by `core/log.py`): routines (`<game>/routines/`), `core/nav.py`, and the per-command `ok`/`failed` lines of `<game>/bot.py`. Their output is a running record of a bot run, read afterwards to see what happened and when.
 - **Print**: a command's answer. That means usage text, the results of `core/*` and `tools/*` command lines (`Tapped (x, y)`, `Saved …`, `Found …`), the tree listing and its Problems list. The answer is read as is, and a timestamp and level in front of it only get in the way.
+- **Both**: a command that prints its answer and acts on the game or files (tap, back, screenshot, start/stop, find, crop, each `tools.map` and `tools.recon` step) also logs what it did, so a skill log (§5) records it. It calls `setup(console=False)`: the line goes to the skill log only, never the terminal, where it would repeat the answer. Read-only listings (`core.tree`, `core.nav routes`, `tools.map log`) don't log.
 
 ## 2. Line format
 
@@ -29,7 +30,7 @@ How routines and navigation report what they are doing: what logs and what print
 - Each module takes its logger with `log = logger(__file__)`, named after the file (`lobby`, `start_screen`, `nav`). That tells you which code wrote the line, so the message doesn't repeat it.
 - The time shows how long each wait took, which matters because most failures in this bot are something taking longer than a timeout.
 - `-7s` pads the level to `WARNING`'s width so the messages line up.
-- Command-line entry points call `setup()` once. A normal run shows INFO and above. `--debug` adds the DEBUG lines (each tap and wait), for chasing a problem.
+- Command-line entry points call `setup()` once. A normal run shows INFO and above. `--debug` adds the DEBUG lines (each tap and wait), for chasing a problem. A skill log (§5) always gets every level.
 
 ## 3. Levels
 
@@ -69,3 +70,11 @@ Edge cases:
 - **Numbers:** counts as `n/max` (`tap 2/5`), durations as `30s`, points as `(x, y)`.
 - **Failures** say what wasn't reached and, when the routine knows it, after how much: `not reached after 10 backs`, `no lobby 30s after start screen`.
 - **Warnings** end with what the code does about it (`…, closing`, `…, restarting walk`), unless nothing follows and an ERROR comes next.
+
+## 5. Skill logs
+
+Each skill run (recon, map, navigate) keeps its log lines in one file, `logs/YYYYMMDD-HHMMSS-<skill>.log` (gitignored). The skill opens it with `python -m core.log start <skill>` and closes it with `python -m core.log end`. While it's open, every process that calls `setup()` also appends its lines there, at every level. A run spans many processes (a background recon loop, one process per tap or map step), so a pointer file, `logs/current`, tells each of them where to write.
+
+- **Nesting.** A skill started while another's log is open writes into that log (`navigate started, inside recon`), and its `end` leaves the log open for the outer skill. Lines from both land in one file, interleaved in time order, which is what a run that mixes them needs.
+- **A log left open.** If a run never reached `end`, the next `start` nests inside it and says `(inside <skill>)`. When that skill isn't one you started in this conversation, run `python -m core.log end --all` and start again.
+- **End after the loop stops.** A background process that is still running keeps writing to the file it opened, even after `end`. Stop the recon loop before closing its log.
