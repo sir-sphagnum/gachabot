@@ -146,6 +146,31 @@ def fingerprint(gray):
     return cv2.resize(gray[TOP_BAR:], SMALL, interpolation=cv2.INTER_AREA)
 
 
+BLACK_LEVEL = 3       # a pixel below this grey level (0-255) counts as black
+BLACK_SHARE = 0.70    # a screen is black when at least this share of pixels is
+
+
+def is_black(screen):
+    """True for a loading or transition screen: at least BLACK_SHARE of its
+    pixels below BLACK_LEVEL. `screen`: path, PNG bytes, BGR array, or a
+    grayscale array (e.g. a fingerprint).
+
+    Measured on E7, as the share of pixels below grey level 3:
+    - loading and transition screens: 100% (pure black), or 80% right after
+      launch, when BlueStacks' taskbar and the copyright line are still drawn;
+    - popups and dialogs that dim the screen (quit, date-changed,
+      disconnected): at most 53%. Their dim is dark grey, not black, which is
+      why the level is 3: counting pixels below 30 puts them at 84%, above
+      the loading screen right after launch;
+    - menus: at most 7%.
+    """
+    if isinstance(screen, np.ndarray) and screen.ndim == 2:
+        gray = screen
+    else:
+        gray = cv2.cvtColor(load(screen), cv2.COLOR_BGR2GRAY)
+    return (gray < BLACK_LEVEL).mean() >= BLACK_SHARE
+
+
 def difference(a, b):
     """Percent of pixels that changed noticeably (0-100) between two fingerprints.
 

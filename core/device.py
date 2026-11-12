@@ -68,6 +68,9 @@ FLOATING = re.compile(r"Task\{\S+ #(\d+) type=standard A=\d+:(\S+) [^}]*?visible
 # BlueStacks window-menu taps, relative to the floating window's top-left corner.
 ARROW = (75, 23)             # down arrow in the title bar: opens the window menu
 FULLSCREEN_ICON = (49, 131)  # first icon in the menu
+# dumpsys reports the task fullscreen before the screen shows it: captures
+# still showed the floating window 0.5 s later and the fullscreen game at 1.3 s.
+FULLSCREEN_DRAW = 1.5        # seconds
 
 
 def floating_window():
@@ -92,7 +95,8 @@ def menu_open(task):
 
 
 def fullscreen(attempts=3, timeout=5):
-    """Fullscreen the focused app. Returns True once it isn't floating.
+    """Fullscreen the focused app. Returns True once it isn't floating and the
+    screen shows it fullscreen.
 
     Waits for the menu to actually appear before tapping Fullscreen (a slow,
     still-loading game can take over a second), checks the result, and retries.
@@ -109,6 +113,7 @@ def fullscreen(attempts=3, timeout=5):
             time.sleep(0.5)  # the layer appears before the open animation finishes
         tap(left + FULLSCREEN_ICON[0], top + FULLSCREEN_ICON[1])
         if wait_until(lambda: not _floating(task), timeout):
+            time.sleep(FULLSCREEN_DRAW)
             return True
     return False
 

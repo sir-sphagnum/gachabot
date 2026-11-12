@@ -6,6 +6,8 @@ How E7 menus behave, one section per menu: how to tell a menu's states apart and
 
 The title screen ("Tap to Start"). Its one indicator is also its button: the copyright line "© Smilegate. All Rights Reserved." at the bottom centre (`btn_start-screen_lobby_805-1023-311-26_white.png`). Tapping it, like tapping anywhere, starts the game and loads the lobby at rest.
 
+- Launch: E7 opens in a floating window (black, copyright line at its bottom), then once fullscreen shows a black loading screen for ~2 s before the start screen. Tapping start gives another black load (~7 s) before the lobby at rest. Black screens are waited out (`core.nav.past_black`), never acted on.
+- A Google Play Games welcome toast (dark pill, top centre) shows over the start screen for a few seconds. The copyright line still matches under it.
 - Automated by `e7/routines/start_screen.py` (`python -m e7.bot start_screen`).
 
 ## lobby (`e7/templates/start-screen/lobby/`)
@@ -24,6 +26,7 @@ Why the barrel: The score does not change much under all known conditions of the
 
 Behaviour:
 - The lobby falls back to rest on its own after a few seconds idle (~9 s observed); `start-screen` opens it at rest.
+- After loading, a chat toast "You have entered channel #N." (white bubble just below the top-right icons) shows for ~4 s. It doesn't cover the 4-boxes icon, which still matches.
 - Activate by tapping the main-menu icon's spot, (1869, 49), until the icon shows. If the tap opens `main-menu` instead, the panel's X sits on the same spot, so the next tap closes it and leaves the lobby active.
 - Automated by `e7/routines/lobby.py` (`python -m e7.bot lobby`).
 

@@ -36,7 +36,7 @@ import numpy as np
 
 from core import ROOT, templates_dir
 from core.input import capture, tap
-from core.vision import crop, difference, find, fingerprint
+from core.vision import crop, difference, find, fingerprint, is_black
 from core import tree
 
 DIR = ROOT / "recon" / "map"
@@ -44,7 +44,6 @@ LOG = DIR / "log.jsonl"
 NAME = re.compile(r"^[a-z0-9-]+$")
 SETTLE_MIN, SETTLE_MAX = 1.0, 4.0  # seconds; animated menus never settle, so give up
 SETTLED = 1.0  # percent of pixels changed between two captures (see core/vision.py)
-DARK = 30      # brightest grey level (0-255) of a capture still treated as a black loading screen
 GOOD = 0.95    # a crop should score at least this on the screen it came from
 
 
@@ -59,7 +58,7 @@ def settle():
         png = capture()
         cur = _fp(png)
         # A loading screen is black and still, which isn't the menu yet.
-        if difference(prev, cur) <= SETTLED and cur.max() > DARK:
+        if difference(prev, cur) <= SETTLED and not is_black(cur):
             return png, True
         prev = cur
     return png, False

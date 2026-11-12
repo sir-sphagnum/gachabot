@@ -6,6 +6,8 @@ core.nav loads this module by name as E7's lobby routine, the start of every
 menu walk, so keep its path and run(verbose=...) returning True on success.
 
 1. Until the lobby's wall barrel shows with no popup or quit dialog over it:
+   - while the screen is black (the game loading), wait; Back pressed then
+     would be a guess;
    - if one of the game's common popups (e7/templates/common/popups/) or the
      lobby's quit dialog is open, close it (Cancel for the quit dialog) and
      look again;
@@ -29,7 +31,8 @@ import sys
 
 from core.device import wait_until
 from core.input import back, capture
-from core.nav import close_popup, dialog, game_popups, locate, open_popup, tap_until
+from core.nav import (close_popup, dialog, game_popups, locate, open_popup, past_black,
+                      tap_until)
 from e7.config import BACK_KEY, GAME, TEMPLATES_DIR
 from e7.routines import start_screen
 
@@ -55,6 +58,7 @@ def run(backs=10, taps=5, delay=1.5, verbose=True):
     screen = capture()
     presses = closed = 0
     while True:
+        screen = past_black(screen, say=say)
         popup = open_popup(popups, screen)
         if popup:
             if closed == backs:

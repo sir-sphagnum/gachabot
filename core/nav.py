@@ -47,12 +47,14 @@ from core import ROOT, tree
 from core.device import floating_window, focused_app, is_running, package, wait_until
 from core.input import capture, tap
 from core.tree import ELEMENT, load_popups
-from core.vision import find
+from core.vision import find, is_black
 
 # Every game has a menu folder by this name, and a <game>/routines/lobby.py
 # whose run(verbose=...) brings the game there from anywhere, with its buttons
 # showing, and returns True once it has.
 HOME = "lobby"
+
+BLACK_WAIT = 30  # seconds to wait out a black loading or transition screen
 
 
 class NotInFocus(RuntimeError):
@@ -93,6 +95,7 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
     Returns (template, (cx, cy, score)) for the expected element that was
     found with no known popup open, or None if it never appeared, a popup
     couldn't be closed, or more than `tries` popups were closed.
+    While the screen is black it neither taps nor looks: it waits (past_black).
     """
     if isinstance(button, (list, tuple)):
         button = tuple(int(v) for v in button)  # accept [x, y] as well as (x, y)
@@ -103,7 +106,7 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
 
     taps = closed = 0
     while True:
-        screen = capture()
+        screen = past_black(say=say)
         # Popups before `expected`: a popup that dims the screen can leave
         # `expected` matching underneath it.
         popup = open_popup(known, screen)
@@ -127,6 +130,26 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
         taps += 1
         _tap(button, screen, f"Tap {taps}/{tries}", say)
         _wait_for(lambda s: open_popup(known, s) or _first(expected, s), delay)
+
+
+def past_black(screen=None, timeout=BLACK_WAIT, say=lambda *a: None):
+    """The current screen once it isn't black (core.vision.is_black).
+
+    A black screen is a load or a transition: nothing on it matches yet, so
+    any decision taken on it (tap again, press Back) is a guess. Callers use
+    this to look only once the game has drawn something.
+    screen: a capture to start from; a fresh one is taken when None.
+    Waits up to `timeout` seconds, then returns the last capture, black or not.
+    """
+    screen = capture() if screen is None else screen
+    if not is_black(screen):
+        return screen
+    say("Screen is black; waiting for it to load")
+    return wait_until(lambda: _unless_black(capture()), timeout) or capture()
+
+
+def _unless_black(screen):
+    return None if is_black(screen) else screen
 
 
 def open_popup(popups, screen):
