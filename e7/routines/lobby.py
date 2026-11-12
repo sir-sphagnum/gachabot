@@ -2,6 +2,9 @@
 
 Usage: python -m e7.routines.lobby
 
+core.nav loads this module by name as E7's lobby routine, the start of every
+menu walk, so keep its path and run(verbose=...) returning True on success.
+
 1. Until the lobby's wall barrel shows with no popup or quit dialog over it:
    - if one of the game's common popups (e7/templates/common/popups/) or the
      lobby's quit dialog is open, close it (Cancel for the quit dialog) and

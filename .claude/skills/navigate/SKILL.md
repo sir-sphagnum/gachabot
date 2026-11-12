@@ -5,26 +5,26 @@ description: Take the game to a menu that exists in its template tree (<game>/te
 
 # Navigate
 
-Gets the game to a menu that the map skill has already recorded under `<game>/templates/`. Each game has a `<game>/nav.py` (e.g. `e7/nav.py`) that knows its home menu and wires it to `core.nav.goto`, which:
+Gets the game to a menu that the map skill has already recorded under `<game>/templates/`. `core.nav.goto` does it for any game:
 
-1. brings the game to the home menu (e.g. E7's active lobby, via the `lobby` routine, closing popups on the way);
+1. brings the game to its lobby (the menu folder named `lobby`) with the game's lobby routine, `<game>/routines/lobby.py`, which closes popups on the way;
 2. finds the shortest chain of `btn_` images from there to the target (`core.nav.route`), links included;
-3. taps each button with `core.nav.tap_until` until the next menu's identifying images show (its `info_` images, or its `btn_` images if it has none), closing the game's common popups before trusting a match;
-4. starts over from home once if a step fails (e.g. a popup sent the game elsewhere).
+3. taps each button with `core.nav.tap_until` until the next menu's identifying images show (its `info_` images, or its `btn_` images if it has none), closing the game's common popups before trusting a match. Before each tap on the lobby, it runs the lobby routine again, in case the lobby hid its buttons while idle;
+4. starts over from the lobby once if a step fails (e.g. a popup sent the game elsewhere).
 
 Run all commands from the project root.
 
 ## "Go to <menu>"
 
 1. If you haven't read anything under the game's folder this session, read `<game>/CLAUDE.md` and the notes it imports first.
-2. Match the user's words to a menu folder name. `python -m <game>.nav --list` prints every menu with its route from home, without touching the game.
+2. Match the user's words to a menu folder name. `python -m core.nav <game> routes` prints every menu with its route from the lobby, without touching the game.
    - **Not in the tree**: say so and offer to map it (map skill). Don't tap around looking for it.
-   - **Not reachable from home** (e.g. the start screen): say so; no chain of mapped buttons leads there.
+   - **Not reachable from the lobby** (e.g. the start screen): say so; no chain of mapped buttons leads there.
 3. Run it:
    ```
-   python -m <game>.nav <menu>
+   python -m core.nav <game> goto <menu>
    ```
-   Add `--here <current>` only when you know which menu is on screen right now (you looked at a capture since the last thing that could have changed it): it walks from there instead of going home first, and falls back to home if that fails.
+   Add `--here <current>` only when you know which menu is on screen right now (you looked at a capture since the last thing that could have changed it): it walks from there instead of going to the lobby first, and falls back to the lobby if that fails.
 4. Exit 0 means the target's images matched with no popup open. Tell the user the route in one line (`lobby > sanctuary > forest-of-souls`). Take a screenshot only if they want to see it.
 5. Exit 1: capture the screen (`python -m core.input screenshot recon/navigate.png`), Read it, and tell the user where it stopped, using the last lines of output. Then:
    - **a popup the bot doesn't know**: offer to map it as a common popup (map skill).
@@ -32,12 +32,11 @@ Run all commands from the project root.
    - **the next menu didn't show though the tap landed**: its identifying images may not match this time (different lighting, art). Check with `python -m core.vision find <image> recon/navigate.png X Y W H` and tell the user the score.
    Don't retry blindly more than once.
 
-## A game without `<game>/nav.py`
+## A game without a lobby routine
 
-Create one modelled on `e7/nav.py`:
-- `HOME`: the menu every walk starts from, the one the game's buttons fan out from (usually its lobby).
-- a routine that reaches `HOME` from anywhere and returns True (write it first if the game has none; see `e7/routines/lobby.py`).
-- `ready`: for menus whose buttons show only in one state, a callable that puts them in it, run before each tap on that menu.
+Every game needs two things before it can be navigated:
+- a menu folder named `lobby` in its template tree, the menu the game's buttons fan out from;
+- `<game>/routines/lobby.py` with `run(verbose=True)`, which brings the game to that lobby from anywhere, with its buttons showing, and returns True once it has (see `e7/routines/lobby.py`).
 
 ## Notes
 

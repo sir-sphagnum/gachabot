@@ -1,15 +1,19 @@
-"""Tap a UI element until an expected element shows up, closing popups on the way.
+"""Tap until an element shows (closing popups) and walk a game's menu tree.
 
-Usage: python -m core.nav BUTTON EXPECTED [EXPECTED ...] [--delay S] [--tries N]
-                          [--no-popups]
+Usage: python -m core.nav GAME goto MENU [--here MENU]
+       python -m core.nav GAME routes
+       python -m core.nav GAME tap BUTTON EXPECTED [EXPECTED ...] [--delay S]
+                                   [--tries N] [--no-popups]
 
-Games sometimes swallow a tap (e.g. a popup that ignores input while it is
+GAME is a game's folder name (e.g. e7).
+
+tap: Games sometimes swallow a tap (e.g. a popup that ignores input while it is
 still animating in). tap_until taps BUTTON, then keeps checking the screen for
 EXPECTED for `delay` seconds; if it hasn't appeared, it taps again, up to
 `tries` taps. It stops as soon as any EXPECTED element is on screen with no
 known popup open, including before the first tap.
 
-The known popups are the game's common popups (<game>/templates/common/popups/,
+The known popups are GAME's common popups (<game>/templates/common/popups/,
 see core/tree.py). Whenever one is open, it taps that popup's close button until
 the popup is gone, then looks again. Closing a popup doesn't use up one of the
 `tries`; up to `tries` popups are closed.
@@ -20,21 +24,55 @@ template files. Template names that follow the map skill's scheme
 white-only when the name says so; any other file is searched over the whole
 screen. Exits 0 when an expected element was seen, 1 otherwise.
 
-route and goto walk a game's menu tree (core.tree.load) with tap_until: each
-game wires goto up in its own <game>/nav.py (e.g. e7/nav.py).
+goto: take GAME to MENU, a menu folder name under <game>/templates/,
+from wherever it is. Every walk starts from the game's lobby: its menu folder
+named `lobby`, reached by the game's lobby routine. Then it taps down the
+tree's btn_ images with tap_until. --here names the menu already on screen,
+to walk from it instead. Exits 0 once MENU is on screen, 1 otherwise.
+
+routes: print each menu's route from the lobby, without touching the game.
+
+goto and tap stop with an error, before tapping anything, unless GAME is the
+app in focus and fullscreen (not floating).
 """
 
 import argparse
+import importlib
 import sys
 from collections import deque
 from functools import cache
 from pathlib import Path
 
-from core import ROOT
-from core.device import wait_until
+from core import ROOT, tree
+from core.device import floating_window, focused_app, is_running, package, wait_until
 from core.input import capture, tap
 from core.tree import ELEMENT, load_popups
 from core.vision import find
+
+# Every game has a menu folder by this name, and a <game>/routines/lobby.py
+# whose run(verbose=...) brings the game there from anywhere, with its buttons
+# showing, and returns True once it has.
+HOME = "lobby"
+
+
+class NotInFocus(RuntimeError):
+    """The game isn't the app in focus, fullscreen. Not in focus, taps and Back
+    presses land on whatever app is; floating, the screen is scaled down and
+    templates (cut from 1920x1080 captures) don't match it."""
+
+
+def check_focus(game):
+    """Raise NotInFocus unless `game` is the app in focus and fullscreen."""
+    pkg = package(game)
+    focus = focused_app()
+    if not focus or focus[0] != pkg:
+        state = "is running but not in focus" if is_running(game) else "is not running"
+        front = focus[0] if focus else "nothing"
+        raise NotInFocus(f"{game} ({pkg}) {state}; in focus: {front}. "
+                         f"Start it with: python -m core.device start --fullscreen {game}")
+    if floating_window():
+        raise NotInFocus(f"{game} ({pkg}) is in focus but in a floating window, not "
+                         f"fullscreen. Fullscreen it with: python -m core.device fullscreen")
 
 
 def tap_until(button, expected, delay=1.5, tries=5, popups=True, verbose=False):
@@ -208,52 +246,71 @@ def identity(menu):
     return [e["file"] for e in menu["info"] or menu["buttons"]]
 
 
-def goto(menus, target, home, start, here=None, ready=None, attempts=2,
-         delay=1.5, tries=5, verbose=False):
-    """Take the game to menu `target` by tapping down the tree from `start`.
+def lobby(game):
+    """The game's lobby routine: <game>.routines.lobby.run.
 
-    home: callable that brings the game to menu `start` from anywhere, in a
-        state where its buttons show; returns True on success.
-    start: name of the menu `home` reaches.
+    Loaded by name, since core never imports a game package directly."""
+    return importlib.import_module(f"{game}.routines.lobby").run
+
+
+def routes(game):
+    """{menu: [menu names from HOME to it], or None when unreachable}."""
+    menus, _ = tree.load(game)
+    out = {}
+    for name in menus:
+        steps = route(menus, HOME, name) if HOME in menus else None
+        out[name] = None if steps is None else [HOME, *(b["name"] for _, b in steps)]
+    return out
+
+
+def goto(game, target, here=None, attempts=2, delay=1.5, tries=5, verbose=False):
+    """Take `game` to menu `target` by tapping down its tree from HOME.
+
     here: name of the menu already on screen, to walk from there without
-        calling `home` first. Only for the first attempt.
-    ready: {menu: callable} for menus whose buttons show only in one state
-        (e.g. a lobby that hides its HUD when idle). It is called right before
-        tapping a button on that menu and returns True once they show.
+        going to HOME first. Only for the first attempt.
     attempts: walks to try. A walk that fails (a popup that sends the game
-        elsewhere, a button that isn't on screen) starts over from `home`.
+        elsewhere, a button that isn't on screen) starts over from HOME.
     Each step is a tap_until on the button, expecting identity(next menu),
     with the game's popups closed on the way.
-    Returns True once `target` is on screen, False otherwise.
+    Returns True once `target` is on screen, False otherwise. Raises
+    NotInFocus, before touching anything, unless `game` is the app in focus
+    and fullscreen.
     """
     say = print if verbose else (lambda *a: None)
-    if target not in menus:
-        raise ValueError(f"No menu '{target}'")
-    ready = ready or {}
+    menus, _ = tree.load(game)
+    for name in (target, here, HOME):
+        if name and name not in menus:
+            raise ValueError(f"No menu '{name}' in {game}")
+    check_focus(game)
+    run_lobby = lobby(game)
+    home = lambda: run_lobby(verbose=verbose)
     for attempt in range(1, attempts + 1):
-        origin = here if attempt == 1 and here else start
+        origin = here if attempt == 1 and here else HOME
         steps = route(menus, origin, target)
         if steps is None:
             say(f"No buttons lead from {origin} to {target}")
-            if origin == start:
+            if origin == HOME:
                 return False
             continue
-        if origin == start:
-            say(f"Going to {start}")
+        if origin == HOME:
+            say(f"Going to {HOME}")
             if not home():
-                say(f"Couldn't reach {start}")
+                say(f"Couldn't reach {HOME}")
                 continue
         say("Route: " + " > ".join([origin, *(b["name"] for _, b in steps)]))
-        if _walk(menus, steps, ready, delay, tries, say):
+        if _walk(menus, steps, home, delay, tries, say):
             say(f"On {target}")
             return True
     return False
 
 
-def _walk(menus, steps, ready, delay, tries, say):
+def _walk(menus, steps, home, delay, tries, say):
     for menu, button in steps:
-        if menu in ready and not ready[menu]():
-            say(f"{menu} isn't ready for its buttons")
+        # A lobby may hide its buttons when idle (E7's after ~9 s), so run the
+        # lobby routine right before each tap on it. When they already show,
+        # that costs only a few captures.
+        if menu == HOME and not home():
+            say(f"{HOME} isn't showing its buttons")
             return False
         nxt = button["name"]
         say(f"{menu} > {nxt}")
@@ -274,22 +331,55 @@ def locate(template, screen):
     return find(template, screen, box, white=bool(m["white"]))
 
 
-if __name__ == "__main__":
+def _main():
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("button")
-    p.add_argument("expected", nargs="+")
-    p.add_argument("--delay", type=float, default=1.5,
+    p.add_argument("game", help="the game's folder name (e.g. e7)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    g = sub.add_parser("goto", help="take the game to MENU, starting from its lobby")
+    g.add_argument("menu")
+    g.add_argument("--here", help="the menu already on screen")
+    sub.add_parser("routes", help="print each menu's route from the lobby")
+    t = sub.add_parser("tap", help="tap BUTTON until an EXPECTED element shows")
+    t.add_argument("button")
+    t.add_argument("expected", nargs="+")
+    t.add_argument("--delay", type=float, default=1.5,
                    help="seconds to wait for EXPECTED after each tap (default 1.5)")
-    p.add_argument("--tries", type=int, default=5, help="maximum taps (default 5)")
-    p.add_argument("--no-popups", action="store_true", help="don't look for popups")
+    t.add_argument("--tries", type=int, default=5, help="maximum taps (default 5)")
+    t.add_argument("--no-popups", action="store_true", help="don't look for popups")
     a = p.parse_args()
+    if a.game not in tree.games():
+        sys.exit(f"No game '{a.game}'. Games: {', '.join(tree.games())}")
+    try:
+        return _run(a)
+    except NotInFocus as e:
+        sys.exit(f"Error: {e}")
+
+
+def _run(a):
+    if a.cmd == "routes":
+        for name, path in routes(a.game).items():
+            print(f"{name}: {' > '.join(path) if path else f'(not reachable from the {HOME})'}")
+        return 0
+
+    if a.cmd == "goto":
+        menus, _ = tree.load(a.game)
+        for name in (a.menu, a.here):
+            if name and name not in menus:
+                sys.exit(f"No menu '{name}'. Menus: {', '.join(menus)}")
+        return 0 if goto(a.game, a.menu, a.here, verbose=True) else 1
+
     if "," in a.button and not Path(a.button).exists():
         a.button = tuple(int(v) for v in a.button.split(","))
+    check_focus(a.game)
     result = tap_until(a.button, a.expected, a.delay, a.tries,
-                       popups=not a.no_popups, verbose=True)
-    if result:
-        template, (cx, cy, score) = result
-        print(f"Found {Path(template).name} at ({cx}, {cy}), score {score:.3f}")
-    else:
+                       popups=None if a.no_popups else a.game, verbose=True)
+    if not result:
         print(f"Expected element not seen after {a.tries} taps")
-        sys.exit(1)
+        return 1
+    template, (cx, cy, score) = result
+    print(f"Found {Path(template).name} at ({cx}, {cy}), score {score:.3f}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(_main())
