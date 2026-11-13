@@ -3,11 +3,12 @@
 Usage: python -m e7.routines.claim_forest [--debug]
 
 1. Go to forest-of-souls (core.nav.goto).
-2. For Penguin Nest, Spirit Well and MolaGora Farm, in that order: when the row
-   shows "Receive Reward", tap it until the reward dialog opens, then tap its
-   "Tap to close" until it's gone. A row showing a timer isn't ready: skip it.
+2. For Penguin Nest, Spirit Well and MolaGora Farm, in that order: while the
+   row shows "Receive Reward", tap it, and close the reward dialog if one
+   opens (MolaGora Farm opens none). A row showing a timer isn't ready: skip it.
 3. While Cultivate is lit, tap it once and wait for its count to change.
-   Grey means no uses left: skip it.
+   Grey means no uses left, and no button means MolaGora Farm is resting:
+   skip it.
 4. Go back to the lobby (the lobby routine).
 
 Before reading the menu, it closes any common popup or reward dialog and
@@ -22,8 +23,7 @@ import numpy as np
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import (close_popup, dialog, game_popups, goto, locate, open_popup, past_black,
-                      tap_until)
+from core.nav import close_popup, dialog, game_popups, goto, locate, open_popup, past_black
 from core.vision import find, load
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import lobby
@@ -81,23 +81,43 @@ def run(delay=1.5, tries=5, settle=5):
 
 
 def _claim(row, dy, popups, delay, tries):
-    screen = _clear(popups, delay, tries)
-    if screen is None:
-        return False
+    # Claimed means the row no longer shows Receive Reward with no dialog
+    # open, not that the reward dialog showed: MolaGora Farm opens none.
+    for taps in range(tries + 1):
+        screen = _clear(popups, delay, tries)
+        if screen is None:
+            return False
+        match = _receive(screen, dy)
+        if not match:
+            log.info(f"{row}: claimed" if taps else f"{row}: not ready, skipping")
+            return True
+        if taps == tries:
+            break
+        if not taps:
+            log.info(f"{row}: ready, claiming")
+        x, y = tap(*match[:2])
+        log.debug(f"{row}: tap {taps + 1}/{tries} at ({x}, {y})")
+        # The dialog dims the row, so check for it before trusting the row's
+        # Receive Reward to be gone.
+        if wait_until(lambda: _answered(capture(), dy), delay) == "reward":
+            if not close_popup("reward", REWARD, delay, tries):
+                log.error(f"{row}: reward dialog not closed")
+                return False
+    log.error(f"{row}: still shows Receive Reward after {tries} taps")
+    return False
+
+
+def _receive(screen, dy):
     x, y, w, h = RECEIVE_BOX
-    match = find(RECEIVE, screen, (x, y + dy, w, h))
-    if not match:
-        log.info(f"{row}: not ready, skipping")
-        return True
-    log.info(f"{row}: ready, claiming")
-    if not tap_until(match[:2], CLOSE, delay, tries):
-        log.error(f"{row}: reward dialog not shown")
-        return False
-    if not close_popup("reward", REWARD, delay, tries):
-        log.error(f"{row}: reward dialog not closed")
-        return False
-    log.info(f"{row}: claimed")
-    return True
+    return find(RECEIVE, screen, (x, y + dy, w, h))
+
+
+def _answered(screen, dy):
+    """"reward" while the reward dialog is open, True once the row's Receive
+    Reward is gone, else None."""
+    if open_popup({"reward": REWARD}, screen):
+        return "reward"
+    return not _receive(screen, dy) or None
 
 
 def _cultivate(popups, delay, tries, settle):
@@ -105,15 +125,16 @@ def _cultivate(popups, delay, tries, settle):
         screen = _clear(popups, delay, tries)
         if screen is None:
             return False
+        match = locate(CULTIVATE, screen)
+        if not match:
+            # Gone while MolaGora Farm rests after a claim.
+            log.info("cultivate: not shown, skipping")
+            return True
         if not _lit(screen):
             log.info("cultivate: grey, done" if use > 1 else "cultivate: grey, skipping")
             return True
         before = _count(screen)
         log.info(f"cultivate: lit, using {use}/{MAX_USES}")
-        match = locate(CULTIVATE, screen)
-        if not match:
-            log.error("cultivate: button not found")
-            return False
         # One tap, never retried: a second tap before the count updates would
         # spend another use.
         x, y = tap(*match[:2])
