@@ -83,6 +83,14 @@ Controls (task `claim-daily-shop`, `e7/routines/claim_daily_shop.py`, `python -m
   - The pill (`btn_daily-shop_buy-100-hearts_540-515-130-45.png`, cut on 40 Energy) sits 277 px below the title's centre, +40 px right of "40"'s centre and straight below "5 Flags". There it scores 0.92–1.0 unbought, 0.23–0.25 bought (timer) and 0.17–0.61 under a dialog. So popups and dialogs are closed before the check (Rule 1).
   - Tapping the pill opens **buy**: "Buy", "Would you like to purchase this product?", the product's name, "Purchase Available: 1 time(s)", Cancel and a green [heart 100] Buy. Identified by its title (`info_daily-shop_buy-title_890-205-140-65.png`) and confirmed by `btn_daily-shop_buy-confirm_900-722-445-85.png` (the whole green button, centre (1122, 764)). Buy closes the dialog with no reward dialog after it. The hearts drop by 100 and the card moves to the end of the grid.
 
+## arena and arena-normal (`e7/templates/start-screen/lobby/main-menu/arena/`)
+
+`arena` is the Arena hub, opened by Arena in `main-menu` (`btn_main-menu_arena_1195-562-96-46.png`, the text only, without the orange dot left of it: 1.0 on `main-menu`, at most 0.44 elsewhere). It shows World Arena's season and Top Player Matchup, with four cards along the bottom: Draft Arena, Arena, World Arena and World Arena Tournament. `arena-normal` is the bottom Arena card's menu: the opponent list, with season, rank, Weekly Play Rewards, Defense Team, Arena Shop and Battle Pass on the left, three opponents with Refresh and Challenge in the middle, and tabs on the right (Opponents, NPC Challenge, Battle Log, Rank, Hall of Fame, Arena Story).
+
+- Both menus show the same title, "Arena" with a back arrow top left, so the title identifies neither.
+- `arena` is identified by its Arena card (`btn_arena_arena-normal_650-985-110-45.png`, the word "Arena" on the card), which also opens `arena-normal`: 1.0 on `arena`, at most 0.33 elsewhere.
+- `arena-normal` is identified by its Defense Team button (`info_arena-normal_defense-team_125-785-210-50.png`, the text only): 1.0 on `arena-normal`, at most 0.41 elsewhere. It was seen on the Opponents tab only.
+
 ## HUD (`e7/templates/common/hud/`)
 
 The icon row along the top right (clock, bell, inventory, mail, chat, main menu) is the same on every menu with a HUD: the active lobby, `main-menu`, `shop-landing`, `daily-shop`, `sanctuary` and `forest-of-souls`. `screen.png` is the active lobby. Its elements live in `common/` because no one menu owns them.
