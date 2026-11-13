@@ -67,8 +67,23 @@ Controls (task `claim-forest`, `e7/routines/claim_forest.py`, `python -m e7.bot 
 
 The icon row along the top right (clock, bell, inventory, mail, chat, main menu) is the same on every menu with a HUD: the active lobby, `main-menu`, `shop-landing`, `daily-shop`, `sanctuary` and `forest-of-souls`. `screen.png` is the active lobby. Its elements live in `common/` because no one menu owns them.
 
-- **Clock** (`info_hud_clock_1388-12-72-68.png`, centre ~(1424, 46), left of the bell): white clock in a circle of two arrows. It matched 0.99–1.0 on every saved screen with the HUD, under the quit dialog's and popups' dim too, and none on the lobby at rest, the check-in dialog, the start screen or `sanctuary` (an orange glow sweeps around the clock there).
-- **Orange badge**: a dot over the clock's top left. The crop includes it, but the match can't tell the badge is lit: it scores the same under a dim. Tell it by colour instead: mean red minus blue over (1392, 17, 14, 14) is +207 lit, at most +80 on every other saved screen (+30 dimmed). Every capture so far has the badge, so how the clock scores without it is untested.
+- **Clock** (`btn_hud_auto_1388-12-72-68.png`, centre ~(1424, 46), left of the bell): white clock in a circle of two arrows, opens `auto`. It shows only while Background Battling has rewards waiting: once they're claimed it's gone, and the stamina, gold and gem counters shift ~80 px right into its place. So no clock on an active HUD means nothing to claim.
+  - It matched 0.99–1.0 on every saved screen with the HUD, under the quit dialog's and popups' dim too, and none on the lobby at rest, the check-in dialog, the start screen, `sanctuary` (an orange glow sweeps around the clock there) or the lobby after the claim (0.13).
+  - The lobby's HUD can fall back to rest between the routine waking it and the tap on the clock. The tap then only wakes the HUD and `auto` doesn't open.
+- **Orange badge**: a dot over the clock's top left, seen on every capture with the clock. The crop includes it, but the match can't tell the badge is lit: it scores the same under a dim. Tell it by colour instead: mean red minus blue over (1392, 17, 14, 14) is +207 lit, at most +80 on every other saved screen (+30 dimmed).
+
+## auto (`e7/templates/common/auto/`)
+
+"Background Battling": a dialog over the dimmed screen, opened by the HUD clock. Shows the battle's stage (e.g. Hunt - Hell), Battle Progress, four tiles (Elapsed Time, Acquired Equipment, Sell, Acquired Gold), Acquired Currency, a green button, and "Tap to close." below the panel. It lives in `common/` because the clock opens it from any menu's HUD.
+
+- Identified by its title (`info_auto_title_778-76-366-58.png`): 1.0 on auto, 0.75 under Calculation Complete, at most 0.39 elsewhere. The lobby's main-menu icon and barrel don't match under it.
+
+Three states:
+- **unclaimed** (`screen.png`): the green button is **Calculate** (`btn_auto_calculate_780-908-370-70.png`, orange dot at its top left, left out of the crop): 1.0 here, 0.55 on Close, at most 0.33 elsewhere. It opens complete.
+- **complete** (`screen-complete.png`): "Calculation Complete" over auto, listing the rewards ("items have been distributed", equipment goes to the Inventory). Event-mission toasts can slide in on the left. Identified by its title (`info_auto_complete-title_726-156-468-64.png`): 1.0 here, at most 0.40 elsewhere. Closed by "Tap to close" (`btn_auto_complete-close_860-835-200-95.png`, centre (960, 880)): 1.0 here, 0.80 on friendship-point-notification (below the 0.85 threshold), at most 0.22 elsewhere. Closing it leaves auto claimed.
+- **claimed** (`screen-claimed.png`): the tiles show blue check marks and the green button is **Close** (`btn_auto_close_780-908-370-70.png`, no orange dot): 1.0 here, 0.55 on Calculate, at most 0.34 elsewhere. Close goes back to the menu the clock was tapped on (the lobby, active), now without the clock.
+
+Task `claim-auto` (`e7/routines/claim_auto.py`, `python -m e7.bot claim_auto`): from the active lobby, tap the clock, Calculate, Tap to close, Close. No clock on the HUD means nothing to claim (success). No Calculate on auto means failure.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
