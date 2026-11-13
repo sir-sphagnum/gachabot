@@ -24,7 +24,8 @@ _white means match it with core.vision.find(..., white=True). Menu names are
 unique within a game, so a button whose target folder lives elsewhere is a
 link to that menu.
 
-templates/common/ is not a menu and is left out of the tree. It holds the popups:
+templates/common/ is not a menu and is left out of the tree. It holds elements
+no one menu owns: common/hud/ for the HUD shown on many menus, and the popups:
 things that show up over any menu, unpredictably and in the way (e.g. a reward
 notice, a server disconnect). A dialog that one menu always opens on a known
 action (e.g. a quit prompt on Escape) is not a popup but a state of that menu:

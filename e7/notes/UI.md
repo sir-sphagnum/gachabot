@@ -63,6 +63,13 @@ Controls (task `claim-forest`, `e7/routines/claim_forest.py`, `python -m e7.bot 
 - A blue ring shows where the screen was just tapped, for about a second. Over "Tap to close" it stops the button matching (no match on the capture right after a close tap), so a dialog can look closed for a moment while it's still open.
 - **Cultivate (n/3)**: shows only while MolaGora Farm is growing. It's gone while the farm shows Receive Reward and while it rests, so a missing button means skip, not a failure. It takes 24 h off MolaGora Farm's timer (36:46 → 12:45) and opens no dialog. When no uses are left the button turns grey and loses its orange dot, and it can't be used again. `btn_forest-of-souls_cultivate_1622-810-155-48.png` still scores 0.96 on the grey button, so lit is told by colour: mean green minus blue over the button is +41 lit, -12 grey. The count "(2/3)" doesn't change between captures (mean pixel difference 0) and changes by 30 when it goes up.
 
+## HUD (`e7/templates/common/hud/`)
+
+The icon row along the top right (clock, bell, inventory, mail, chat, main menu) is the same on every menu with a HUD: the active lobby, `main-menu`, `shop-landing`, `daily-shop`, `sanctuary` and `forest-of-souls`. `screen.png` is the active lobby. Its elements live in `common/` because no one menu owns them.
+
+- **Clock** (`info_hud_clock_1388-12-72-68.png`, centre ~(1424, 46), left of the bell): white clock in a circle of two arrows. It matched 0.99–1.0 on every saved screen with the HUD, under the quit dialog's and popups' dim too, and none on the lobby at rest, the check-in dialog, the start screen or `sanctuary` (an orange glow sweeps around the clock there).
+- **Orange badge**: a dot over the clock's top left. The crop includes it, but the match can't tell the badge is lit: it scores the same under a dim. Tell it by colour instead: mean red minus blue over (1392, 17, 14, 14) is +207 lit, at most +80 on every other saved screen (+30 dimmed). Every capture so far has the badge, so how the clock scores without it is untested.
+
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
 "Date Changed" / "The date has changed, proceeding to Lobby." with "Tap to close" and a down chevron below. Shows over whatever menu is open when the server day rolls over.

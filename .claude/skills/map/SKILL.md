@@ -111,4 +111,4 @@ Anything else worth keeping for the notes (a menu's states, a quirk, a timing), 
 
 - Turn off Android's Pointer location overlay before mapping. It is drawn into every screenshot and would end up baked into templates near the top of the screen.
 - `recon/map/` holds only the current session; `start` wipes it. The map skill doesn't run the `recon` capture loop.
-- Don't save anything under `<game>/templates/` outside the tree except its `common/` folder (popups), which `core.tree` keeps out of the menu tree.
+- Don't save anything under `<game>/templates/` outside the tree except its `common/` folder (popups, and `hud/` for elements shown on many menus' HUD), which `core.tree` keeps out of the menu tree.
