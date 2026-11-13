@@ -360,16 +360,16 @@ def _walk(menus, steps, home, delay, tries):
     return None
 
 
-def locate(template, screen):
+def locate(template, screen, threshold=0.85):
     """Find `template` on `screen` like core.vision.find, but for map-scheme names
     (btn_/info_..._X-Y-W-H[_anywhere][_white].png) search only their box, or
     the whole screen when the name says _anywhere, white-only when it says
-    _white. Returns (cx, cy, score) or None."""
+    _white. Returns (cx, cy, score) or None below `threshold`."""
     m = ELEMENT.match(Path(template).name)
     if not m:
-        return find(template, screen)
+        return find(template, screen, threshold=threshold)
     box = None if m["anywhere"] else tuple(int(m[k]) for k in "xywh")
-    return find(template, screen, box, white=bool(m["white"]))
+    return find(template, screen, box, threshold, white=bool(m["white"]))
 
 
 def _main():

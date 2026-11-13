@@ -22,7 +22,7 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         TARGET names the button itself and finish makes no menu for it.
 info    log box X Y W H of the current screen as element ELEMENT of menu HERE.
 note    log an observation for the game's notes, with the current screen.
-log     print the log.
+log     print the log, then the new menus nothing logged identifies yet.
 finish  crop every logged box into its menu folder, create new menus, check
         each image and print a report.
 """
@@ -50,6 +50,7 @@ NAME = re.compile(r"^[a-z0-9-]+$")
 SETTLE_MIN, SETTLE_MAX = 1.0, 4.0  # seconds; animated menus never settle, so give up
 SETTLED = 1.0  # percent of pixels changed between two captures (see core/vision.py)
 GOOD = 0.95    # a crop should score at least this on the screen it came from
+THRESHOLD = 0.85  # core.vision.find's default: at or above it, an image matches
 
 
 def settle():
@@ -175,8 +176,9 @@ def finish():
     - The box is cut from the screen it was logged on, replacing any earlier
       image of the same element on that menu. If it scores below GOOD there
       in colour but matches white-only, it is saved with _white.
-    - The image is then searched for, in its box, on every other menu's and
-      popup's screen*.png; any match means it may not tell its menu apart.
+    - The image is then scored, in its box, on every other menu's and popup's
+      screen*.png. The best score is printed (the "at most X elsewhere" the
+      notes cite); any match means it may not tell its menu apart.
     Notes are printed for writing into <game>/notes/.
     """
     entries = _entries()
@@ -227,7 +229,10 @@ def finish():
         flag = "" if score >= GOOD else "  <-- crop doesn't match its source"
         print(f"  {_rel(out)}: {score:.2f} on its source{flag}")
         (log.debug if score >= GOOD else log.warning)(f"{out.name}: {score:.2f} on its source")
-        others = _matches_elsewhere(game, out, d)
+        scores = _scores_elsewhere(game, out, d)
+        if scores:
+            print(f"    at most {scores[0][1]:.2f} elsewhere ({scores[0][0]})")
+        others = [(p, s) for p, s in scores if s >= THRESHOLD]
         if others:
             print("    also matches: " + ", ".join(f"{p} ({s:.2f})" for p, s in others))
             log.warning(f"{out.name} also matches " + ", ".join(f"{p} ({s:.2f})" for p, s in others))
@@ -245,15 +250,25 @@ def _score(match):
     return match[2] if match else 0.0
 
 
-def _matches_elsewhere(game, image, own):
-    hits = []
+def _scores_elsewhere(game, image, own):
+    """(screen, score) for every saved screen outside menu folder `own`, best first."""
+    scores = []
     for screen in sorted(templates_dir(game).rglob("screen*.png")):
         if screen.parent == own:
             continue
-        match = locate(image, screen)
-        if match:
-            hits.append((_rel(screen), match[2]))
-    return hits
+        scores.append((_rel(screen), _score(locate(image, screen, threshold=0.0))))
+    return sorted(scores, key=lambda s: -s[1])
+
+
+def unidentified(entries):
+    """Menus this log creates that nothing logged identifies yet: no info_ on
+    them and no button from them to another menu."""
+    menus, _ = tree.load(entries[0]["game"])
+    new = [e["name"] for e in entries if e.get("kind") == "btn" and not e.get("stay")
+           and e["name"] not in menus]
+    marked = {e["here"] for e in entries
+              if e.get("kind") == "info" or (e.get("kind") == "btn" and not e.get("stay"))}
+    return [m for m in dict.fromkeys(new) if m not in marked]
 
 
 def _rel(path):
@@ -282,8 +297,12 @@ if __name__ == "__main__":
     elif cmd == "note" and args:
         note(" ".join(args))
     elif cmd == "log" and not args:
-        for e in _entries():
+        entries = _entries()
+        for e in entries:
             print(json.dumps(e))
+        missing = unidentified(entries)
+        if missing:
+            print("No identifier yet: " + ", ".join(missing))
     elif cmd == "finish" and not args:
         finish()
     else:

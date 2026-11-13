@@ -94,19 +94,21 @@ The folders and file names are the whole map: there is no separate index file to
 
 Anything else worth keeping for the notes (a menu's states, a quirk, a timing), log with `python -m tools.map note <text>` and move on.
 
+Between clicks, only `click`, `shot`, `info` and `note`. Don't run `finish`, crop, score images or pick identifying elements before the user says to stop: every capture stays in `recon/map/` until the next `start`, and the next click can show that a choice was wrong (a title the next menu shares). A request that lists its clicks doesn't end the session either. After its last click, report and wait.
+
 ## Stop: "end path" / "stop mapping"
 
-1. Run `python -m tools.map log` and check it: right menu names, no clicks that did nothing.
-2. Run `python -m tools.map finish`. For each logged button and info element, it creates any new menu folder (with the after-capture as `screen.png`), crops the box from the capture it was logged on, checks the crop on that capture (adding `_white` when only white matching works) and searches for it on every other saved `screen*.png`. It leaves an existing menu's `screen.png` alone and prints the new capture's path instead. Then it prints the logged notes and the tree with its problems.
-3. Go through the report:
-   - a crop flagged as not matching its source: redo the box and crop it with `python -m core.vision crop`.
-   - an image that also matches other screens: tell the user it can't tell its menu apart.
-   - menus the bot can't recognise: ask about all of them at once, suggesting an element for each (e.g. its title). Crop the ones the user picks from the menu's `screen.png` and check them as `finish` does.
+1. Run `python -m tools.map log` and check it: right menu names, no clicks that did nothing. Its last line lists the new menus nothing logged identifies yet (no `info_`, no button to another menu).
+2. If it lists any, ask about all of them in one message, suggesting an element for each that the menu doesn't share with the menus around it (a title often is shared). Log each one the user picks with `python -m tools.map info`. `info` names the current capture as the line's `source`, so when the menu isn't the last one reached, set `source` in `recon/map/log.jsonl` to the capture the menu was reached on (its click's `after`).
+3. Run `python -m tools.map finish`, once. For each logged button and info element, it creates any new menu folder (with the after-capture as `screen.png`), crops the box from the capture it was logged on, checks the crop on that capture (adding `_white` when only white matching works) and scores it on every other saved `screen*.png`, printing the best score ("at most X elsewhere", the number the notes cite) and any match. It leaves an existing menu's `screen.png` alone and prints the new capture's path instead. Then it prints the logged notes and the tree with its problems. Don't score its images again by hand: each `python -m core.vision find` call starts Python and OpenCV afresh (~1.8 s), so a loop over every screen costs minutes where `finish` takes seconds.
+4. Go through the report. To fix something, change the log (`recon/map/log.jsonl`) and run `finish` again: it recrops every logged image from scratch.
+   - a crop flagged as not matching its source: redo its box.
+   - an image that also matches other screens: tell the user it can't tell its menu apart, and ask for another element.
    - dialogs and popups from the notes: move their captures and crops where the click section says.
    - other problems: fix the ones you caused (bad names, misplaced files); ask about the rest.
-4. Write what the session showed into `<game>/notes/UI.md`: a section for each new menu (how it's identified and what scored what), and the logged notes.
-5. Close the log with `python -m core.log end`.
-6. Show the user the final tree and tell them which notes changed, and give the log file `end` printed.
+5. Write what the session showed into `<game>/notes/UI.md`: a section for each new menu (how it's identified and what scored what, from `finish`'s report), and the logged notes.
+6. Close the log with `python -m core.log end`.
+7. Show the user the final tree and tell them which notes changed, and give the log file `end` printed.
 
 ## Notes
 
