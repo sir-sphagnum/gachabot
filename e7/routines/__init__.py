@@ -11,8 +11,8 @@ run it by name, e.g.:
     ROUTINES = {"arena": arena.run}
 """
 
-from e7.routines import claim_auto, claim_daily_shop, claim_forest, lobby, start_screen
+from e7.routines import claim_auto, claim_daily_shop, claim_forest, lobby, run_arena, start_screen
 
 ROUTINES = {"start_screen": start_screen.run, "lobby": lobby.run,
             "claim_forest": claim_forest.run, "claim_auto": claim_auto.run,
-            "claim_daily_shop": claim_daily_shop.run}
+            "claim_daily_shop": claim_daily_shop.run, "run_arena": run_arena.run}

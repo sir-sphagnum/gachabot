@@ -58,6 +58,7 @@ def back(key="back"):
 
 
 RGBA_8888 = 1  # screencap's pixel format code for 4 bytes per pixel, R G B A
+RETRY_S = 0.5  # pause between screencap retries
 
 
 def capture(retries=10):
@@ -69,10 +70,14 @@ def capture(retries=10):
     on newer Android, so 12 or 16 bytes) followed by the pixels.
 
     BlueStacks' screencap intermittently returns an empty frame (every pixel
-    RGBA 0); those are retried, as are short reads.
+    RGBA 0); those are retried, as are short reads. Empty frames can come in
+    bursts longer than `retries` back-to-back reads (seen during an arena
+    battle with recon capturing too), so retries are spaced RETRY_S apart.
     """
     adb_path, serial = connect()
-    for _ in range(retries):
+    for attempt in range(retries):
+        if attempt:
+            time.sleep(RETRY_S)
         # exec-out (not shell) passes the bytes through unchanged.
         raw = subprocess.run([adb_path, "-s", serial, "exec-out", "screencap"],
                              capture_output=True).stdout
