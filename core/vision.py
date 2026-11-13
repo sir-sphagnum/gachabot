@@ -129,12 +129,17 @@ def crop(screen, x, y, w, h, out):
     H, W = img.shape[:2]
     if w <= 0 or h <= 0 or x < 0 or y < 0 or x + w > W or y + h > H:
         raise ValueError(f"Box {x},{y},{w},{h} is outside the {W}x{H} screen")
+    return save(img[y:y + h, x:x + w], out)
+
+
+def save(img, path):
+    """Write a BGR array to `path` as a PNG and return the path."""
     # imencode/tofile handle non-ASCII Windows paths, unlike imwrite.
-    ok, png = cv2.imencode(".png", img[y:y + h, x:x + w])
+    ok, png = cv2.imencode(".png", img)
     if not ok:
         raise RuntimeError("PNG encoding failed")
-    png.tofile(str(out))
-    return out
+    png.tofile(str(path))
+    return path
 
 
 # --- screen comparison ------------------------------------------------------

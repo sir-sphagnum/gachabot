@@ -15,6 +15,7 @@ import numpy as np
 
 from core.adb import adb, connect
 from core.log import logger, setup
+from core.vision import save
 
 log = logger(__file__)
 
@@ -56,31 +57,47 @@ def back(key="back"):
     adb("shell", "input", "keyevent", KEYS.get(key, key))
 
 
+RGBA_8888 = 1  # screencap's pixel format code for 4 bytes per pixel, R G B A
+
+
 def capture(retries=10):
-    """Return the current BlueStacks screen as PNG bytes.
+    """Return the current BlueStacks screen as a BGR array (height x width x 3).
+
+    Takes the raw frame (`screencap` without -p): 0.24 s against 0.82 s for a
+    PNG, which BlueStacks spends compressing. The raw frame is a header
+    (width, height, format as little-endian uint32, then a colour-space field
+    on newer Android, so 12 or 16 bytes) followed by the pixels.
 
     BlueStacks' screencap intermittently returns an empty frame (every pixel
-    RGBA 0, ~8 KB PNG); those are retried.
+    RGBA 0); those are retried, as are short reads.
     """
     adb_path, serial = connect()
     for _ in range(retries):
-        # exec-out (not shell) passes the PNG bytes through unchanged.
-        png = subprocess.run([adb_path, "-s", serial, "exec-out", "screencap", "-p"],
+        # exec-out (not shell) passes the bytes through unchanged.
+        raw = subprocess.run([adb_path, "-s", serial, "exec-out", "screencap"],
                              capture_output=True).stdout
-        if not _blank(png):
-            return png
+        img = _frame(raw)
+        if img is not None and img.any():
+            return cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
     raise RuntimeError(f"BlueStacks returned {retries} blank screenshots in a row")
 
 
-def _blank(png):
-    img = cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_UNCHANGED)
-    return img is None or not img.any()
+def _frame(raw):
+    """The RGBA pixels of a raw screencap, or None if it's short or unreadable."""
+    if len(raw) < 12:
+        return None
+    w, h, fmt = np.frombuffer(raw[:12], "<u4")
+    size = int(w) * int(h) * 4
+    if fmt != RGBA_8888:
+        raise RuntimeError(f"screencap pixel format {fmt}, expected {RGBA_8888} (RGBA_8888)")
+    if len(raw) < size + 12:
+        return None
+    return np.frombuffer(raw[len(raw) - size:], np.uint8).reshape(int(h), int(w), 4)
 
 
 def screenshot(path="screenshot.png"):
     """Save the current BlueStacks screen as a PNG and return the path."""
-    with open(path, "wb") as f:
-        f.write(capture())
+    save(capture(), path)
     return path
 
 

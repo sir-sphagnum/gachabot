@@ -34,12 +34,11 @@ import sys
 import time
 
 import cv2
-import numpy as np
 
 from core import ROOT, templates_dir
 from core.input import capture, tap
 from core.log import logger, setup
-from core.vision import crop, difference, find, fingerprint, is_black
+from core.vision import crop, difference, find, fingerprint, is_black, save
 from core import tree
 
 log = logger(__file__)
@@ -53,24 +52,24 @@ GOOD = 0.95    # a crop should score at least this on the screen it came from
 
 
 def settle():
-    """Wait for the screen to stop changing. Returns (png, settled)."""
+    """Wait for the screen to stop changing. Returns (capture, settled)."""
     time.sleep(SETTLE_MIN)
-    png = capture()
-    prev = _fp(png)
+    img = capture()
+    prev = _fp(img)
     deadline = time.monotonic() + SETTLE_MAX - SETTLE_MIN
     while time.monotonic() < deadline:
         time.sleep(0.3)
-        png = capture()
-        cur = _fp(png)
+        img = capture()
+        cur = _fp(img)
         # A loading screen is black and still, which isn't the menu yet.
         if difference(prev, cur) <= SETTLED and not is_black(cur):
-            return png, True
+            return img, True
         prev = cur
-    return png, False
+    return img, False
 
 
-def _fp(png):
-    return fingerprint(cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_GRAYSCALE))
+def _fp(img):
+    return fingerprint(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
 
 
 def _entries():
@@ -84,11 +83,11 @@ def _append(entry):
         f.write(json.dumps(entry) + "\n")
 
 
-def _save(png, label):
+def _save(img, label):
     """Save a capture as recon/map/NN-label.png and return its repo-relative path."""
     n = len(list(DIR.glob("*.png")))
     path = DIR / f"{n:02d}-{label}.png"
-    path.write_bytes(png)
+    save(img, path)
     return path.relative_to(ROOT).as_posix()
 
 
@@ -135,8 +134,8 @@ def click(here, target, box, fresh=False, stay=False):
     x, y, w, h = box
     cx, cy = x + w // 2, y + h // 2
     tx, ty = tap(cx, cy)
-    png, settled = settle()
-    after = _save(png, target)
+    img, settled = settle()
+    after = _save(img, target)
     entry = {"kind": "btn", "here": here, "name": target, "box": box,
              "source": before, "after": after}
     if stay:

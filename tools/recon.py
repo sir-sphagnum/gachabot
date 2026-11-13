@@ -10,11 +10,10 @@ import time
 from datetime import datetime
 
 import cv2
-import numpy as np
 
 from core.input import capture
 from core.log import logger, setup
-from core.vision import difference, fingerprint
+from core.vision import difference, fingerprint, save
 
 log = logger(__file__)
 
@@ -30,14 +29,12 @@ if __name__ == "__main__":
     last_saved = None
     while True:
         start = time.time()
-        png = capture()
-        gray = cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_GRAYSCALE)
-        current = fingerprint(gray)
+        img = capture()
+        current = fingerprint(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
 
         if last_saved is None or difference(current, last_saved) > THRESHOLD:
             path = f"{folder}/{datetime.now():%Y%m%d-%H%M%S}.png"
-            with open(path, "wb") as f:
-                f.write(png)
+            save(img, path)
             last_saved = current
             log.debug(f"saved {path}")
             print(f"Saved {path}", flush=True)
