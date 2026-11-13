@@ -30,7 +30,7 @@ Run all commands from the project root.
    ```
    Add `--here <current>` only when you know which menu is on screen right now (you looked at a capture since the last thing that could have changed it): it walks from there instead of going to the lobby first, and falls back to the lobby if that fails.
 4. Exit 0 means the target's images matched with no popup open. Tell the user the route in one line (`lobby > sanctuary > forest-of-souls`). Take a screenshot only if they want to see it.
-5. Exit 1: capture the screen (`python -m core.input screenshot recon/navigate.png`), Read it, and tell the user where it stopped, using the last lines of output. Then:
+5. Exit 1: capture the screen (`python -m core.input screenshot recon/navigate.png`), Read it, run `python -m core.nav <game> where recon/navigate.png`, and tell the user where it stopped, using the last lines of output. An error ending in "no answer in 20s" (adb) or "blank screenshots in a row" means BlueStacks itself is stuck: run `python -m core.device health` and pass on what it says, usually to restart BlueStacks. Otherwise:
    - **a popup the bot doesn't know**: offer to map it as a common popup (map skill).
    - **a button didn't match**: the menu may have a state where it's hidden (like the lobby at rest). Ask, and note what you learn in `<game>/notes/UI.md`.
    - **the next menu didn't show though the tap landed**: its identifying images may not match this time (different lighting, art). Check with `python -m core.vision find <image> recon/navigate.png X Y W H` and tell the user the score.

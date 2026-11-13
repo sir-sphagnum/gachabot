@@ -6,14 +6,13 @@ Usage: python -m core.input tap X Y
 """
 
 import random
-import subprocess
 import sys
 import time
 
 import cv2
 import numpy as np
 
-from core.adb import adb, connect
+from core.adb import adb, connect, run_bytes
 from core.log import logger, setup
 from core.vision import save
 
@@ -79,8 +78,7 @@ def capture(retries=10):
         if attempt:
             time.sleep(RETRY_S)
         # exec-out (not shell) passes the bytes through unchanged.
-        raw = subprocess.run([adb_path, "-s", serial, "exec-out", "screencap"],
-                             capture_output=True).stdout
+        raw = run_bytes(adb_path, "-s", serial, "exec-out", "screencap")
         img = _frame(raw)
         if img is not None and img.any():
             return cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)

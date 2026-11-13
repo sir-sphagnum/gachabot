@@ -3,10 +3,12 @@
 Usage: python -m tools.map start GAME
        python -m tools.map shot
        python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay]
-       python -m tools.map info HERE ELEMENT X Y W H
+       python -m tools.map info HERE ELEMENT X Y W H [--on CAPTURE]
+       python -m tools.map leads MENU [--after CAPTURE]
        python -m tools.map note TEXT...
        python -m tools.map log
        python -m tools.map finish
+       python -m tools.map rename OLD NEW
 
 While mapping, nothing is cropped or checked: each command only captures and
 appends a line to recon/map/log.jsonl, so the next click can follow at once.
@@ -21,10 +23,18 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         --stay: the button keeps the game on HERE (claim, tab, close a dialog);
         TARGET names the button itself and finish makes no menu for it.
 info    log box X Y W H of the current screen as element ELEMENT of menu HERE.
+        --on: cut it from that capture in recon/map/ instead (e.g. the one a
+        menu was reached on, when it isn't the last).
+leads   mark the last click as opening menu MENU (drops --stay, renames its
+        target). --after: that capture is the menu's screen, for a menu that
+        only showed on a later `shot` (a load after the tap).
 note    log an observation for the game's notes, with the current screen.
 log     print the log, then the new menus nothing logged identifies yet.
 finish  crop every logged box into its menu folder, create new menus, check
         each image and print a report.
+rename  rename menu OLD to NEW in the session's game: its folder, the images
+        named after it (its own and the buttons that open it) and the log.
+CAPTURE is a file name in recon/map/ (e.g. 04-shot.png).
 """
 
 import json
@@ -32,6 +42,7 @@ import re
 import shutil
 import sys
 import time
+from pathlib import Path
 
 import cv2
 
@@ -77,7 +88,8 @@ def _fp(img):
 def _entries():
     if not LOG.exists():
         sys.exit("No mapping session: run `python -m tools.map start GAME` first")
-    return [json.loads(line) for line in LOG.read_text(encoding="utf-8").splitlines() if line]
+    # utf-8-sig: a log edited by hand in PowerShell gains a byte-order mark.
+    return [json.loads(line) for line in LOG.read_text(encoding="utf-8-sig").splitlines() if line]
 
 
 def _append(entry):
@@ -148,13 +160,78 @@ def click(here, target, box, fresh=False, stay=False):
     print(f"Tapped ({tx}, {ty}); {after}{still}")
 
 
-def info(here, element, box):
+def info(here, element, box, on=None):
     entries = _entries()
     _check_names(here, element)
-    source = _current(entries)
+    source = _capture_path(on) if on else _current(entries)
     _append({"kind": "info", "here": here, "name": element, "box": box, "source": source})
     log.info(f"info {here}/{element} {box} on {source}")
     print(f"Logged info {element} on {here} from {source}")
+
+
+def leads(menu, after=None):
+    """Mark the last click as opening `menu`: it loses --stay, takes `menu` as
+    its target, and, with `after`, that capture as the menu's screen (for a
+    menu that showed only on a later `shot`)."""
+    entries = _entries()
+    _check_names(menu)
+    clicks = [e for e in entries if e.get("kind") == "btn"]
+    if not clicks:
+        sys.exit("No click logged yet")
+    e = clicks[-1]
+    e.pop("stay", None)
+    old, e["name"] = e["name"], menu
+    if after:
+        e["after"] = _capture_path(after)
+    _write(entries)
+    log.info(f"{e['here']} > {menu} (was {old}), {e['after']}")
+    print(json.dumps(e))
+
+
+def rename(old, new):
+    """Rename menu `old` to `new`: its folder, every image named after it (its
+    own, and buttons on other menus that open it), and the log's lines."""
+    _check_names(new)
+    game = _entries()[0]["game"]
+    menus, _ = tree.load(game)
+    if old not in menus:
+        sys.exit(f"No menu '{old}'")
+    if new in menus:
+        sys.exit(f"Menu '{new}' already exists")
+    moves = []
+    for d in templates_dir(game).rglob("*.png"):
+        m = tree.ELEMENT.match(d.name)
+        if m and old in (m["menu"], m["name"]):
+            here = new if m["menu"] == old else m["menu"]
+            name = new if m["name"] == old and m["kind"] == "btn" else m["name"]
+            moves.append((d, d.with_name(d.name.replace(f"{m['kind']}_{m['menu']}_{m['name']}_",
+                                                        f"{m['kind']}_{here}_{name}_", 1))))
+    for a, b in moves:
+        a.rename(b)
+        print(f"{_rel(a)} -> {b.name}")
+    folder = ROOT / menus[old]["path"]
+    folder.rename(folder.with_name(new))
+    print(f"{_rel(folder)} -> {new}/")
+    entries = _entries()
+    for e in entries:
+        if "kind" in e:
+            e["here"] = new if e["here"] == old else e["here"]
+            if e["name"] == old and (e["kind"] == "btn" and not e.get("stay")):
+                e["name"] = new
+    _write(entries)
+    log.info(f"renamed menu {old} to {new}, {len(moves)} images")
+
+
+def _capture_path(name):
+    """Repo-relative path of a capture in recon/map/, given its file name or path."""
+    path = DIR / Path(name).name
+    if not path.exists():
+        sys.exit(f"No capture {path.name} in {_rel(DIR)}/")
+    return _rel(path)
+
+
+def _write(entries):
+    LOG.write_text("".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8")
 
 
 def note(text):
@@ -286,6 +363,14 @@ if __name__ == "__main__":
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
     fresh, stay = "--fresh" in args, "--stay" in args
     args = [a for a in args if a not in ("--fresh", "--stay")]
+    opts = {}
+    for flag in ("--on", "--after"):
+        if flag in args:
+            i = args.index(flag)
+            if i + 1 >= len(args):
+                sys.exit(__doc__)
+            opts[flag] = args[i + 1]
+            del args[i:i + 2]
     if cmd == "start" and len(args) == 1:
         start(args[0])
     elif cmd == "shot" and not args:
@@ -293,7 +378,11 @@ if __name__ == "__main__":
     elif cmd == "click" and len(args) == 6:
         click(args[0], args[1], _box(args[2:]), fresh, stay)
     elif cmd == "info" and len(args) == 6:
-        info(args[0], args[1], _box(args[2:]))
+        info(args[0], args[1], _box(args[2:]), opts.get("--on"))
+    elif cmd == "leads" and len(args) == 1:
+        leads(args[0], opts.get("--after"))
+    elif cmd == "rename" and len(args) == 2:
+        rename(*args)
     elif cmd == "note" and args:
         note(" ".join(args))
     elif cmd == "log" and not args:

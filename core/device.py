@@ -3,16 +3,19 @@
 Usage: python -m core.device connect
        python -m core.device focus
        python -m core.device fullscreen
+       python -m core.device health      exits 1 when BlueStacks needs a restart
+                                         or Windows is low on memory
        python -m core.device start|stop|status [--fullscreen] [game ...]
            game is a short name from GAMES (e.g. e7) or a package name;
            no game means every game in GAMES. --fullscreen applies to start.
 """
 
+import ctypes
 import re
 import sys
 import time
 
-from core.adb import adb, connect
+from core.adb import adb, connect, player_pids
 from core.input import tap
 from core.log import logger, setup
 
@@ -170,6 +173,70 @@ def stop_game(game, timeout=10):
     return bool(wait_until(lambda: not is_running(pkg), timeout, interval=0.5))
 
 
+# --- health -----------------------------------------------------------------
+
+# BlueStacks' own memory grows while the bot captures the screen (9.6 GB to
+# 22 GB in ~45 min with two processes capturing every second). At 22 GB
+# every screencap came back empty; at 27 GB Windows ran out of memory and
+# adb couldn't start. Both cleared only with a BlueStacks restart.
+PLAYER_MAX_GB = 18
+FREE_MIN_GB = 4  # Windows' free commit space (RAM plus page file)
+
+
+def health():
+    """(ok, message): whether BlueStacks' memory and Windows' free memory
+    leave room for a long run."""
+    free = _free_commit_gb()
+    sizes = [_commit_gb(int(pid)) for pid in player_pids()]
+    if not sizes:
+        return False, "BlueStacks isn't running"
+    player = max(sizes)
+    problems = []
+    if player > PLAYER_MAX_GB:
+        problems.append(f"BlueStacks uses {player:.1f} GB (over {PLAYER_MAX_GB}): restart it")
+    if free < FREE_MIN_GB:
+        problems.append(f"only {free:.1f} GB of memory free (under {FREE_MIN_GB}): close other apps")
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"OK: BlueStacks uses {player:.1f} GB, {free:.1f} GB free"
+
+
+class _MemoryStatus(ctypes.Structure):
+    _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+
+class _ProcessMemory(ctypes.Structure):
+    _fields_ = [("cb", ctypes.c_ulong), ("PageFaultCount", ctypes.c_ulong),
+                ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+
+
+def _free_commit_gb():
+    status = _MemoryStatus(dwLength=ctypes.sizeof(_MemoryStatus))
+    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status))
+    return status.ullAvailPageFile / 2**30
+
+
+def _commit_gb(pid):
+    """Memory process `pid` has committed (its private bytes), in GB."""
+    query = 0x1000  # PROCESS_QUERY_LIMITED_INFORMATION
+    handle = ctypes.windll.kernel32.OpenProcess(query, False, pid)
+    if not handle:
+        return 0.0
+    try:
+        counters = _ProcessMemory(cb=ctypes.sizeof(_ProcessMemory))
+        ctypes.windll.psapi.GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb)
+        return counters.PagefileUsage / 2**30
+    finally:
+        ctypes.windll.kernel32.CloseHandle(handle)
+
+
 def _answer(msg, ok=True):
     """Print the command's answer and log it, as ERROR when it failed."""
     print(msg)
@@ -187,6 +254,10 @@ if __name__ == "__main__":
     elif cmd == "fullscreen":
         ok = fullscreen()
         _answer("Fullscreen" if ok else "Still floating", ok)
+    elif cmd == "health":
+        ok, msg = health()
+        _answer(msg, ok)
+        sys.exit(0 if ok else 1)
     elif cmd in ("start", "stop", "status"):
         full = "--fullscreen" in args
         for game in [a for a in args if a != "--fullscreen"] or list(GAMES):

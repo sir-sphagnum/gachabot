@@ -3,10 +3,28 @@
 import glob
 import subprocess
 from functools import cache
+from pathlib import Path
+
+# Seconds any one command may take. Without a limit a call that never returns
+# (seen when BlueStacks ran out of memory) froze a whole run with no log line.
+TIMEOUT = 20
 
 
-def run(*cmd):
-    return subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+class AdbTimeout(RuntimeError):
+    """A command run here gave no answer within its timeout."""
+
+
+def run(*cmd, timeout=TIMEOUT):
+    return run_bytes(*cmd, timeout=timeout).decode(errors="replace").strip()
+
+
+def run_bytes(*cmd, timeout=TIMEOUT):
+    """Run cmd and return its stdout as bytes. Raises AdbTimeout after `timeout` seconds."""
+    try:
+        return subprocess.run(cmd, capture_output=True, timeout=timeout).stdout
+    except subprocess.TimeoutExpired:
+        raise AdbTimeout(f"{Path(cmd[0]).name} {' '.join(map(str, cmd[1:]))}: "
+                         f"no answer in {timeout}s") from None
 
 
 def find_adb():
@@ -17,10 +35,15 @@ def find_adb():
     return paths[0]
 
 
+def player_pids():
+    """Process IDs of BlueStacks' emulator windows (HD-Player.exe)."""
+    tasks = run("tasklist", "/FI", "IMAGENAME eq HD-Player.exe", "/FO", "CSV", "/NH")
+    return {line.split('","')[1] for line in tasks.splitlines() if "HD-Player" in line}
+
+
 def find_ports():
     """Ports that BlueStacks (HD-Player.exe) is listening on."""
-    tasks = run("tasklist", "/FI", "IMAGENAME eq HD-Player.exe", "/FO", "CSV", "/NH")
-    pids = {line.split('","')[1] for line in tasks.splitlines() if "HD-Player" in line}
+    pids = player_pids()
 
     ports = []
     for line in run("netstat", "-ano", "-p", "TCP").splitlines():

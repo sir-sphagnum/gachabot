@@ -58,8 +58,8 @@ The folders and file names are the whole map: there is no separate index file to
 
 1. Work out which game is running (ask if unclear). Open this run's log with `python -m core.log start map`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, an earlier run never ended: run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then run `python -m tools.map start <game>`. It clears `recon/map/` and captures the first screen; Read the path it prints.
    - If the game has no folder yet, ask what to call it, add it to `core.device.GAMES`, and create `<game>/templates/` with an empty `.gitkeep` in it (git ignores everything else under any `templates/` folder, so the `.gitkeep` is what keeps the empty folder in the repo). Then run `start`.
-2. Run `python -m core.tree <game>` and find which menu this is: the folder whose `btn_*`/`info_*` images match (`python -m core.vision find <image> <capture> <x> <y> <w> <h>`, using the box in the file name).
-   - If it prints `(no menus yet)`, this screen is the root. Ask the user what to call it if it isn't obvious (e.g. `start-screen`), create `<game>/templates/<root>/` and copy the capture in as `screen.png`.
+2. Find which menu this is: `python -m core.nav <game> where <capture>` lists the popups open and every menu whose identifying images match, best score first. Several can match (a shared identifier, a menu under a popup's dim): check the capture to pick.
+   - If `python -m core.tree <game>` prints `(no menus yet)`, this screen is the root. Ask the user what to call it if it isn't obvious (e.g. `start-screen`), create `<game>/templates/<root>/` and copy the capture in as `screen.png`.
    - If nothing matches, tell the user and ask which menu this is and where it belongs.
 3. Tell the user which menu you are on and that you're ready for clicks. Keep track of the current menu's name for the rest of the session.
 
@@ -68,12 +68,12 @@ The folders and file names are the whole map: there is no separate index file to
 1. Look at the current capture: the one the last `tools.map` command printed. Run `python -m tools.map shot` first only when the screen may have changed since (the user did something, a routine ran, a timer or idle state may have kicked in).
 2. Find the button the user named. If you can't find it, or more than one thing matches, ask. Do not guess.
 3. Decide its box in 1920x1080 pixels: tight around the button, but including its whole label or icon. Leave out sparkles and other animated bits next to it. If the image you see is scaled, scale the box.
-4. Name the target from the user's words or the button's label. If it isn't clear, use a placeholder and fix it in `recon/map/log.jsonl` once you see the new screen.
+4. Name the target from the user's words or the button's label. If it isn't clear, use a placeholder and fix it with `python -m tools.map leads <menu>` once you see the new screen.
 5. Tap and capture in one call:
    ```
    python -m tools.map click <here> <target> X Y W H
    ```
-   It taps the box's centre, waits until two captures 0.3 s apart look the same (giving up after 4 s on animated menus) and prints the after-capture's path. When the click must follow a routine at once (e.g. the lobby falls back to rest within seconds), chain them in one command and pass `--fresh`, so the box is cut from a capture taken just before the tap:
+   It taps the box's centre, waits until two captures 0.3 s apart look the same (giving up after 4 s on animated menus, and adding "(still changing)") and prints the after-capture's path. If the after-capture still shows the old menu or a load, take `shot`s until the new menu shows, then point the click at that capture: `python -m tools.map leads <menu> --after <capture>`. When the click must follow a routine at once (e.g. the lobby falls back to rest within seconds), chain them in one command and pass `--fresh`, so the box is cut from a capture taken just before the tap:
    ```
    python -m e7.routines.lobby && python -m tools.map click lobby sanctuary 27 246 112 86 --fresh
    ```
@@ -94,24 +94,25 @@ The folders and file names are the whole map: there is no separate index file to
 
 Anything else worth keeping for the notes (a menu's states, a quirk, a timing), log with `python -m tools.map note <text>` and move on.
 
-Between clicks, only `click`, `shot`, `info` and `note`. Don't run `finish`, crop, score images or pick identifying elements before the user says to stop: every capture stays in `recon/map/` until the next `start`, and the next click can show that a choice was wrong (a title the next menu shares). A request that lists its clicks doesn't end the session either. After its last click, report and wait.
+Between clicks, only `click`, `shot`, `leads`, `info` and `note`. Don't run `finish`, crop, score images or pick identifying elements before the user says to stop: every capture stays in `recon/map/` until the next `start`, and the next click can show that a choice was wrong (a title the next menu shares). A request that lists its clicks doesn't end the session either. After its last click, report and wait.
 
 ## Stop: "end path" / "stop mapping"
 
 1. Run `python -m tools.map log` and check it: right menu names, no clicks that did nothing. Its last line lists the new menus nothing logged identifies yet (no `info_`, no button to another menu).
-2. If it lists any, ask about all of them in one message, suggesting an element for each that the menu doesn't share with the menus around it (a title often is shared). Log each one the user picks with `python -m tools.map info`. `info` names the current capture as the line's `source`, so when the menu isn't the last one reached, set `source` in `recon/map/log.jsonl` to the capture the menu was reached on (its click's `after`).
+2. If it lists any, ask about all of them in one message, suggesting an element for each that the menu doesn't share with the menus around it (a title often is shared). Log each one the user picks with `python -m tools.map info`. It cuts the element from the current capture; when the menu isn't the last one reached, add `--on <capture>` with the capture the menu was reached on (its click's `after`).
 3. Run `python -m tools.map finish`, once. For each logged button and info element, it creates any new menu folder (with the after-capture as `screen.png`), crops the box from the capture it was logged on, checks the crop on that capture (adding `_white` when only white matching works) and scores it on every other saved `screen*.png`, printing the best score ("at most X elsewhere", the number the notes cite) and any match. It leaves an existing menu's `screen.png` alone and prints the new capture's path instead. Then it prints the logged notes and the tree with its problems. Don't score its images again by hand: each `python -m core.vision find` call starts Python and OpenCV afresh (~1.8 s), so a loop over every screen costs minutes where `finish` takes seconds.
 4. Go through the report. To fix something, change the log (`recon/map/log.jsonl`) and run `finish` again: it recrops every logged image from scratch.
    - a crop flagged as not matching its source: redo its box.
    - an image that also matches other screens: tell the user it can't tell its menu apart, and ask for another element.
    - dialogs and popups from the notes: move their captures and crops where the click section says.
    - other problems: fix the ones you caused (bad names, misplaced files); ask about the rest.
+   - a menu that needs another name (the user asks, or a name turns out wrong): `python -m tools.map rename <old> <new>` renames its folder, every image named after it and the log's lines. Then search the game's routines and notes for the old name.
 5. Write what the session showed into `<game>/notes/UI.md`: a section for each new menu (how it's identified and what scored what, from `finish`'s report), and the logged notes.
 6. Close the log with `python -m core.log end`.
 7. Show the user the final tree and tell them which notes changed, and give the log file `end` printed.
 
 ## Notes
 
-- Turn off Android's Pointer location overlay before mapping. It is drawn into every screenshot and would end up baked into templates near the top of the screen.
+- Turn off Android's Pointer location overlay (Developer options) before mapping, recon or a task. It is drawn into every screenshot and would end up baked into templates near the top of the screen.
 - `recon/map/` holds only the current session; `start` wipes it. The map skill doesn't run the `recon` capture loop.
 - Don't save anything under `<game>/templates/` outside the tree except its `common/` folder (popups, `hud/` for elements shown on many menus' HUD, and the menus HUD buttons open), which `core.tree` keeps out of the menu tree.

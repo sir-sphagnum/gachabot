@@ -2,6 +2,7 @@
 
 Usage: python -m core.nav GAME goto MENU [--here MENU] [--debug]
        python -m core.nav GAME routes
+       python -m core.nav GAME where [CAPTURE]
        python -m core.nav GAME tap BUTTON EXPECTED [EXPECTED ...] [--delay S]
                                    [--tries N] [--no-popups] [--debug]
 
@@ -31,6 +32,11 @@ tree's btn_ images with tap_until. --here names the menu already on screen,
 to walk from it instead. Exits 0 once MENU is on screen, 1 otherwise.
 
 routes: print each menu's route from the lobby, without touching the game.
+
+where: name the common popups open and every menu whose identifying images
+match, best score first, on the screen or on a saved CAPTURE. More than one
+menu can match (shared identifiers, a menu under a popup's dim). Exits 1 when
+nothing matches.
 
 goto and tap stop with an error, before tapping anything, unless GAME is the
 app in focus and fullscreen (not floating).
@@ -283,6 +289,26 @@ def identity(menus, name):
             or [b for b in menu["buttons"] if b["name"] in menus and b["name"] != name]]
 
 
+def where(game, screen):
+    """What `screen` shows, as (popups, menus).
+
+    popups: names of the game's common popups open on it.
+    menus: [(menu, template file name, score)], best first, for every menu
+        one of whose identity() templates matches. Several can match: some
+        identifiers show on more than one menu (e.g. a scene behind a panel),
+        and a popup's dim can leave the menu under it matching.
+    """
+    menus, _ = tree.load(game)
+    popups = [n for n, p in game_popups(game).items() if _is_open(p, screen)]
+    found = []
+    for name in menus:
+        hits = [(Path(t).name, m[2]) for t in identity(menus, name)
+                for m in [locate(t, screen)] if m]
+        if hits:
+            found.append((name, *max(hits, key=lambda h: h[1])))
+    return popups, sorted(found, key=lambda f: -f[2])
+
+
 def lobby(game):
     """The game's lobby routine: <game>.routines.lobby.run.
 
@@ -383,6 +409,8 @@ def _main():
     g.add_argument("menu")
     g.add_argument("--here", help="the menu already on screen")
     sub.add_parser("routes", help="print each menu's route from the lobby")
+    w = sub.add_parser("where", help="name the menus and popups on screen")
+    w.add_argument("capture", nargs="?", help="a saved capture to look at instead of the screen")
     t = sub.add_parser("tap", parents=[debug],
                        help="tap BUTTON until an EXPECTED element shows")
     t.add_argument("button")
@@ -406,6 +434,16 @@ def _run(a):
         for name, path in routes(a.game).items():
             print(f"{name}: {' > '.join(path) if path else f'(not reachable from the {HOME})'}")
         return 0
+
+    if a.cmd == "where":
+        popups, menus = where(a.game, a.capture or capture())
+        for name in popups:
+            print(f"popup_{name} open")
+        for name, template, score in menus:
+            print(f"{name}  ({template} {score:.2f})")
+        if not popups and not menus:
+            print("No known menu or popup")
+        return 0 if popups or menus else 1
 
     if a.cmd == "goto":
         menus, _ = tree.load(a.game)
