@@ -12,7 +12,7 @@ The title screen ("Tap to Start"). Its one indicator is also its button: the cop
 
 ## lobby (`e7/templates/start-screen/lobby/`)
 
-Three states: active and rest, each seen by day and by night, and quit. The scene's lighting changes with the time of day: at night the tavern is warmer and brighter. `screen.png` is the night lobby, active (the usable state). `screen-day.png` is the day lobby, active. `screen-night.png` is the night lobby, at rest. `screen-rest.png` is the day lobby, at rest. `screen-quit.png` is the quit dialog over the lobby.
+Five states: active and rest, each seen by day and by night, quit, checkin and checkin-received. The scene's lighting changes with the time of day: at night the tavern is warmer and brighter. `screen.png` is the night lobby, active (the usable state). `screen-day.png` is the day lobby, active. `screen-night.png` is the night lobby, at rest. `screen-rest.png` is the day lobby, at rest. `screen-quit.png` is the quit dialog over the lobby. `screen-checkin.png` and `screen-checkin-received.png` are the two daily check-in dialogs.
 
 - **active**: HUD shown. Identified by the barrel **and** `btn_lobby_main-menu_1847-20-45-58.png` (blue 4-boxes, top right; also opens the main menu). Neither is enough alone: the barrel shows in every lobby state, and the 4-boxes icon also shows on other screens (e.g. the shop).
 - **rest**: HUD hidden, only the animated tavern scene. Identified by `info_lobby_barrel_1240-140-80-120.png` (the big barrel on the wall right of the bar, centre ~(1280, 200)) while the 4-boxes icon is missing. The barrel is part of the scene, so it shows in every state and on `main-menu`. It's covered by some popups and absent on the shop and start screens.
@@ -21,6 +21,14 @@ Three states: active and rest, each seen by day and by night, and quit. The scen
   - Closed by tapping Cancel (`btn_lobby_lobby_660-650-280-80.png`, back to the active lobby): 1.0 on the dialog, at most 0.29 elsewhere. Never tap Confirm: it quits the game.
   - Escape also closes it, but takes ~1.4 s to clear the text. Pressed again before that, it can land on the lobby and open the dialog again; a tap on Cancel can't.
   - The wall barrel still matches through the dim (0.96). The HUD icons don't.
+- **checkin**: "Merurin's Check-In Reward", a 28-day calendar (left) with "Consecutive Login", "Rewards Received: n / 28" and Confirm (bottom right). Seen once a day, over the lobby just after it loaded following the date change. It's a lobby state rather than a common popup because only the lobby shows it.
+  - Identified by "Rewards Received:" without the count (`info_lobby_checkin-text_1420-882-260-44.png`), since the count changes daily: 1.0 on the dialog, at most 0.22 elsewhere.
+  - Closed by Confirm (`btn_lobby_checkin-confirm_1530-965-170-60.png`, centre (1615, 995)): 1.0 on the dialog, at most 0.33 elsewhere. Confirm opens checkin-received, not the lobby.
+  - The main-menu icon still matches (1.0), undimmed, and the barrel doesn't (0.76, behind Merurin's hat).
+- **checkin-received**: "Received Check-In Reward", listing the day's reward, with "Tap to close" at the bottom.
+  - Identified by its title (`info_lobby_checkin-received-title_675-170-570-65.png`): 1.0 on the dialog, at most 0.34 elsewhere.
+  - Closed by "Tap to close" (`btn_lobby_checkin-received-close_860-1000-200-80.png`, centre (960, 1040)), lower than the common popups' own: 1.0 on the dialog, at most 0.35 elsewhere. Closing it leaves the lobby active.
+  - The main-menu icon still matches (1.0), and the barrel doesn't (0.49).
 
 Why the barrel: The score does not change much under all known conditions of the lobby - it scores 1.0 by day, 0.96 at night, 0.99 at rest and 0.96 under `main-menu`, and at most 0.30 on non-lobby screens.
 

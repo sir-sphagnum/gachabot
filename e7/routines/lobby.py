@@ -5,12 +5,12 @@ Usage: python -m e7.routines.lobby [--debug]
 core.nav loads this module by name as E7's lobby routine, the start of every
 menu walk, so keep its path and run() returning True on success.
 
-1. Until the lobby's wall barrel shows with no popup or quit dialog over it:
+1. Until the lobby's wall barrel shows with no popup or lobby dialog over it:
    - while the screen is black (the game loading), wait; Back pressed then
      would be a guess;
-   - if one of the game's common popups (e7/templates/common/popups/) or the
-     lobby's quit dialog is open, close it (Cancel for the quit dialog) and
-     look again;
+   - if one of the game's common popups (e7/templates/common/popups/) or a
+     lobby dialog (quit, daily check-in, check-in received) is open, close it
+     (Cancel for the quit dialog) and look again;
    - if the start screen is up, hand over to the start_screen routine (and
      reset the Back count);
    - otherwise press Back.
@@ -45,6 +45,10 @@ MAIN_MENU = LOBBY / "btn_lobby_main-menu_1847-20-45-58.png"  # HUD: shows only w
 MAIN_MENU_SPOT = (1869, 49)  # centre of MAIN_MENU's box
 QUIT = dialog(LOBBY / "info_lobby_quit-text_690-462-540-50.png",  # "Are you sure you want to quit the game?"
               LOBBY / "btn_lobby_lobby_660-650-280-80.png")    # its Cancel button
+CHECKIN = dialog(LOBBY / "info_lobby_checkin-text_1420-882-260-44.png",  # "Rewards Received:"
+                 LOBBY / "btn_lobby_checkin-confirm_1530-965-170-60.png")  # Confirm, opens CHECKIN_RECEIVED
+CHECKIN_RECEIVED = dialog(LOBBY / "info_lobby_checkin-received-title_675-170-570-65.png",
+                          LOBBY / "btn_lobby_checkin-received-close_860-1000-200-80.png")  # "Tap to close"
 
 
 def run(backs=10, taps=5, delay=1.5):
@@ -55,7 +59,8 @@ def run(backs=10, taps=5, delay=1.5):
     taps: maximum taps to wake its HUD.
     delay: seconds to keep checking the screen after each press or tap.
     """
-    popups = {**game_popups(GAME), "quit": QUIT}
+    popups = {**game_popups(GAME), "quit": QUIT,
+              "checkin": CHECKIN, "checkin-received": CHECKIN_RECEIVED}
     screen = capture()
     presses = closed = 0
     while True:
