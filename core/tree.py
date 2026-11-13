@@ -46,7 +46,7 @@ from core import ROOT, templates_dir
 
 ELEMENT = re.compile(
     r"^(?P<kind>btn|info)_(?P<menu>[a-z0-9-]+)_(?P<name>[a-z0-9-]+)"
-    r"_(?P<x>\d+)-(?P<y>\d+)-(?P<w>\d+)-(?P<h>\d+)(?P<white>_white)?\.png$")
+    r"_(?P<x>\d+)-(?P<y>\d+)-(?P<w>\d+)-(?P<h>\d+)(?P<anywhere>_anywhere)?(?P<white>_white)?\.png$")
 STATE = re.compile(r"^screen-(?P<state>[a-z0-9-]+)\.png$")
 COMMON = "common"
 POPUPS = "popups"

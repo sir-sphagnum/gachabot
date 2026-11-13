@@ -20,9 +20,9 @@ the popup is gone, then looks again. Closing a popup doesn't use up one of the
 
 BUTTON is a template file or an X,Y point (e.g. 1869,49); EXPECTED are
 template files. Template names that follow the map skill's scheme
-(btn_/info_..._X-Y-W-H[_white].png) are searched only in their box, matching
-white-only when the name says so; any other file is searched over the whole
-screen. Exits 0 when an expected element was seen, 1 otherwise.
+(btn_/info_..._X-Y-W-H[_anywhere][_white].png) are searched only in their box
+(over the whole screen when the name says _anywhere), matching white-only when
+the name says _white; any other file is searched over the whole screen. Exits 0 when an expected element was seen, 1 otherwise.
 
 goto: take GAME to MENU, a menu folder name under <game>/templates/,
 from wherever it is. Every walk starts from the game's lobby: its menu folder
@@ -362,12 +362,13 @@ def _walk(menus, steps, home, delay, tries):
 
 def locate(template, screen):
     """Find `template` on `screen` like core.vision.find, but for map-scheme names
-    (btn_/info_..._X-Y-W-H[_white].png) search only their box, white-only when
-    the name says so. Returns (cx, cy, score) or None."""
+    (btn_/info_..._X-Y-W-H[_anywhere][_white].png) search only their box, or
+    the whole screen when the name says _anywhere, white-only when it says
+    _white. Returns (cx, cy, score) or None."""
     m = ELEMENT.match(Path(template).name)
     if not m:
         return find(template, screen)
-    box = tuple(int(m[k]) for k in "xywh")
+    box = None if m["anywhere"] else tuple(int(m[k]) for k in "xywh")
     return find(template, screen, box, white=bool(m["white"]))
 
 

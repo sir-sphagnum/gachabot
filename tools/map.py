@@ -40,6 +40,7 @@ from core.input import capture, tap
 from core.log import logger, setup
 from core.vision import crop, difference, find, fingerprint, is_black, save
 from core import tree
+from core.nav import locate
 
 log = logger(__file__)
 
@@ -209,9 +210,13 @@ def finish():
                 print(f"{label}: new menu {_rel(folders[name])}")
                 log.info(f"new menu {_rel(folders[name])}")
         stem = f"{e['kind']}_{here}_{name}_"
+        anywhere = ""  # a recrop keeps _anywhere, which only a rename adds
         for old in d.glob(stem + "*.png"):
+            m = tree.ELEMENT.match(old.name)
+            if m and m["anywhere"]:
+                anywhere = "_anywhere"
             old.unlink()
-        out = d / f"{stem}{x}-{y}-{w}-{h}.png"
+        out = d / f"{stem}{x}-{y}-{w}-{h}{anywhere}.png"
         crop(ROOT / e["source"], x, y, w, h, out)
         score = _score(find(out, ROOT / e["source"], (x, y, w, h)))
         if score < GOOD:
@@ -241,14 +246,11 @@ def _score(match):
 
 
 def _matches_elsewhere(game, image, own):
-    white = image.stem.endswith("_white")
-    m = tree.ELEMENT.match(image.name)
-    box = tuple(int(m[k]) for k in "xywh")
     hits = []
     for screen in sorted(templates_dir(game).rglob("screen*.png")):
         if screen.parent == own:
             continue
-        match = find(image, screen, box, white=white)
+        match = locate(image, screen)
         if match:
             hits.append((_rel(screen), match[2]))
     return hits
