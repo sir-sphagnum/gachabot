@@ -53,7 +53,9 @@ def run(appear=60, taps=3, delay=3, load=30):
             break
         x, y = tap(*match[:2])
         log.debug(f"tap {attempt}/{taps} at ({x}, {y})")
-        screen = wait_until(_gone, delay) or capture()
+        screen = wait_until(_gone, delay)
+        if screen is None:
+            screen = capture()
     if at_start_screen(screen):
         log.error(f"still on start screen after {taps} taps")
         return False

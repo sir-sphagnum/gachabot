@@ -91,7 +91,9 @@ def run(backs=10, taps=5, delay=1.5):
         presses += 1
         log.debug(f"back {presses}/{backs}")
         back(BACK_KEY)
-        screen = wait_until(lambda: _with(BARREL), delay) or capture()
+        screen = wait_until(lambda: _with(BARREL), delay)
+        if screen is None:
+            screen = capture()
 
     log.info("reached, waking HUD")
     if tap_until(MAIN_MENU_SPOT, MAIN_MENU, delay, taps, popups=popups):

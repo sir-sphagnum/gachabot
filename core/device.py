@@ -30,11 +30,12 @@ GAMES = {
 
 def wait_until(condition, timeout, interval=0.2):
     """Call condition() until it returns something truthy or `timeout` seconds
-    pass. Returns that truthy result, or None on timeout."""
+    pass. Returns that truthy result, or None on timeout. A numpy array (a
+    capture) counts as truthy: its own truth value raises."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         result = condition()
-        if result:
+        if result is not None if hasattr(result, "shape") else result:
             return result
         if interval:
             time.sleep(interval)
