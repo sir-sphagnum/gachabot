@@ -10,7 +10,7 @@ Usage: python -m e7.routines.claim_daily_shop [--debug]
 3. 40 Energy, then 5 Flags: close any popup, find the card by its title over
    the whole screen, and look for the 100-heart pill below it. No pill means
    it's already bought today: skip it. Otherwise tap the pill until the Buy
-   dialog shows, tap Buy until the dialog is gone, and check the pill is gone.
+   dialog shows, tap Buy until the dialog is gone, and wait for the pill to go.
 4. Go back to the lobby (the lobby routine).
 
 A bought or claimed product moves to the end of the grid and shows a timer
@@ -20,6 +20,8 @@ everything is looked for over the whole screen, never at a fixed spot.
 
 import sys
 
+from core.device import wait_until
+from core.input import capture
 from core.log import logger, setup
 from core.nav import close_popup, dialog, game_popups, goto, locate, open_popup, past_black, tap_until
 from core.vision import find
@@ -38,6 +40,7 @@ PILL = SHOP / "btn_daily-shop_buy-100-hearts_540-515-130-45.png"         # heart
 BUY_TITLE = SHOP / "info_daily-shop_buy-title_890-205-140-65.png"        # "Buy"
 BUY_CONFIRM = SHOP / "btn_daily-shop_buy-confirm_900-722-445-85.png"     # [heart 100] Buy
 BUY = dialog(BUY_TITLE, BUY_CONFIRM)
+SETTLE = 5    # seconds after Buy for the bought card's price to go
 
 # Products bought with green hearts: (title image, offset of the price pill's
 # centre from the title match's centre). The pill sits 277 px below the title
@@ -135,8 +138,10 @@ def _buy(name, title, offset, popups, delay, tries):
     if not close_popup("buy", BUY, delay, tries):
         log.error(f"{name}: Buy dialog not closed")
         return False
-    if _pill(title, offset, past_black()):
-        log.error(f"{name}: price still showing after Buy")
+    # Buy has no reward dialog after it, and the grid moves the card to the end
+    # a moment after the dialog closes: a check right away still saw the price.
+    if wait_until(lambda: _pill(title, offset, capture()) is None, SETTLE) is None:
+        log.error(f"{name}: price still showing {SETTLE}s after Buy")
         return False
     log.info(f"{name}: bought")
     return True
