@@ -64,6 +64,14 @@ Controls (task `claim-forest`, `e7/routines/claim_forest.py`, `python -m e7.bot 
 - A blue ring shows where the screen was just tapped, for about a second. Over "Tap to close" it stops the button matching (no match on the capture right after a close tap), so a dialog can look closed for a moment while it's still open.
 - **Cultivate (n/3)**: shows only while MolaGora Farm is growing. It's gone while the farm shows Receive Reward and while it rests, so a missing button means skip, not a failure. It takes 24 h off MolaGora Farm's timer (36:46 → 12:45) and opens no dialog. When no uses are left the button turns grey and loses its orange dot, and it can't be used again. `btn_forest-of-souls_cultivate_1622-810-155-48.png` still scores 0.96 on the grey button, so lit is told by colour: mean green minus blue over the button is +41 lit, -12 grey. The count "(2/3)" doesn't change between captures (mean pixel difference 0) and changes by 30 when it goes up.
 
+## secret-shop (`e7/templates/start-screen/lobby/secret-shop/`)
+
+Opened by Secret Shop on the active lobby (`btn_lobby_secret-shop_15-355-140-92.png`, the "??" icon with its label, left column under Sanctuary). The menu shows the merchant on the left with "Secret Shop Level n", a "…left until refresh" timer and a Refresh button (3 crystals), and on the right a scrolling list of items (heroes, equipment, currency), each with a price and a "1/1 Buy" button.
+
+- Identified by its title, top left (`info_secret-shop_title_100-25-205-55.png`): 1.0 on the menu, at most 0.61 elsewhere (forest-of-souls' reward dialog).
+- The lobby button scores 0.96–0.97 on `main-menu`'s and the HUD's captures too: both are the lobby underneath, so it still sits on the lobby there.
+- The merchant is animated, so captures never settle (`tools.map` flags them "still changing"); judge settling by the title.
+
 ## shop-landing and daily-shop (`e7/templates/start-screen/lobby/main-menu/shop-landing/`)
 
 `shop-landing` is the Shop as it opens, on Update Special. Its side list (Update Special, Pack, Purchase Skystone, Shop, Exchange, Skin, Shop Event) changes which entries it shows: Web Store was listed below Update Special on one visit and gone on the next, which moved every entry below it up by ~118 px. `daily-shop` is the list's Shop entry, opened on its Normal tab.
