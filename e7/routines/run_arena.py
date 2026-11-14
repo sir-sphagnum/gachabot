@@ -9,7 +9,8 @@ Usage: python -m e7.routines.run_arena [--fights N] [--debug]
      Confirm its dialog while Confirm says Free (else Cancel and stop); if
      Refresh doesn't show Free (on cooldown), stop;
    - tap the row, check Challenge lit up, tap Challenge until arena-team's
-     Start shows, tap Start until it's gone (a ~7 s load follows);
+     Start shows, tap Start until it's gone (a ~7 s load follows). If Start
+     opens Purchase Flags instead, the flags are spent: Cancel and stop;
    - wait for the battle view's Auto icon and tap it: every battle starts
      with auto off;
    - wait for the results (Confirm and "Victory Points"), tap Confirm until
@@ -18,7 +19,7 @@ Usage: python -m e7.routines.run_arena [--fights N] [--debug]
 
 --fights N stops after N fights. Without it the run needs the flag-0 image
 (info_arena_flags-0_*.png): with neither, the routine refuses to start rather
-than tap Start with no flags left.
+than rely on Purchase Flags alone to stop it.
 """
 
 import sys
@@ -50,6 +51,11 @@ REFRESH_CONFIRM = ARENA / "btn_arena_refresh-confirm_1140-715-180-65.png"
 REFRESH_DIALOG = dialog(REFRESH_QUESTION, ARENA / "btn_arena_refresh-cancel_600-710-255-75.png")
 CHALLENGE = ARENA / "btn_arena_arena-team_775-950-365-85.png"
 START = TEAM / "btn_arena-team_arena-battle_1180-960-180-65.png"     # "Start", without the flag count
+# Start with no flags opens Purchase Flags. Its Buy spends crystals, so the
+# routine only ever taps Cancel. Start still matches (1.00) under its dim.
+PURCHASE_FLAGS = dialog(TEAM / "info_arena-team_purchase-flags-title_795-210-330-65.png",
+                        TEAM / "btn_arena-team_purchase-flags-cancel_660-790-280-75.png")
+PURCHASE = {"purchase-flags": PURCHASE_FLAGS}
 AUTO = BATTLE / "btn_arena-battle_auto_1660-18-62-64.png"            # A in a circle of arrows, still (off)
 VICTORY_POINTS = BATTLE / "info_arena-battle_victory-points_855-610-210-45.png"
 CONFIRM = BATTLE / "btn_arena-battle_arena_1630-950-250-85.png"      # same spot on a win and a defeat
@@ -66,13 +72,15 @@ RED_MIN = 25
 CHALLENGE_BOX = (800, 960, 315, 65)
 LIT_MIN = 20
 
-# The flag-0 image matches white-only: 1.00 on "0/5", 0.75-0.77 on 10, 9 and
-# 8 (rounded digits), so it needs more than the usual 0.85. 2-6 weren't seen.
-ZERO_MIN = 0.95
+# The flag-0 image matches white-only: 0.94-1.00 on "0/5", 0.75-0.77 on 10, 9
+# and 8 (rounded digits), so it needs more than the usual 0.85. 2-6 weren't
+# seen. A miss costs one trip to Purchase Flags, which stops the run too.
+ZERO_MIN = 0.90
 LOAD_WAIT = 30     # seconds from Start to the battle view (~7 s seen)
 BATTLE_WAIT = 600    # seconds from the battle view to the results
 AUTO_STILL = 3       # Auto matched this many polls in a row: it isn't spinning, so auto is off
 AUTO_RETAPS = 3
+NO_FLAGS = "no flags"  # _fight's result when Start opened Purchase Flags
 
 
 def _flags_zero():
@@ -98,7 +106,8 @@ def run(fights=None, delay=1.5, tries=5):
 
 
 def _fights(fights, delay, tries):
-    """Fight until one of run()'s stops. True once stopped there, on arena."""
+    """Fight until one of run()'s stops. True once stopped there, on arena
+    (on arena-team when Purchase Flags stopped it)."""
     zero = _flags_zero()
     if fights is None and zero is None:
         log.error("no flag-0 image and no fight count, not starting")
@@ -130,7 +139,11 @@ def _fights(fights, delay, tries):
             if not _refresh(popups, delay, tries):
                 return False
             continue
-        if not _fight(row, popups, delay, tries):
+        result = _fight(row, popups, delay, tries)
+        if result == NO_FLAGS:
+            log.info(f"flags spent after {done} fights")
+            return True
+        if not result:
             return False
         done += 1
         log.info(f"fight {done} done")
@@ -193,6 +206,9 @@ def _lit(screen):
 
 
 def _fight(row, popups, delay, tries):
+    """Fight the opponent on `row`. True once back on arena after the
+    results, NO_FLAGS if Start opened Purchase Flags (cancelled, so the game
+    is on arena-team), False if it couldn't go on."""
     point = (ROW_TAP[0], ROW_TAP[1] + row * ROW_STEP)
     log.info(f"opponent {row + 1}/3, challenging")
     for attempt in range(1, tries + 1):
@@ -206,8 +222,9 @@ def _fight(row, popups, delay, tries):
     if not tap_until(CHALLENGE, START, delay, tries, popups=popups):
         log.error("arena-team not reached")
         return False
-    if not _start(popups, delay, tries):
-        return False
+    started = _start(popups, delay, tries)
+    if started is not True:
+        return started
     if not _auto_on():
         return False
     if not _results(popups, delay, tries):
@@ -219,22 +236,47 @@ def _fight(row, popups, delay, tries):
 
 
 def _start(popups, delay, tries):
-    """Tap Start, then wait out the load until Auto shows. Start flickers on
-    and off for a second or so after a tap that took, so it's tapped again
-    only once the load has had its full time and Start is still there."""
+    """Tap Start, then wait out the load until Auto shows. True once it
+    does, NO_FLAGS if Purchase Flags opened instead (cancelled), else False.
+    Start flickers on and off for a second or so after a tap that took, so
+    it's tapped again only once the load has had its full time and Start is
+    still there."""
     for attempt in range(1, tries + 1):
-        hit = locate(START, past_black())
+        screen = _clear(popups, delay, tries)
+        if screen is None:
+            return False
+        if open_popup(PURCHASE, screen):  # Start matches under it (Rule 1)
+            return _no_flags(delay, tries)
+        hit = locate(START, screen)
         if not hit:
             log.error("Start not on screen")
             return False
         x, y = tap(*hit[:2])
         log.debug(f"Start tap {attempt}/{tries} at ({x}, {y})")
-        if wait_until(lambda: locate(AUTO, capture()), LOAD_WAIT):
+        seen = wait_until(lambda: _battle_or_purchase(capture()), LOAD_WAIT)
+        if seen == "purchase":
+            return _no_flags(delay, tries)
+        if seen:
             log.info("battle started")
             return True
         log.warning(f"no battle view {LOAD_WAIT}s after Start tap {attempt}/{tries}, retrying")
     log.error(f"no battle view after {tries} Start taps")
     return False
+
+
+def _battle_or_purchase(screen):
+    if open_popup(PURCHASE, screen):
+        return "purchase"
+    return "battle" if locate(AUTO, screen) else None
+
+
+def _no_flags(delay, tries):
+    """Cancel Purchase Flags. NO_FLAGS once it's closed, else False."""
+    log.info("Purchase Flags open: no flags left, cancelling")
+    if not close_popup("purchase-flags", PURCHASE_FLAGS, delay, tries):
+        log.error("Purchase Flags not closed")
+        return False
+    return NO_FLAGS
 
 
 def _auto_on():

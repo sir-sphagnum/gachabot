@@ -72,6 +72,9 @@ def capture(retries=10):
     RGBA 0); those are retried, as are short reads. Empty frames can come in
     bursts longer than `retries` back-to-back reads (seen during an arena
     battle with recon capturing too), so retries are spaced RETRY_S apart.
+    Minimising the BlueStacks window doesn't cause them alone: frames stayed
+    full over 12 minutes minimised (by its own minimise command and by
+    ShowWindow).
     """
     adb_path, serial = connect()
     for attempt in range(retries):
