@@ -114,11 +114,46 @@ Task `run-arena` (`e7/routines/run_arena.py`, `python -m e7.bot run_arena`): fig
 
 `battle` is opened by Battle in `main-menu` (`btn_main-menu_battle_1192-465-100-46.png`, the word only, without the EVENT badge above it: 1.0 on `main-menu`, at most 0.38 elsewhere). It has three tabs, Normal, Seasonal and Event (Event locked), and opens on Normal. The Normal tab is a row of cards: Dimensional Exploration, Spirit Altar, Hunt, Labyrinth, and a fifth card cut off at the right edge. Spirit Altar and Hunt carried EVENT badges with drop-rate bonuses.
 
-`hunt` is the Hunt card's menu. On the left are a big "Hunt" heading, Obtainable Sets and Exclusive Reward. In the middle are the difficulties Hunt - Normal, Hard, Hell and Otherworldly Hunt, each with a "Complete" check. On the right, under "Available Dungeons", are Wyvern, Golem and Banshee Hunt, and the list runs on below the screen.
+`hunt` is the Hunt card's menu. On the left are a big "Hunt" heading, Obtainable Sets and Exclusive Reward. In the middle are the difficulties Hunt - Normal, Hard, Hell and Otherworldly Hunt, each with a "Complete" or "Available" line. On the right, under "Available Dungeons", is a list of hunt cards: Wyvern, Golem, Banshee, Azimanak, Caides and Ogre, in that order.
 
 - Both menus show the same title, "Battle" with a back arrow top left, so the title identifies neither.
 - `battle` is identified by the Hunt card's title (`btn_battle_hunt_1044-282-70-40.png`, the word only, without the dragon icon or EVENT badge), which also opens `hunt`: 1.0 on `battle`, at most 0.63 elsewhere (`auto`'s complete dialog).
-- `hunt` has `btn_hunt_hunt-hell_1170-578-142-42.png` (the "Hunt - Hell" text, without the Complete line under it): 1.0 on `hunt`, at most 0.31 elsewhere. It was cropped without being tapped, so the menu it opens has no folder yet.
+- `hunt` is identified by its "Hunt" heading (`info_hunt_title_54-228-118-56.png`): 1.0 in all six states, at most 0.34 elsewhere. Hunt - Hell can't identify it: the ogre state has no Hell.
+
+### hunt: the six states
+
+One state per hunt card: wyvern (`screen.png`), golem, banshee, azimanak, caides and ogre (`screen-<hunt>.png`). Tapping a card makes it the chosen hunt, framed gold.
+
+- Each state is told by its first Exclusive Reward icon, bottom left (`info_hunt_<hunt>-reward_98-930-100-100.png`): 1.0 on its own state, at most 0.36 on the others and elsewhere.
+- **Cards** are cut on their label text ("Golem Hunt") and are `_anywhere` (`btn_hunt_<hunt>_*_anywhere.png`), because the list scrolls on its own: choosing a card scrolls it to just below the card before it. Each label scores 1.0 wherever it shows and at most 0.74 elsewhere. Labels sit 306 px apart.
+- With a card chosen, the next card below shows only its top, and its label is cut off at the screen's bottom edge, too little to match. A tap on that sliver (one card step below the chosen label) chooses it, so no swipe is needed to reach the last cards. Going up works the same way: tapping the top showing card brings the one before it into view.
+- **Ogre** shows only Otherworldly Hunt: no Normal, Hard or Hell. Its reward is a red "?" box (level 85) and a crystal. Not automated yet.
+- **Hunt - Hell** (`btn_hunt_hunt-team_1170-578-142-42.png`, the text without its Complete line) opens `hunt-team` for the chosen hunt: 1.0 in the five states that have it, at most 0.40 elsewhere.
+
+## hunt-team (`e7/templates/start-screen/lobby/main-menu/battle/hunt/hunt-team/`)
+
+Titled "Ready". Hunt - Team 1–6 on the left, the team with its pet in the middle, the stage top right ("Wyvern Hunt / Hunt - Hell", following the hunt chosen on `hunt`) with Obtainable Rewards, Quick Battling (daily chances, a 200-stamina button) bottom right, and Manage Team, Recommended Formation, Boss Guide and Background Battling along the bottom.
+
+- Identified by the "Quick Battling" label (`info_hunt-team_quick-battling_1446-682-176-40.png`): 1.0 on the menu, 0.32 under its dialogs, at most 0.41 elsewhere.
+- The date-changed popup's `screen.png` was captured over this menu, so Background Battling scores 0.93 there.
+- The "0" at the start of the top bar scores 0.91 against arena's `info_arena_flags-0` (white-only), so `where` names `arena` here too. `run_arena` asks 0.95 of that image.
+
+Three states: the menu, **background-battling** and **confirm**.
+
+- **Background Battling** (`btn_hunt-team_background-battling_918-838-130-56.png`, the text without its icon) opens the background-battling dialog (`screen-background-battling.png`). But while a background battle is running, it opens `auto`'s **running** state instead, which has a Stop button.
+- **background-battling**: "Background Battling" (`info_hunt-team_dialog-title_428-86-326-54.png`: 1.0 on this dialog and on confirm, at most 0.33 elsewhere), your stamina and leifs top right, tabs Register Background Battling and Auto-Arrange Equipment Settings, the stage, Currency Consumed per Run (20 stamina or 0.25 leifs), **Use Owned Energy First**, **Leifs to be Used** (Min, -1, n/max, +1, Max, a slider), the total cost (stamina, leifs) with Estimated Completions and Time, a green **Start**, and "Tap to close" below (`btn_hunt-team_dialog-close_870-1020-180-44.png`: also 1.0 on the lobby's check-in-received, so it closes but doesn't identify).
+  - **Use Owned Energy First**: unticked (`btn_hunt-team_use-energy-first_835-461-46-46.png`) and ticked, a green check (`info_hunt-team_use-energy-first-ticked_835-461-46-46.png`). Each scores 1.0 on its own state and 0.26–0.29 on the other. The game keeps it ticked between visits. It can be greyed out, which hasn't been seen yet.
+  - Unticked, each step of the count is 1 leif (4 runs). Ticked, each step is 80 stamina (4 runs) while stamina covers it, then 1 leif. With 449 stamina and 7 leifs the max was 12: 5 stamina steps and 7 leif steps. 5/12 showed 400 stamina, 0 leifs, ~20 completions, ~16 min; 6/12 showed 400 stamina and 1 leif.
+  - The leif cost's "0" (`info_hunt-team_leif-cost-0_1242-752-36-38_white.png`) scores 1.0 on 0 and 0.49 on 1.
+  - +1 (`btn_hunt-team_plus-1_1312-619-76-50.png`) and -1 (`btn_hunt-team_minus-1_920-619-78-50.png`) step the count by one. -1 exactly undoes a +1. A step that changed the count changes the count's box (1080, 615, 170, 60) by a mean of 5.9–7.4; an unchanged count gives 0.0.
+- **confirm** (`screen-confirm.png`): Start (`btn_hunt-team_start_786-905-343-72.png`) opens "Would you like to start Background Battling?" (`info_hunt-team_start-question_670-462-580-50.png`: 1.0 here, at most 0.48 elsewhere) with Cancel and Confirm (`btn_hunt-team_start-confirm_975-647-293-86.png`). Confirm is the same button as the lobby quit dialog's (1.0 there), so it's tapped only once the question shows. Confirm closes both dialogs, spends the cost and starts the battle. The HUD clock then shows, spinning.
+
+Task `hunt` (`e7/routines/hunt.py`, `python -m e7.bot hunt`): starts Background Battling on Wyvern, Hunt - Hell, paid with stamina only. `python -m e7.routines.hunt --hunt NAME --leifs N` picks another hunt and adds N leif steps. Ogre is refused.
+
+- It first checks the lobby's HUD clock. If the clock is spinning, a battle is running: it stops without starting anything.
+- On the dialog it ticks Use Owned Energy First (going on without it when it won't tick), then taps +1 while the leif cost shows 0. With 0 leifs it takes back the first leif step with -1. If even the first step costs a leif, stamina is too low, so it closes the dialog and counts that as success.
+- If Background Battling opens auto's running state after all, it closes that with "Tap to close." and stops.
+- Tested on a running battle: it stopped at the clock check; with the clock check skipped, it chose caides and then wyvern and stopped on the running state. Ticking, the count and Start haven't been run by the routine yet.
 
 ## orbis-guide (`e7/templates/start-screen/lobby/main-menu/orbis-guide/`)
 
@@ -134,8 +169,9 @@ Task `claim-dailies` (`e7/routines/claim_dailies.py`, `python -m e7.bot claim_da
 
 The icon row along the top right (clock, bell, inventory, mail, chat, main menu) is the same on every menu with a HUD: the active lobby, `main-menu`, `shop-landing`, `daily-shop`, `sanctuary` and `forest-of-souls`. `screen.png` is the active lobby. Its elements live in `common/` because no one menu owns them.
 
-- **Clock** (`btn_hud_auto_1388-12-72-68.png`, centre ~(1424, 46), left of the bell): white clock in a circle of two arrows, opens `auto`. It shows only while Background Battling has rewards waiting: once they're claimed it's gone, and the stamina, gold and gem counters shift ~80 px right into its place. So no clock on an active HUD means nothing to claim.
-  - It matched 0.99–1.0 on every saved screen with the HUD, under the quit dialog's and popups' dim too, and none on the lobby at rest, the check-in dialog, the start screen, `sanctuary` (an orange glow sweeps around the clock there) or the lobby after the claim (0.13).
+- **Clock** (`btn_hud_auto_1388-12-72-68.png`, centre ~(1424, 46), left of the bell): white clock in a circle of two arrows, opens `auto`. It shows in two cases. While a background battle runs, the arrows turn and an orange glow sweeps round them, with no badge. While rewards wait, the clock is still, with the orange badge. Once the rewards are claimed it's gone, and the stamina, gold and gem counters shift ~80 px right into its place. So no clock on an active HUD means nothing to claim.
+  - The still clock matched 0.99–1.0 on every saved screen with the HUD, under the quit dialog's and popups' dim too, and none on the lobby at rest, the check-in dialog, the start screen or the lobby after the claim (0.13). The spinning clock matched on 1 of 6 frames (0.88), so matching can't see it reliably. `sanctuary`'s capture shows it spinning.
+  - **Spinning** is told by change between frames: over (1388, 12, 72, 68), two frames 0.3 s apart differ by a mean of 38–49 while it spins, against 0.0–0.1 on the HUD's still icons. Both frames need the HUD up (the lobby's main-menu icon), since the lobby hides the HUD within seconds.
   - The lobby's HUD can fall back to rest between the routine waking it and the tap on the clock. The tap then only wakes the HUD and `auto` doesn't open.
 - **Orange badge**: a dot over the clock's top left, seen on every capture with the clock. The crop includes it, but the match can't tell the badge is lit: it scores the same under a dim. Tell it by colour instead: mean red minus blue over (1392, 17, 14, 14) is +207 lit, at most +80 on every other saved screen (+30 dimmed).
 
@@ -145,7 +181,8 @@ The icon row along the top right (clock, bell, inventory, mail, chat, main menu)
 
 - Identified by its title (`info_auto_title_778-76-366-58.png`): 1.0 on auto, 0.75 under Calculation Complete, at most 0.39 elsewhere. The lobby's main-menu icon and barrel don't match under it.
 
-Three states:
+Four states:
+- **running** (`screen-running.png`): a battle still going, opened by `hunt-team`'s Background Battling (the clock presumably opens it too). It shows the stage, a scene strip, Battle Progress n/m, the four tiles, a note that it goes on with the game closed, the loot so far, and a blue **Stop** button, which ends the battle early and settles the rewards. The title still matches (1.0). Never tap Stop. "Tap to close." (960, 1041), well below Stop, closes it back to the menu underneath.
 - **unclaimed** (`screen.png`): the green button is **Calculate** (`btn_auto_calculate_780-908-370-70.png`, orange dot at its top left, left out of the crop): 1.0 here, 0.55 on Close, at most 0.33 elsewhere. It opens complete.
 - **complete** (`screen-complete.png`): "Calculation Complete" over auto, listing the rewards ("items have been distributed", equipment goes to the Inventory). Event-mission toasts can slide in on the left. Identified by its title (`info_auto_complete-title_726-156-468-64.png`): 1.0 here, at most 0.40 elsewhere. Closed by "Tap to close" (`btn_auto_complete-close_860-835-200-95.png`, centre (960, 880)): 1.0 here, 0.80 on friendship-point-notification (below the 0.85 threshold), at most 0.22 elsewhere. Closing it leaves auto claimed.
 - **claimed** (`screen-claimed.png`): the tiles show blue check marks and the green button is **Close** (`btn_auto_close_780-908-370-70.png`, no orange dot): 1.0 here, 0.55 on Calculate, at most 0.34 elsewhere. Close goes back to the menu the clock was tapped on (the lobby, active), now without the clock.

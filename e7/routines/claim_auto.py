@@ -4,10 +4,12 @@ Usage: python -m e7.routines.claim_auto [--debug]
 
 1. Get to the active lobby (the lobby routine).
 2. If the HUD shows no clock, there is nothing to claim: done. The clock shows
-   only while a background battle has rewards waiting.
+   while a background battle has rewards waiting, and also, spinning, while
+   one is still running.
 3. Tap the clock until the auto menu ("Background Battling") opens.
 4. Tap Calculate until "Calculation Complete" shows. No Calculate on auto is
-   a failure.
+   a failure. A still-running battle likely ends here too: opened from
+   hunt-team, auto showed Stop instead (not yet seen from the clock).
 5. Close Calculation Complete with "Tap to close"; auto then shows Close.
 6. Tap Close until the lobby's main-menu icon shows.
 
