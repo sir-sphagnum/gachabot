@@ -153,7 +153,7 @@ Task `hunt` (`e7/routines/hunt.py`, `python -m e7.bot hunt`): starts Background 
 - It first checks the lobby's HUD clock. If the clock is spinning, a battle is running: it stops without starting anything.
 - On the dialog it ticks Use Owned Energy First (going on without it when it won't tick), then taps +1 while the leif cost shows 0. With 0 leifs it takes back the first leif step with -1. If even the first step costs a leif, stamina is too low, so it closes the dialog and counts that as success.
 - If Background Battling opens auto's running state after all, it closes that with "Tap to close." and stops.
-- Tested on a running battle: it stopped at the clock check; with the clock check skipped, it chose caides and then wyvern and stopped on the running state. Ticking, the count and Start haven't been run by the routine yet.
+- Tested on a running battle: it stopped at the clock check; with the clock check skipped, it chose caides and then wyvern and stopped on the running state. A full run on wyvern ticked Use Owned Energy First, took 3 stamina steps with no leifs, started the battle and got back to the lobby. The too-low-stamina branch and a greyed-out tick box haven't been run yet.
 
 ## orbis-guide (`e7/templates/start-screen/lobby/main-menu/orbis-guide/`)
 
