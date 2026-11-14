@@ -8,6 +8,7 @@ Usage: python -m tools.map start GAME
        python -m tools.map note TEXT...
        python -m tools.map log
        python -m tools.map finish
+       python -m tools.map score [MENU|IMAGE...]
        python -m tools.map rename OLD NEW
 
 While mapping, nothing is cropped or checked: each command only captures and
@@ -29,9 +30,14 @@ leads   mark the last click as opening menu MENU (drops --stay, renames its
         target). --after: that capture is the menu's screen, for a menu that
         only showed on a later `shot` (a load after the tap).
 note    log an observation for the game's notes, with the current screen.
-log     print the log, then the new menus nothing logged identifies yet.
+log     print the log, then the menus it touches that nothing identifies yet
+        (new ones, and existing ones with no info_ or button to another menu).
 finish  crop every logged box into its menu folder, create new menus, check
-        each image and print a report.
+        each image and print a report. A button tapped several times on the
+        same box is cropped once, from its first tap.
+score   score images on every capture of this session and every saved screen:
+        the images of the menus the log touches, or of the MENUs or IMAGE
+        paths given.
 rename  rename menu OLD to NEW in the session's game: its folder, the images
         named after it (its own and the buttons that open it) and the log.
 CAPTURE is a file name in recon/map/ (e.g. 04-shot.png).
@@ -263,14 +269,26 @@ def finish():
     menus, _ = tree.load(game)
     folders = {name: ROOT / m["path"] for name, m in menus.items()}
     notes, made = [], []
+    taps = {}
+    for e in entries[1:]:
+        if "kind" in e:
+            taps[_key(e)] = taps.get(_key(e), 0) + 1
+    done = set()
     for e in entries[1:]:
         if "note" in e:
             notes.append(e)
             continue
         if "kind" not in e:
             continue
+        # A repeated tap on the same box (a +1 pressed five times) is cropped
+        # once, from its first capture: each recrop would only replace the last.
+        if _key(e) in done:
+            continue
+        done.add(_key(e))
         here, name, (x, y, w, h) = e["here"], e["name"], e["box"]
         label = f"{e['kind']} {here} -> {name}" if e["kind"] == "btn" else f"info {here}/{name}"
+        if taps[_key(e)] > 1:
+            label += f" (logged {taps[_key(e)]} times)"
         if here not in folders:
             print(f"{label}: no menu '{here}' in the tree; skipped")
             log.warning(f"{label}: no menu {here} in the tree, skipping")
@@ -323,8 +341,56 @@ def finish():
     tree.show(game, menus, problems + popup_problems, popups)
 
 
+def _key(e):
+    return e["kind"], e["here"], e["name"], tuple(e["box"]), bool(e.get("stay"))
+
+
 def _score(match):
     return match[2] if match else 0.0
+
+
+def score(targets):
+    """Score images on every capture in recon/map/ and every saved screen*.png.
+
+    targets: menu names or image paths; none means every menu the log touches.
+    For each image prints the captures it matches (THRESHOLD or more) with
+    their scores, the best score among the rest, and the best score on a saved
+    screen outside its own menu folder, flagging a match there.
+    """
+    entries = _entries()
+    game = entries[0]["game"]
+    menus, _ = tree.load(game)
+    if not targets:
+        targets = list(dict.fromkeys(n for e in entries if "kind" in e
+                                     for n in (e["here"], e["name"]) if n in menus))
+    images = []
+    for t in targets:
+        if t in menus:
+            images += sorted((ROOT / menus[t]["path"]).glob("*_*.png"))
+        elif (ROOT / t).is_file():
+            images.append(ROOT / t)
+        else:
+            sys.exit(f"'{t}' is neither a menu of {game} nor an image")
+    captures = {p.stem: cv2.imread(str(p)) for p in sorted(DIR.glob("*.png"))}
+    screens = {p: cv2.imread(str(p)) for p in sorted(templates_dir(game).rglob("screen*.png"))}
+    for image in images:
+        if not tree.ELEMENT.match(image.name):
+            continue
+        on = {n: _score(locate(image, s, threshold=0.0)) for n, s in captures.items()}
+        hits = [f"{n} {s:.2f}" for n, s in on.items() if s >= THRESHOLD]
+        rest = [(s, n) for n, s in on.items() if s < THRESHOLD]
+        print(_rel(image))
+        print("  matches: " + (", ".join(hits) or "none"))
+        if rest:
+            s, n = max(rest)
+            print(f"  others at most {s:.2f} ({n})")
+        away = [(_score(locate(image, s, threshold=0.0)), p) for p, s in screens.items()
+                if p.parent != image.parent]
+        if away:
+            s, p = max(away)
+            flag = "  <-- matches" if s >= THRESHOLD else ""
+            print(f"  saved screens elsewhere at most {s:.2f} ({_rel(p)}){flag}")
+    log.info(f"scored {len(images)} images on {len(captures)} captures and {len(screens)} screens")
 
 
 def _scores_elsewhere(game, image, own):
@@ -338,14 +404,19 @@ def _scores_elsewhere(game, image, own):
 
 
 def unidentified(entries):
-    """Menus this log creates that nothing logged identifies yet: no info_ on
-    them and no button from them to another menu."""
+    """Menus the log touches that nothing will identify after finish: new menus
+    with no info_ or button to another menu logged on them, and existing menus
+    that have neither in the tree nor in the log (e.g. a menu whose only button
+    leads to a menu that has no folder). goto can't recognise these."""
     menus, _ = tree.load(entries[0]["game"])
     new = [e["name"] for e in entries if e.get("kind") == "btn" and not e.get("stay")
            and e["name"] not in menus]
     marked = {e["here"] for e in entries
               if e.get("kind") == "info" or (e.get("kind") == "btn" and not e.get("stay"))}
-    return [m for m in dict.fromkeys(new) if m not in marked]
+    touched = [e["here"] for e in entries if e.get("kind") and e["here"] in menus]
+    blind = [m for m in touched if not menus[m]["info"]
+             and not any(b["name"] in menus for b in menus[m]["buttons"])]
+    return [m for m in dict.fromkeys(new + blind) if m not in marked]
 
 
 def _rel(path):
@@ -394,5 +465,7 @@ if __name__ == "__main__":
             print("No identifier yet: " + ", ".join(missing))
     elif cmd == "finish" and not args:
         finish()
+    elif cmd == "score":
+        score(args)
     else:
         sys.exit(__doc__)

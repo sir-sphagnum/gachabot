@@ -356,6 +356,13 @@ def goto(game, target, here=None, attempts=2, delay=1.5, tries=5):
             log.warning(f"no route from {origin} to {target}"
                         + ("" if last else f", walking from {HOME}"))
             continue
+        # A step whose menu nothing identifies can only fail, after every tap
+        # and walk: stop before touching the game.
+        blind = [b["name"] for _, b in steps if not identity(menus, b["name"])]
+        if blind:
+            log.error(f"nothing identifies {', '.join(blind)} (no info_ image or button "
+                      "to another menu), can't walk there")
+            return False
         if origin == HOME:
             log.info(f"going to {HOME}")
             if not home():
