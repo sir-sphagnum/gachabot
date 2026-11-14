@@ -45,6 +45,14 @@ def tap(x, y, jitter=JITTER_PX):
     return x, y
 
 
+def swipe(x1, y1, x2, y2, ms=500):
+    """Drag from (x1, y1) to (x2, y2) over `ms` milliseconds (e.g. to scroll
+    a list), after a short random pause. A list keeps moving for a moment
+    after the drag ends, so callers wait before capturing it."""
+    time.sleep(random.uniform(*DELAY_S))
+    adb("shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2), str(ms))
+
+
 def _offset(jitter):
     if not jitter:
         return 0
