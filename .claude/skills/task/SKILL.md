@@ -17,7 +17,7 @@ A task's controls are buttons, saved like any other in the folder of the menu th
 
 1. If you haven't read anything under the game's folder this session, read `<game>/CLAUDE.md` and the notes it imports first.
 2. Name the task: short, lowercase, hyphenated (`claim-forest`). Its routine module uses underscores (`claim_forest`), since Python names can't hold hyphens.
-3. Open this run's log: `python -m core.log start task`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then run `python -m core.device health`. If it fails, tell the user what it says (restart BlueStacks, close apps) and wait: an overgrown BlueStacks returns blank screenshots partway through navigation.
+3. Open this run's log: `python -m core.log start task`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then run `python -m core.device health`. If it fails, tell the user what it says and wait: an overgrown BlueStacks returns blank screenshots partway through navigation. When it says to restart BlueStacks, offer to run `python -m core.device restart <game> --fullscreen` and run it on their yes; it closes the game, which comes back on its start screen.
 4. Get to the task's menu:
    - **The user says to go there first**: follow the navigate skill (its log nests inside this one). Not in the tree: offer to map it (map skill).
    - **Navigation fails** (a button didn't match, the route broke): don't fix the route now. Read the capture navigate took, tap the rest of the way by hand (`python -m core.input tap X Y`, then `python -m core.input screenshot recon/task.png` to check), and carry on. Once the step log has started (step 5), log what failed with `python -m tools.map note <text>`; the route gets fixed at Stop.
@@ -59,10 +59,10 @@ Only tap what the user asked for. If a step would spend premium currency, make a
    - then each step with `core.nav.tap_until(<button image>, <what shows after>)`, which closes the game's common popups before trusting a match (Rule 1). A step whose control may legitimately be missing checks for it first (`core.nav.locate`) and skips it at INFO;
    - True once the last step's result shows.
    Register it in `<game>/routines/__init__.py`'s `ROUTINES` under its module name.
-7. Ask before running it: a rerun repeats the task, and a claim already taken leaves nothing to tap. If the user agrees, run `python -m core.device health` first: if it fails, tell the user what it says (restart BlueStacks, close apps) and wait. Then run `python -m <game>.bot <task> --debug` and report how it went.
+7. Ask before running it: a rerun repeats the task, and a claim already taken leaves nothing to tap. If the user agrees, run `python -m core.device health` first: if it fails, handle it as in step 3. Then run `python -m <game>.bot <task> --debug` and report how it went.
 8. Write what you learned about the menu's controls into its section of `<game>/notes/UI.md` (which state each shows in, what each tap leads to, scores), and how to run the task.
 9. Close the log with `python -m core.log end`. Tell the user the routine's command, the notes that changed and the log file `end` printed.
 
 ## Running an existing task
 
-When the user asks for a task that already has a routine (`ROUTINES` in `<game>/routines/__init__.py`), open the log (`python -m core.log start task`), check `python -m core.device health` (on a failure, pass on what it says and wait), run `python -m <game>.bot <task>`, report the outcome, and close the log. On a failure, capture the screen, Read it, run `python -m core.nav <game> where` on the capture, and tell the user where it stopped.
+When the user asks for a task that already has a routine (`ROUTINES` in `<game>/routines/__init__.py`), open the log (`python -m core.log start task`), check `python -m core.device health` (on a failure, handle it as in step 3), run `python -m <game>.bot <task>`, report the outcome, and close the log. On a failure, capture the screen, Read it, run `python -m core.nav <game> where` on the capture, and tell the user where it stopped.

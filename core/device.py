@@ -5,17 +5,22 @@ Usage: python -m core.device connect
        python -m core.device fullscreen
        python -m core.device health      exits 1 when BlueStacks needs a restart
                                          or Windows is low on memory
+       python -m core.device restart [--fullscreen] [game ...]
+           closes BlueStacks, opens it again and waits for Android to boot,
+           then starts the games given (none if no game is given)
        python -m core.device start|stop|status [--fullscreen] [game ...]
            game is a short name from GAMES (e.g. e7) or a package name;
            no game means every game in GAMES. --fullscreen applies to start.
 """
 
 import ctypes
+import glob
 import re
+import subprocess
 import sys
 import time
 
-from core.adb import adb, connect, player_pids
+from core.adb import adb, connect, player_pids, run
 from core.input import tap
 from core.log import logger, setup
 
@@ -69,8 +74,9 @@ def focused_app():
 # A visible floating app task and its bounds, e.g.
 #   * Task{5dd1090 #45 type=standard A=10118:com.stove.epic7.google U=0 ... visible=true ... mode=freeform ...}
 #     mBounds=Rect(269, 113 - 1651, 890)
+# Lines end in \r\n on some adb connections (seen after a BlueStacks restart).
 FLOATING = re.compile(r"Task\{\S+ #(\d+) type=standard A=\d+:(\S+) [^}]*?visible=true [^}]*?mode=freeform"
-                      r"[^}]*\}\n\s*mBounds=Rect\((\d+), (\d+)")
+                      r"[^}]*\}\s*mBounds=Rect\((\d+), (\d+)")
 
 # BlueStacks window-menu taps, relative to the floating window's top-left corner.
 ARROW = (75, 23)             # down arrow in the title bar: opens the window menu
@@ -187,18 +193,24 @@ def health():
     """(ok, message): whether BlueStacks' memory and Windows' free memory
     leave room for a long run."""
     free = _free_commit_gb()
-    sizes = [_commit_gb(int(pid)) for pid in player_pids()]
-    if not sizes:
+    player = player_gb()
+    if player is None:
         return False, "BlueStacks isn't running"
-    player = max(sizes)
     problems = []
     if player > PLAYER_MAX_GB:
-        problems.append(f"BlueStacks uses {player:.1f} GB (over {PLAYER_MAX_GB}): restart it")
+        problems.append(f"BlueStacks uses {player:.1f} GB (over {PLAYER_MAX_GB}): "
+                        "restart it (python -m core.device restart)")
     if free < FREE_MIN_GB:
         problems.append(f"only {free:.1f} GB of memory free (under {FREE_MIN_GB}): close other apps")
     if problems:
         return False, "; ".join(problems)
     return True, f"OK: BlueStacks uses {player:.1f} GB, {free:.1f} GB free"
+
+
+def player_gb():
+    """Memory BlueStacks' emulator has committed, in GB, or None if it isn't running."""
+    sizes = [_commit_gb(int(pid)) for pid in player_pids()]
+    return max(sizes) if sizes else None
 
 
 class _MemoryStatus(ctypes.Structure):
@@ -237,6 +249,60 @@ def _commit_gb(pid):
         ctypes.windll.kernel32.CloseHandle(handle)
 
 
+# --- restarting BlueStacks --------------------------------------------------
+
+CLOSE_TIMEOUT = 15   # seconds for BlueStacks to be gone after it is forced closed
+BOOT_TIMEOUT = 120   # seconds from opening BlueStacks to Android having booted
+# The arguments of BlueStacks' own "BlueStacks Desktop" shortcut. With
+# `--instance <name>` instead, HD-Player opened only a tooltip window and
+# Android never booted.
+PLAYER_ARGS = ["--guest", "--present=embed", "--chrome=windows"]
+
+
+def restart(boot_timeout=BOOT_TIMEOUT):
+    """(ok, message): close BlueStacks, open it again, and wait until Android
+    has booted and adb answers. Frees the memory BlueStacks builds up while
+    the bot captures the screen. Games are not started."""
+    player = _player_exe()
+    if not _close_player():
+        return False, "BlueStacks still open after closing it"
+    connect.cache_clear()  # the cached serial belongs to the closed BlueStacks
+    # Detached, so BlueStacks outlives this process.
+    subprocess.Popen([player, *PLAYER_ARGS],
+                     creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, close_fds=True)
+    log.info("closed, opening")
+    if not wait_until(_booted, boot_timeout, interval=2):
+        return False, f"BlueStacks not booted {boot_timeout}s after opening it"
+    return True, "BlueStacks restarted"
+
+
+def _player_exe():
+    paths = glob.glob(r"C:\Program Files\BlueStacks*\HD-Player.exe")
+    if not paths:
+        raise RuntimeError("HD-Player.exe not found. Is BlueStacks installed?")
+    return paths[0]
+
+
+def _close_player(timeout=CLOSE_TIMEOUT):
+    """Force-close every HD-Player.exe. Returns True once none is left.
+
+    Forced straight away: asked to close (taskkill without /F), BlueStacks
+    stayed open every time. It booted normally after each forced close."""
+    for pid in player_pids():
+        run("taskkill", "/F", "/PID", pid)
+    return bool(wait_until(lambda: not player_pids(), timeout, interval=0.5))
+
+
+def _booted():
+    try:
+        return adb("shell", "getprop", "sys.boot_completed") == "1"
+    except RuntimeError:  # not listening yet (AdbTimeout is a RuntimeError too)
+        connect.cache_clear()
+        return False
+
+
 def _answer(msg, ok=True):
     """Print the command's answer and log it, as ERROR when it failed."""
     print(msg)
@@ -257,6 +323,18 @@ if __name__ == "__main__":
     elif cmd == "health":
         ok, msg = health()
         _answer(msg, ok)
+        sys.exit(0 if ok else 1)
+    elif cmd == "restart":
+        before = player_gb()
+        ok, msg = restart()
+        if ok:
+            was = f"{before:.1f} GB before" if before is not None else "wasn't running"
+            msg += f": {was}, {player_gb():.1f} GB now"
+        _answer(msg, ok)
+        for game in [a for a in args if a != "--fullscreen"] if ok else []:
+            started = start_game(game, fullscreen="--fullscreen" in args)
+            ok &= started
+            _answer(f"{game}: {'started' if started else 'failed to start'}", started)
         sys.exit(0 if ok else 1)
     elif cmd in ("start", "stop", "status"):
         full = "--fullscreen" in args
