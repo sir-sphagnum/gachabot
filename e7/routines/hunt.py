@@ -2,10 +2,8 @@
 
 Usage: python -m e7.routines.hunt [--hunt NAME] [--leifs N] [--debug]
 
-1. Get to the active lobby and look at the HUD clock. Spinning: a background
-   battle is already running, so stop, starting nothing. Still (rewards
-   waiting): claim them first with the claim_auto routine, and go on once the
-   clock is gone, even if claim_auto reported a failure.
+1. Check Background Battling (check_background_status): a battle running
+   means stop, starting nothing. A finished battle is claimed first.
 2. Go to hunt (core.nav.goto) and pick the hunt NAME (default wyvern) from the
    cards under Available Dungeons. The cards move: tapping one scrolls the list
    so it shows below the one before it. So until NAME is chosen, tap the
@@ -29,16 +27,15 @@ Ogre has no Hunt - Hell difficulty, so it's refused.
 
 import argparse
 import sys
-import time
 
 import numpy as np
 
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import game_popups, goto, locate, open_popup, past_black, tap_until
+from core.nav import game_popups, goto, locate, past_black, tap_until
 from e7.config import GAME, TEMPLATES_DIR
-from e7.routines import claim_auto, lobby
+from e7.routines import check_background_status, lobby
 
 log = logger(__file__)
 
@@ -80,11 +77,6 @@ CARD_Y_MAX = 1065
 # hit the end of the range.
 COUNT_BOX = (1080, 615, 170, 60)
 COUNT_CHANGED = 2    # mean pixel difference: 5.9-7.4 on a changed count, 0.0 on the same one
-# A spinning HUD clock changes 42-49 (mean pixel difference) between frames
-# 0.3 s apart; still icons change 0.0-0.1.
-CLOCK_BOX = (1388, 12, 72, 68)
-SPIN_MIN = 15
-SPIN_GAP = 0.3
 
 
 def _card(name):
@@ -111,22 +103,13 @@ def run(hunt="wyvern", leifs=0, delay=1.5, tries=5):
         log.error(f"{hunt} has no Hunt - Hell, not supported yet")
         return False
     popups = game_popups(GAME)
-    clock = _clock(popups)
-    if clock is None:
+    background = check_background_status.status()
+    if background is None:
+        log.error("background battling not checked")
         return False
-    if clock == "spinning":
+    if background == check_background_status.RUNNING:
         log.error("a background battle is already running, not starting another")
         return False
-    if clock == "still":
-        log.info("rewards waiting on the clock, claiming first")
-        # claim_auto can fail after Calculate with the rewards claimed all
-        # the same (see notes/UI.md, claim-auto), so the clock decides.
-        if not claim_auto.run():
-            clock = _clock(popups)
-            if clock != "none":
-                log.error("rewards not claimed")
-                return False
-            log.warning("claim_auto failed but the clock is gone, going on")
     if not goto(GAME, MENU):
         log.error(f"{MENU} not reached")
         return False
@@ -169,32 +152,6 @@ def _cut(screen, box):
 
 def _changed(a, b, box):
     return float(np.abs(_cut(a, box) - _cut(b, box)).mean())
-
-
-def _clock(popups, attempts=3):
-    """The lobby's HUD clock: "spinning" (a battle running), "still" (rewards
-    waiting), "none", or None if the HUD wasn't seen. Two frames SPIN_GAP
-    apart, both with the HUD up, since the lobby hides it again within
-    seconds. Spinning is decided first: the still clock's template matched a
-    spinning clock on 1 frame in 6."""
-    for attempt in range(1, attempts + 1):
-        if not lobby.run():
-            log.error("lobby not reached")
-            return None
-        first = past_black()
-        if open_popup(popups, first):
-            continue    # Rule 1: the lobby routine closes it on the next attempt
-        time.sleep(SPIN_GAP)
-        second = capture()
-        if locate(lobby.MAIN_MENU, first) and locate(lobby.MAIN_MENU, second):
-            change = _changed(first, second, CLOCK_BOX)
-            log.debug(f"clock change {change:.1f}")
-            if change >= SPIN_MIN:
-                return "spinning"
-            return "still" if locate(claim_auto.CLOCK, first) else "none"
-        log.debug(f"HUD not showing, attempt {attempt}/{attempts}")
-    log.error(f"HUD not seen in {attempts} attempts")
-    return None
 
 
 def _pick(hunt, popups, delay, tries):

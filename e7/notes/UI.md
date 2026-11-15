@@ -174,7 +174,7 @@ Three states: the menu, **background-battling** and **confirm**.
 
 Task `hunt` (`e7/routines/hunt.py`, `python -m e7.bot hunt`): starts Background Battling on Wyvern, Hunt - Hell, paid with stamina only. `python -m e7.routines.hunt --hunt NAME --leifs N` picks another hunt and adds N leif steps. Ogre is refused.
 
-- It first checks the lobby's HUD clock. If the clock is spinning, a battle is running: it stops without starting anything. If it is still (rewards waiting), it runs claim-auto first and goes on once the clock is gone, even when claim-auto failed (see claim-auto above).
+- It first runs check-background-status (see auto below). If a battle is running, it stops without starting anything. A finished battle is claimed first.
 - On the dialog it ticks Use Owned Energy First (going on without it when it won't tick), then taps +1 while the leif cost shows 0. With 0 leifs it takes back the first leif step with -1. If even the first step costs a leif, stamina is too low, so it closes the dialog and counts that as success.
 - If Background Battling opens auto's running state after all, it closes that with "Tap to close." and stops.
 - Tested on a running battle: it stopped at the clock check; with the clock check skipped, it chose caides and then wyvern and stopped on the running state. A full run on wyvern ticked Use Owned Energy First, took 3 stamina steps with no leifs, started the battle and got back to the lobby. The too-low-stamina branch and a greyed-out tick box haven't been run yet.
@@ -197,7 +197,7 @@ The icon row along the top right (clock, bell, inventory, mail, chat, main menu)
   - The still clock matched 0.99–1.0 on every saved screen with the HUD, under the quit dialog's and popups' dim too, and none on the lobby at rest, the check-in dialog, the start screen or the lobby after the claim (0.13). The spinning clock matched on 1 of 6 frames (0.88), so matching can't see it reliably. `sanctuary`'s capture shows it spinning.
   - **Spinning** is told by change between frames: over (1388, 12, 72, 68), two frames 0.3 s apart differ by a mean of 38–49 while it spins, against 0.0–0.1 on the HUD's still icons. Both frames need the HUD up (the lobby's main-menu icon), since the lobby hides the HUD within seconds.
   - The lobby's HUD can fall back to rest between the routine waking it and the tap on the clock. The tap then only wakes the HUD and `auto` doesn't open.
-- **Orange badge**: a dot over the clock's top left, seen on every capture with the clock. The crop includes it, but the match can't tell the badge is lit: it scores the same under a dim. Tell it by colour instead: mean red minus blue over (1392, 17, 14, 14) is +207 lit, at most +80 on every other saved screen (+30 dimmed).
+- **Orange badge**: a dot over the clock's top left, seen on every capture with the still clock. The crop includes it, but the match can't tell the badge is lit: it scores the same under a dim. Tell it by colour instead: mean red minus blue over (1392, 17, 14, 14) is +207–208 lit, +30 dimmed, and +13–80 on screens without the clock, except `arena-team` (+147, no clock). So a lit badge is read only where the clock's image matches too.
 
 ## auto (`e7/templates/common/auto/`)
 
@@ -211,9 +211,9 @@ Four states:
 - **complete** (`screen-complete.png`): "Calculation Complete" over auto, listing the rewards ("items have been distributed", equipment goes to the Inventory). Event-mission toasts can slide in on the left. Identified by its title (`info_auto_complete-title_726-156-468-64.png`): 1.0 here, at most 0.40 elsewhere. Closed by "Tap to close" (`btn_auto_complete-close_860-835-200-95.png`, centre (960, 880)): 1.0 here, 0.80 on friendship-point-notification (below the 0.85 threshold), at most 0.22 elsewhere. Closing it leaves auto claimed.
 - **claimed** (`screen-claimed.png`): the tiles show blue check marks and the green button is **Close** (`btn_auto_close_780-908-370-70.png`, no orange dot): 1.0 here, 0.55 on Calculate, at most 0.34 elsewhere. Close goes back to the menu the clock was tapped on (the lobby, active), now without the clock.
 
-Task `claim-auto` (`e7/routines/claim_auto.py`, `python -m e7.bot claim_auto`): from the active lobby, tap the clock, Calculate, Tap to close, Close. No clock on the HUD means nothing to claim (success). No Calculate on auto means failure.
+Task `check-background-status` (`e7/routines/check_background_status.py`, `python -m e7.bot check_background_status`): from the active lobby, reads the HUD clock from two frames. Spinning: a battle is running (success, nothing done). Clock matched with its badge lit: a battle has finished, so it taps the clock, Calculate, Tap to close and Close. No clock: nothing running or waiting (success). A still clock without a lit badge hasn't been seen and is a failure. Its `status()` returns which of these it was, for `hunt`.
 
-- Once, the tap on Calculate was followed by no "Calculation Complete" title in 5 tries, so the routine failed, yet the claim had gone through (a false failure): the lobby routine came back to a HUD without the clock. What showed instead wasn't captured. So after Calculate the routine also takes Complete's "Tap to close" or the claimed Close as done, and saves the screen to `logs/claim_auto-<time>.png` when none of them shows.
+- After a claim it reads the clock again, and the claim counts once the clock is gone, whatever the claim's steps reported. Once, the tap on Calculate was followed by no "Calculation Complete" title in 5 tries, yet the claim had gone through and the clock was gone (a false failure). What showed instead wasn't captured. So after Calculate it also takes Complete's "Tap to close" or the claimed Close as done, and saves the screen to `logs/check_background_status-<time>.png` when none of them shows.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
