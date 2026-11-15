@@ -224,7 +224,44 @@ Panel on the left: "Gehenna", Tickets Owned N/6, the event line, art. Right: Sta
 
 ### tactical-challenge (`campaign/tactical-challenge/`)
 
-Header "Tactical Challenge" (`info_tactical-challenge_title_158-12-372-50.png`). The PvP screen. Left: player card, rank, Time Reward and Daily Reward with Claim buttons (both grey when mapped), Tickets Owned (5/5), Battle History, Defense Formation. Right: the season's three opponents (rank, team, level, name), Time Left and Refresh List.
+Header "Tactical Challenge" (`info_tactical-challenge_title_158-12-372-50.png`). The PvP screen. Left: player card, rank, Time Reward (+N/minute, Total N/1,000K) and Daily Reward with Claim buttons, Tickets Owned N/5, Standby Time, Battle History, Defense Formation. Right: the season's three opponents (rank, team, level, name), Time Left and Refresh List. Home (`btn_tactical-challenge_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
+
+- The opponent rows are sorted by rank, best at the top. The list refreshes after every fight, won or lost, so the top row is a new opponent each time. Its strength varies a lot: in one list the top row was a Lv.89 player with a Lv.82 team (a loss), in the others Lv.23–27 players with Lv.17–26 teams (wins). The top row is tapped as a point, (1268, 375): its crop holds the portrait, rank and team, and matched only its source (at most 0.76 elsewhere).
+- Ticket count: just the first digit (`info_tactical-challenge_tickets-zero_326-716-20-36.png`) scores 1.00 on 0 and 0.51–0.73 on 5, 4, 3 and 1 (common: Reading a zero).
+- Standby Time stayed "--:--" through five fights in a row: no wait between fights.
+- Claim buttons (`btn_tactical-challenge_time-reward-claim_...`, `btn_tactical-challenge_daily-reward-claim_...`) score 0.81 on their grey state, so colour decides (common: Lit or grey): mean red minus blue over each is +167 yellow, −2 grey. Both turned yellow after the first win. Each opens the common reward popup: Time Reward gave 220 credits (Total back to 0), Daily Reward 12 pyroxene and 40 Tactical Challenge Coins, after which it shows a countdown (11:04).
+- Each win raised the rank to the beaten opponent's and paid pyroxene on a new best (80, 60, 60, 60); rank 4890 turned the rank icon gold.
+- Automated by `ba/routines/tactical_challenge.py` (`python -m ba.bot tactical_challenge`): fight the top row until the ticket count reads 0, skipping each battle, then claim both rewards while yellow, then Home. Tested with 0 tickets: from the idle lobby, it claimed the Time Reward built up since the last claim, skipped the grey Daily Reward and was back in the lobby in 20 s. The fight path is the one done by hand, not yet run by the routine.
+
+The dialogs below are states of tactical-challenge (`screen-<state>.png`), not common popups.
+
+#### battle-opponent (`screen-battle-opponent.png`)
+
+Opened by tapping an opponent row. "Battle Opponent" with a Time Left countdown, Opponent Info VS My Info, X, and Attack Formation with a ticket bubble (5 → 4).
+
+- Identified by its title (`info_tactical-challenge_battle-opponent-title_776-118-372-56.png`): at most 0.49 elsewhere.
+- Attack Formation (`btn_tactical-challenge_attack-formation_800-812-326-88.png`) opens attack-formation. The ticket is spent by the fight, not by opening the formation.
+
+#### best-record (`screen-best-record.png`)
+
+"Best Season Record Reached!" with the new and old rank and a pyroxene reward, over tactical-challenge right after a win that set a new best rank. The pyroxene is already added when it shows.
+
+- Identified by its title (`info_tactical-challenge_best-record-title_634-208-652-56.png`): at most 0.36 elsewhere. The menu's header matches under it, so it is checked first (Rule 1).
+- Closed by Confirm (`btn_tactical-challenge_best-record-confirm_800-764-328-96.png`).
+
+#### attack-formation (`campaign/tactical-challenge/attack-formation/`)
+
+Header "Attack Formation" (`info_attack-formation_title_158-12-400-50.png`, at most 0.52 elsewhere). Unit 1's four strikers and two specials, Quick Formation, Starting Skill, Unit Info, Presets, a Skip Battle checkbox (unticked, not tried) and Mobilize. Reached only through battle-opponent, so `core.nav goto attack-formation` can't open it on its own.
+
+- Mobilize (`btn_attack-formation_mobilize_1640-976-220-62.png`) starts the battle: an intro cutscene, then the battle HUD 6–9 s after the tap. The battle runs on AUTO (locked on) with a 3:00 limit.
+- » top right of the HUD (`btn_attack-formation_battle-skip_1812-34-80-70.png`) skips the rest of the battle: the HUD goes at once and the result shows ~2 s later. It slides in over the first seconds (0.99 while sliding), so it is located on the live screen before each tap. Not the cyan ▶▶ bottom right, which is the battle speed.
+
+The screens below are states of attack-formation (`screen-<state>.png`).
+
+- battle-result (`screen-battle-result.png`): "Battle Complete" with the team and Confirm (`btn_attack-formation_battle-confirm_1656-952-196-88.png`, at most 0.46 elsewhere). The STRIKER label (`info_attack-formation_battle-result-striker_60-862-136-40.png`) matches here and under the reward screen.
+- battle-reward (`screen-battle-reward.png`): "REWARD ACQUIRED!" (1000 credits) over the result, with a yellow Confirm at the bottom centre ~1 s later (`btn_attack-formation_reward-confirm_800-940-324-96.png`). Its title scores 0.96 as the common reward popup's, whose close spot is this Confirm, so the routine doesn't check popups between the result and tactical-challenge. Confirm goes back to tactical-challenge.
+- lose (`screen-lose.png`): "LOSE" (`info_attack-formation_battle-lose_726-424-468-160.png`, at most 0.20 elsewhere) and a yellow Confirm (`btn_attack-formation_lose-confirm_788-936-348-104.png`), which opens lose-tip.
+- lose-tip (`screen-lose-tip.png`): "Tip!" (`info_attack-formation_lose-tip_444-132-156-76.png`) with an upgrade tip and the same bottom Confirm as battle-reward (0.99), which goes back to tactical-challenge.
 
 ## relationship-rank-up popup (`ba/templates/common/popups/relationship-rank-up/`)
 
