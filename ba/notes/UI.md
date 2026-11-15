@@ -71,6 +71,57 @@ Opened by the Invitation ticket (`btn_cafe_invitation_1270-940-112-98.png`). A M
 - Identified by "Notice" (`info_cafe_invite-notice_884-220-150-56.png`), which also matches network-unstable's title (1.00): trusted only after the common popups are checked. The message line is centred, so it moves with the name's length.
 - Confirm (`btn_cafe_invite-confirm_972-706-354-100.png`) plays a MomoTalk "Inviting..." animation (~3 s), then the plain cafe shows with the student in the room.
 
+## campus (`ba/templates/start-screen/lobby/campus/`)
+
+Reached from the lobby's Lesson button (`btn_lobby_campus_276-1014-84-36.png`, the label), after a short load. The in-game title is "Lesson"; named campus here. Left: Tickets Owned N/6, Exp toggle, a guide character. Right: "Location Select" with Total Area Rank, Ticket Info, and a list of areas (Rank N, name, REWARD).
+
+- Identified by "Location Select" (`info_campus_title_984-140-334-54.png`): at most 0.51 elsewhere. Not by the "Lesson" title.
+- The area list scrolls on entry: a capture right after the load had Millennium Study Center on top, the settled list Schale Office. A tap on the top row while it scrolls may open another area.
+- The top row (`btn_campus_location_980-228-716-146.png`, Schale Office's art) opens that area's map. The routine taps it as a point, (1338, 283), since which area it is doesn't matter.
+- The lobby's Lesson dot disappeared once all tickets were spent.
+
+## location (`ba/templates/start-screen/lobby/campus/location/`)
+
+An area's map, "Select Location": rooms with the portraits of students there, an area-rank panel (Schale Office: Rank 8, 400 → 1000/2700 after six lessons), arrows to switch areas, All Locations bottom right. Locked rooms are grey with "Rank N required".
+
+- Identified by the "Select Location" title (`info_location_title_158-12-300-50.png`), and by the identifier of whichever dialog below is open. The title still matches under them, so they are checked first.
+- Home (`btn_location_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
+- Automated by `ba/routines/lesson.py` (`python -m ba.bot lesson`): one lesson per room card, in grid order, until no tickets are left, then Home. Tested with 0 tickets: lobby to All Locations and back in 27 s, nothing spent. The lesson path is the six lessons done by hand, not yet run by the routine.
+
+The dialogs below are states of location (`screen-<state>.png`), not common popups.
+
+### all-locations (`screen-all-locations.png`)
+
+Opened by All Locations (`btn_location_all-locations_1630-970-240-54.png`). A grid of the area's rooms, 3 per row: Lv., name, the students there (a green check on each who earned relationship points today). Locked rooms are dark with "Rank N required" (Schale Office: Hangar, row 3). "Tickets Owned N/6" in its header.
+
+- Identified by "All Locations" (`info_location_all-locations-title_810-126-300-52.png`): at most 0.30 elsewhere.
+- Closed by the X (`btn_location_all-locations-close_1684-130-46-46.png`), back to the map.
+- Ticket count: a crop of the whole "Tickets Owned N/6" line scored 0.94+ on every count from 6 to 0. Just the first digit (`info_location_tickets-zero_1040-210-22-34.png`) scores 1.00 on 0, 0.84 on 6, 0.74 on 5 and lower on 4-1, so the routine counts it as 0 only at 0.95 or more.
+- Schale Office had 6 tickets and 6 unlocked rooms. Each room gave a lesson; the room's card doesn't change after one, so it can be picked again.
+- Not seen yet: what tapping a locked card does. The routine taps it once and skips it if Location Info doesn't open.
+
+### location-info (`screen-location-info.png`)
+
+Opened by tapping a room card. Room, students, Lesson Rewards, a Tips line and Start Lesson with a ticket bubble (6 → 5).
+
+- Identified by "Location Info" (`info_location_location-info-title_806-148-310-52.png`): at most 0.40 elsewhere.
+- Start Lesson (`btn_location_start-lesson_816-800-290-54.png`) spends a ticket. A short animation, then zero or more relationship-rank-up popups, then lesson-report. Mission toasts ("Hold a lesson N time(s)") can slide over the top meanwhile.
+- Closed by its X, around (1446, 173). Not tapped yet.
+
+### lesson-report (`screen-lesson-report.png`)
+
+Lesson Location, Relationship Points (students who earned them, a BONUS tag on some; "No Relationship Points earned." when no student there is recruited, as in Laboratory) and Lesson Reward (100 EXP plus an item or two).
+
+- Identified by "Lesson Report" (`info_location_lesson-report-title_816-184-290-52.png`): at most 0.39 elsewhere.
+- Confirm (`btn_location_report-confirm_864-808-192-56.png`) goes back to all-locations with the ticket count one lower.
+
+## relationship-rank-up popup (`ba/templates/common/popups/relationship-rank-up/`)
+
+Full-screen student art with a heart rank, "Relationship rank up!" and the stat gained (ATK +11, Healing +4, ...). Seen after lessons: one per student who ranked up (two in a row after Theater Room, none after Gym). It stays until tapped.
+
+- Identified by its title (`info_relationship-rank-up_title_596-898-730-74.png`): at most 0.31 elsewhere.
+- Closed by tapping the same title (`btn_relationship-rank-up_close_596-898-730-74.png`); the next rank-up or the lesson report follows.
+
 ## reward popup (`ba/templates/common/popups/reward/`)
 
 "REWARD ACQUIRED!" with the items received and "TOUCH TO CONTINUE" at the bottom. Seen after the cafe earnings Claim; likely the same screen for other claims.
