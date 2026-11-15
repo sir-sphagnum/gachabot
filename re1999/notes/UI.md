@@ -1,6 +1,6 @@
 # Reverse: 1999 UI notes
 
-How Reverse: 1999 menus behave, one section per menu: how to tell a menu's states apart and switch between them, and anything else learned while automating it. Templates live in `re1999/templates/` (see the map skill for the scheme). `re1999/CLAUDE.md` imports this file, so Claude Code loads it only in sessions that read files under `re1999/`.
+How Reverse: 1999 menus behave, one section per menu: how to tell a menu's states apart and switch between them, and anything else learned while automating it. Templates live in `re1999/templates/` (see the map skill for the scheme). `re1999/CLAUDE.md` imports this file, so Claude Code loads it only in sessions that read files under `re1999/`. Patterns Reverse: 1999 shares with other games are in `core/notes/UI.md`, cited here as "(common: <section>)".
 
 ## start-screen (`re1999/templates/start-screen/`)
 
@@ -22,8 +22,8 @@ Four states seen so far: active (`screen.png`), checkin (`screen-checkin.png`), 
 - **quit**: "Notice / Quit the Game?" with CANCEL and CONFIRM, a white system-style dialog over the dimmed lobby. Android Back in the lobby opens it, so the lobby routine opens it whenever it presses Back one time too many.
   - Identified by "Quit the Game?" (`info_lobby_quit-text_584-496-172-38.png`): 1.00 on the dialog, at most 0.15 elsewhere.
   - Closed by CANCEL (`btn_lobby_quit-cancel_1114-596-100-42.png`): 1.00 on the dialog, at most 0.22 elsewhere. Never tap CONFIRM: it quits the game.
-  - Crew still matches through the dim (1.00), so the routine checks for this dialog before trusting Crew.
-- An eye icon at the bottom left, ~(118, 990), probably hides the HUD. Untested: if it does, Crew goes with it, and the lobby needs a scene element too, as E7 pairs its barrel with the main-menu icon.
+  - Crew still matches through the dim (1.00), so the routine checks for this dialog before trusting Crew (Rule 1).
+- An eye icon at the bottom left, ~(118, 990), probably hides the HUD. Untested: if it does, Crew goes with it, and the lobby needs a scene identifier too (common: Lobbies).
 - **checkin**: the daily sign-in card (date, a line of trivia, "Today's Rewards", "Days signed in: n" and milestone rewards) over the blurred lobby, shown once a day after the first obtained popup. Today's reward is already claimed when it shows. It's a lobby state rather than a common popup because it only shows as the lobby opens.
   - Identified by "Today's Rewards" (`info_lobby_checkin-text_864-542-188-40.png`): 1.00 on the card, at most 0.24 elsewhere.
   - The orange calendar icon at the card's top right (`btn_lobby_checkin-calendar_1094-70-92-62.png`) doesn't close it: it widens the card into checkin-calendar. The lobby routine uses it as the card's way out anyway, since it's the one control tried on the card.

@@ -20,7 +20,7 @@ Don't soften prose just to shorten it. Text that reads like commentary but carri
 | Genre | Question it answers | Home | Never in |
 |---|---|---|---|
 | Invariant / constraint | "What breaks if I change this?" | code comment | notes |
-| Decision / rejected alternative / menu behaviour | "Why not the obvious way?" "How does this menu behave?" | `<game>/notes/*.md` | code comment |
+| Decision / rejected alternative / menu behaviour | "Why not the obvious way?" "How does this menu behave?" | `<game>/notes/*.md`, or `core/notes/UI.md` once two games show it | code comment |
 | Event / narrative | "What changed, what did we try, why?" | git commit message | notes, comments |
 | Orientation | "Where do I start?" | `.claude/CLAUDE.md`, `<game>/CLAUDE.md` | anywhere else |
 

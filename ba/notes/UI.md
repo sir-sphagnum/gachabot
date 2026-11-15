@@ -1,6 +1,6 @@
 # Blue Archive UI notes
 
-How Blue Archive menus behave, one section per menu: how to tell a menu's states apart and switch between them, and anything else learned while automating it. Templates live in `ba/templates/` (see the map skill for the scheme). `ba/CLAUDE.md` imports this file, so Claude Code loads it only in sessions that read files under `ba/`.
+How Blue Archive menus behave, one section per menu: how to tell a menu's states apart and switch between them, and anything else learned while automating it. Templates live in `ba/templates/` (see the map skill for the scheme). `ba/CLAUDE.md` imports this file, so Claude Code loads it only in sessions that read files under `ba/`. Patterns Blue Archive shares with other games are in `core/notes/UI.md`, cited here as "(common: <section>)".
 
 ## start-screen (`ba/templates/start-screen/`)
 
@@ -11,7 +11,7 @@ The title screen: character art, "TOUCH TO START" in a bar at the bottom centre,
 - After the tap, "Now Loading . . ." screens show before the lobby: full-screen art that changes from load to load, with "Now Loading . . ." and a rabbit icon bottom right. `ba/templates/common/loading/info_loading_now-loading_1388-968-292-52.png` is the words without the animated dots, alpha-masked to the pixels that were the same on two loads with different art (42% of the box): 0.96 and 1.00 on those two, no match on any other saved screen. Art not seen yet may need it remasked.
 - Launch to start screen took ~20 s on four cold starts; start screen to lobby 8–23 s.
 - Automated by `ba/routines/start_screen.py` (`python -m ba.bot start_screen`). It ends on the lobby, or returns False on a popup for the lobby routine to close.
-- Each cold start grows BlueStacks' memory by ~4–5 GB (9.2 GB after a restart, 22.8 GB after three launches). At 55 GB, with 0.2 GB left free on the PC, the load after TOUCH TO START stalled into the network-unstable popup and the bot's own capture ran out of memory. Restart BlueStacks before a long session.
+- Each cold start grows BlueStacks' memory by ~4–5 GB (9.2 GB after a restart, 22.8 GB after three launches), so restart it before a long session (common: BlueStacks memory). At 55 GB the load after TOUCH TO START stalled into the network-unstable popup.
 
 ## lobby (`ba/templates/start-screen/lobby/`)
 
@@ -47,7 +47,7 @@ The dialogs below are states of the cafe (`screen-<state>.png`), each closed by 
 Opened by Cafe Earnings bottom right (`btn_cafe_earnings_1668-950-196-36.png`, just the label: the full panel's crop included "100.0 %" and stopped matching at 0.0 %). Three panels (No. 1 credits, No. 1 AP, No. 2 credits) with earnings per hour and status, a Claim button and X.
 
 - Identified by "Cafe Earnings" (`info_cafe_earnings-title_806-196-310-54.png`): at most 0.25 elsewhere.
-- Claim (`btn_cafe_earnings-claim_796-742-330-100.png`) opens the reward popup. Afterwards the dialog stays open with the counters at 0 and Claim grey (`screen-claimed.png`). The template still scores 0.86 on grey Claim, so the routine tells them apart by colour: mean red minus blue over the button is +165 yellow, 0 grey.
+- Claim (`btn_cafe_earnings-claim_796-742-330-100.png`) opens the reward popup. Afterwards the dialog stays open with the counters at 0 and Claim grey (`screen-claimed.png`). The template still scores 0.86 on grey Claim, so the routine tells them apart by colour (common: Lit or grey): mean red minus blue over the button is +165 yellow, 0 grey.
 - Closed by the X (`btn_cafe_earnings-close_1446-194-56-56.png`).
 - A full claim gave 570,000 credits and 530 AP (No. 1 and No. 2 credits together).
 
@@ -70,7 +70,7 @@ Opened by the Invitation ticket (`btn_cafe_invitation_1270-940-112-98.png`). A M
 
 "Notice" / "<name> will be invited to the cafe." with Cancel and Confirm.
 
-- Identified by "Notice" (`info_cafe_invite-notice_884-220-150-56.png`), which also matches network-unstable's title (1.00): trusted only after the common popups are checked. The message line is centred, so it moves with the name's length.
+- Identified by "Notice" (`info_cafe_invite-notice_884-220-150-56.png`), which also matches network-unstable's title (1.00): trusted only after the common popups are checked (common: Shared buttons). The message line is centred, so it moves with the name's length.
 - Confirm (`btn_cafe_invite-confirm_972-706-354-100.png`) plays a MomoTalk "Inviting..." animation (~3 s), then the plain cafe shows with the student in the room.
 
 ## campus (`ba/templates/start-screen/lobby/campus/`)
@@ -98,7 +98,7 @@ Opened by All Locations (`btn_location_all-locations_1630-970-240-54.png`). A gr
 
 - Identified by "All Locations" (`info_location_all-locations-title_810-126-300-52.png`): at most 0.30 elsewhere.
 - Closed by the X (`btn_location_all-locations-close_1684-130-46-46.png`), back to the map.
-- Ticket count: a crop of the whole "Tickets Owned N/6" line scored 0.94+ on every count from 6 to 0. Just the first digit (`info_location_tickets-zero_1040-210-22-34.png`) scores 1.00 on 0, 0.84 on 6, 0.74 on 5 and lower on 4-1, so the routine counts it as 0 only at 0.95 or more.
+- Ticket count: a crop of the whole "Tickets Owned N/6" line scored 0.94+ on every count from 6 to 0. Just the first digit (`info_location_tickets-zero_1040-210-22-34.png`) scores 1.00 on 0, 0.84 on 6, 0.74 on 5 and lower on 4-1, so the routine counts it as 0 only at 0.95 or more (common: Reading a zero).
 - Schale Office had 6 tickets and 6 unlocked rooms. Each room gave a lesson; the room's card doesn't change after one, so it can be picked again.
 - Not seen yet: what tapping a locked card does. The routine taps it once and skips it if Location Info doesn't open.
 
@@ -122,8 +122,8 @@ Lesson Location, Relationship Points (students who earned them, a BONUS tag on s
 Reached from the lobby's Campaign button (`btn_lobby_campaign_1728-996-156-46.png`, the label; it's also the lobby's identifier), with no load. Top row: Mission (with the current area and mission under it), Virtual Aptitude Test (locked, "Coming Soon..."), Story. Left column: Bounty, Commissions, Scrimmage. Right grid: Total Assault, Joint Firing Drill, Grand Assault, Tactical Challenge, Final Restriction Release. A guide character and an event banner on the left change between visits.
 
 - Identified by the "Campaign" title (`info_campaign_title_158-12-206-50.png`): at most 0.47 elsewhere.
-- Buttons are cropped to their title text only: the yellow dots, "In Progress" tags and subtitles (Mission's area and mission) come and go. Each scores at most 0.54 elsewhere.
-- Every menu below has the same back arrow (`btn_<menu>_campaign_40-12-92-88.png`), which goes back to Campaign. The same arrow sits on the cafe, campus and location screens (0.98+), so it identifies nothing. Tactical Challenge's back arrow wasn't tapped yet.
+- Buttons are cropped to their title text only, without the yellow dots, "In Progress" tags and subtitles (common: Moving parts). Each scores at most 0.54 elsewhere.
+- Every menu below has the same back arrow (`btn_<menu>_campaign_40-12-92-88.png`), which goes back to Campaign. The same arrow sits on the cafe, campus and location screens (0.98+), so it identifies nothing (common: Shared buttons). Tactical Challenge's back arrow wasn't tapped yet.
 - Not mapped yet: Story, Total Assault, Joint Firing Drill, Grand Assault, Final Restriction Release.
 
 Each menu below is identified by its header at the top left (left of the "?" icon), at most 0.60 on any other saved screen.
@@ -133,7 +133,7 @@ Each menu below is identified by its header at the top left (left of the "?" ico
 Header "Mission" (`info_mission_title_158-12-156-50.png`). Shows the current area (Area 20, 20th Mission): its art, Star Acquisition, Clear Reward, Multi-Sweep, and the stages on the right under Normal/Hard tabs (Hard showed, its stages locked). Home (`btn_mission_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
 
 - Multi-Sweep (`btn_mission_multi-sweep_712-860-182-44.png`) looks the same whether or not today's sweeps are used: open it to find out.
-- Mission toasts ("Use 7000 AP", "Obtain 30 equipment blueprint(s)") slide over the top centre after a sweep, covering dialog titles there. Identifiers for the dialogs below sit lower for that reason.
+- Mission toasts ("Use 7000 AP", "Obtain 30 equipment blueprint(s)") slide over the top centre after a sweep, covering dialog titles there, so the dialogs below are identified lower down (common: Toasts).
 - Automated by `ba/routines/sweep_hard.py` (`python -m ba.bot sweep_hard`): sweep the preset Multi-Sweep opens on, MAX times, then Home. Tested with the sweeps used up: Mission to lobby in 24 s, nothing spent. The sweep path is the one done by hand (180 AP for 14-2, 17-2, 18-3 × 3), not yet run by the routine. Not seen yet: what shows when AP is short.
 
 The dialogs below are states of mission (`screen-<state>.png`), not common popups.
@@ -192,7 +192,7 @@ Opened by a row's Enter. Stage number and name, Rec. level, Mission Objectives, 
 
 "Notice" / "Use N Bounty Ticket to Sweep N time(s)?" with Cancel, Confirm and X.
 
-- Confirm (`btn_overpass_sweep-confirm_976-708-348-100.png`) spends the tickets. It's the same button as the cafe's invite-confirm (1.00), so it's trusted only right after Start Sweep.
+- Confirm (`btn_overpass_sweep-confirm_976-708-348-100.png`) spends the tickets. It's the same button as the cafe's invite-confirm (1.00), so it's trusted only right after Start Sweep (common: Shared buttons).
 
 ##### sweep-complete (`screen-sweep-complete.png`)
 
