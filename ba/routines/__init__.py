@@ -15,7 +15,8 @@ starting the game, and core.nav loads ba/routines/lobby.py by name, so
 keep both names.
 """
 
-from ba.routines import cafe, lesson, lobby, start_screen, sweep_hard
+from ba.routines import bounty, cafe, lesson, lobby, start_screen, sweep_hard
 
 ROUTINES = {"start_screen": start_screen.run, "lobby": lobby.run, "cafe": cafe.run,
-            "lesson": lesson.run, "sweep_hard": sweep_hard.run}
+            "lesson": lesson.run, "sweep_hard": sweep_hard.run,
+            "bounty": bounty.run}

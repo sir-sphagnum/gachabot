@@ -163,7 +163,43 @@ Preset tabs 1–7 and an edit pencil; a Selection List of stages (preset 1: Hard
 
 ### bounty (`campaign/bounty/`)
 
-Header "Bounty" (`info_bounty_title_158-12-148-50.png`). Tickets Owned (21/6 when mapped) and a Location Select list: Overpass, Desert Railroad, Classroom. A 3x rewards event was running ("In Progress" tags on each area).
+Header "Bounty" (`info_bounty_title_158-12-148-50.png`). Tickets Owned (21/6 when mapped) and a Location Select list: Overpass, Desert Railroad, Classroom. A 3x rewards event was running ("In Progress" tags on each area). The ticket count is shared by all three areas.
+
+- Overpass (`btn_bounty_overpass_1624-250-204-50.png`, the name only) opens overpass with no load. Desert Railroad and Classroom aren't mapped yet.
+
+#### overpass (`campaign/bounty/overpass/`)
+
+"Bounty - Overpass" panel on the left: Bounty Ticket N/6, the event line, Academy Buff. Right: Stage List, one row per stage (number, stars, name, Enter). The top-left header still reads "Bounty". Home (`btn_overpass_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
+
+- Identified by "Bounty - Overpass" (`info_overpass_title_162-218-418-56.png`): at most 0.36 elsewhere.
+- The Stage List scrolls to its last stages on entry: 06–10 show, 05 is cut off at the top. Enter centres sit at x 1676, y 357 / 506 / 655 / 805 / 954. Enter looks the same on every row (`btn_overpass_stage-enter_...` is row 09's).
+- Stars tell cleared stages apart: mean red minus blue over a row's stars (x 1042–1116, 10–38 px below its Enter) is +62 gold, −5 grey. When mapped, 06–09 had 3 gold stars and 10 (Overpass J) grey.
+- Ticket count: just the first digit (`info_overpass_tickets-zero_414-278-24-36.png`) scores 1.00 on 0 and 0.42 on 21. Other counts weren't seen, so the routine counts 0 only at 0.95 or more.
+- Automated by `ba/routines/bounty.py` (`python -m ba.bot bounty`): sweep the lowest gold-starred row MAX times (every ticket), then Home. Tested with 0 tickets: lobby to Overpass and back in 18 s, nothing spent. The sweep path is the one done by hand (21 tickets on 09 Overpass I), not yet run by the routine. If a new stage is 3-starred lower in the list, the picker follows it on its own. A list longer than five visible rows below 05 wasn't seen.
+
+The dialogs below are states of overpass (`screen-<state>.png`), not common popups.
+
+##### mission-info (`screen-mission-info.png`, `screen-mission-info-done.png`)
+
+Opened by a row's Enter. Stage number and name, Rec. level, Mission Objectives, Expected Rewards; a Sweep panel (Min / − / count / + / Max, Start Sweep with a ticket bubble 21 → 20) and Start Mission (also 1 ticket).
+
+- Identified by "Mission Info" (`info_overpass_mission-info-title_824-186-274-52.png`): at most 0.41 elsewhere.
+- Max (`btn_overpass_sweep-max_1568-420-108-64.png`) set the count 1 → 21, every ticket (bubble 21 → 0); Max and + go grey, − orange.
+- Start Sweep (`btn_overpass_sweep-start_1272-586-266-50.png`) opens sweep-confirm. With 0 tickets (`screen-mission-info-done.png`: count 0, bubbles "0 → -") Start Sweep and Max still look lit.
+- Closed by the X (`btn_overpass_mission-info-close_1664-184-54-54.png`).
+
+##### sweep-confirm (`screen-sweep-confirm.png`)
+
+"Notice" / "Use N Bounty Ticket to Sweep N time(s)?" with Cancel, Confirm and X.
+
+- Confirm (`btn_overpass_sweep-confirm_976-708-348-100.png`) spends the tickets. It's the same button as the cafe's invite-confirm (1.00), so it's trusted only right after Start Sweep.
+
+##### sweep-complete (`screen-sweep-complete.png`)
+
+"Sweep Complete": player EXP bar, the rewards of each sweep listing one at a time with a Skip button under them, then "21 time(s) Rewards Earned", "Final Rewards Earned" and Confirm. Mission toasts ("Clear a Bounty 20 time(s)", "Complete at least 8 Daily Task(s)") slide over its title meanwhile. The same dialog as mission's sweep-complete: its images score 1.00 on each other's screens.
+
+- Identified by "Final Rewards Earned" (`info_overpass_sweep-complete-final_302-682-238-86.png`), which shows only once the list is done (a few seconds for 21 sweeps; Skip wasn't tapped).
+- Confirm (`btn_overpass_sweep-done_788-822-346-106.png`) goes back to mission-info with the count at 0.
 
 ### commissions (`campaign/commissions/`)
 
