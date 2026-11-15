@@ -36,6 +36,7 @@ GAMES = {
     "e7": "com.stove.epic7.google",
     "chaoszero": "com.smilegate.chaoszero.stove.google",
     "re1999": "com.bluepoch.m.en.reverse1999",
+    "ba": "com.nexon.bluearchive",
 }
 
 
