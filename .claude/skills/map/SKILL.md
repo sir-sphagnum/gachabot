@@ -57,7 +57,7 @@ The folders and file names are the whole map: there is no separate index file to
 ## Start: "create a path to <menu>"
 
 1. Work out which game is running (ask if unclear). Open this run's log with `python -m core.log start map`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, an earlier run never ended: run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then run `python -m tools.map start <game>`. It clears `recon/map/` and captures the first screen; Read the path it prints.
-   - If the game has no folder yet, ask what to call it, add it to `core.device.GAMES`, and create `<game>/templates/` with an empty `.gitkeep` in it (git ignores everything else under any `templates/` folder, so the `.gitkeep` is what keeps the empty folder in the repo). Then run `start`.
+   - If the game has no folder yet, set it up with the new-game skill (`.claude/skills/new-game/SKILL.md`) instead: it creates the package and maps the start screen and lobby with this skill.
 2. Find which menu this is: `python -m core.nav <game> where <capture>` lists the popups open and every menu whose identifying images match, best score first. Several can match (a shared identifier, a menu under a popup's dim): check the capture to pick.
    - If `python -m core.tree <game>` prints `(no menus yet)`, this screen is the root. Ask the user what to call it if it isn't obvious (e.g. `start-screen`), create `<game>/templates/<root>/` and copy the capture in as `screen.png`.
    - If nothing matches, tell the user and ask which menu this is and where it belongs.
