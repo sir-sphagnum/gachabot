@@ -1,6 +1,6 @@
 """Blue Archive bot entry point.
 
-Usage: python -m ba.bot start          launch Blue Archive (or bring it to the front), fullscreen
+Usage: python -m ba.bot start          launch Blue Archive (or bring it to the front), fullscreen, closing any other running game
        python -m ba.bot stop           force-stop Blue Archive
        python -m ba.bot back           close the current menu
        python -m ba.bot ROUTINE ...    run routines from ba.routines.ROUTINES, in order

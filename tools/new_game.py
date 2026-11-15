@@ -60,7 +60,7 @@ BACK_KEY = "back"
     "bot.py": '''\
 """{title} bot entry point.
 
-Usage: python -m {game}.bot start          launch {title} (or bring it to the front), fullscreen
+Usage: python -m {game}.bot start          launch {title} (or bring it to the front), fullscreen, closing any other running game
        python -m {game}.bot stop           force-stop {title}
        python -m {game}.bot back           close the current menu
        python -m {game}.bot ROUTINE ...    run routines from {game}.routines.ROUTINES, in order

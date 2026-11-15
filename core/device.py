@@ -8,11 +8,14 @@ Usage: python -m core.device connect
        python -m core.device restart [--fullscreen] [game ...]
            closes the running apps, then BlueStacks, opens it again and waits
            for Android to boot, then starts the games given (none if no game
-           is given) and runs each one's start_screen and lobby routines,
-           if it has them, so each ends in its lobby
-       python -m core.device start|stop|status [--fullscreen] [game ...]
-           game is a short name from GAMES (e.g. e7) or a package name;
-           no game means every game in GAMES. --fullscreen applies to start.
+           is given) one after another, each closing the one before, and runs
+           each one's start_screen and lobby routines, if it has them, so each
+           ends in its lobby; the last one is left running
+       python -m core.device start [--fullscreen] game
+           closes every other running game in GAMES, then starts this one
+       python -m core.device stop|status [game ...]
+           no game means every game in GAMES
+       game is a short name from GAMES (e.g. e7) or a package name.
 """
 
 import ctypes
@@ -171,13 +174,21 @@ def uptime(game):
 
 
 def start_game(game, fullscreen=False, timeout=30):
-    """Launch a game (or bring it to the front if it's already running).
+    """Launch a game (or bring it to the front if it's already running),
+    after closing every other game in GAMES that is running.
 
     Waits until it is the app in focus, then fullscreens it if asked. Returns
-    True on success, False if it didn't come to the front within `timeout`
-    seconds or (with fullscreen=True) stayed floating.
+    True on success, False if another game didn't stop, the game didn't come
+    to the front within `timeout` seconds, or (with fullscreen=True) it stayed
+    floating.
     """
     pkg = package(game)
+    others = [p for p in running_apps() if p in GAMES.values() and p != pkg]
+    if others:
+        ok, _ = close_apps(others)
+        log.info(f"closed {', '.join(others)}" if ok else f"not all of {', '.join(others)} stopped")
+        if not ok:
+            return False
     # The launcher activity, e.g. "com.stove.epic7.google/kr.supercreative.epic7.AppActivity".
     # Looked up rather than hard-coded, since a game update can rename it.
     component = adb("shell", "cmd", "package", "resolve-activity", "--brief",
@@ -211,10 +222,11 @@ def running_apps():
 BACKGROUND_WAIT = 3
 
 
-def close_apps():
-    """(ok, packages): send the running apps home, then force-stop each.
-    ok is False if one of them is still running."""
-    apps = running_apps()
+def close_apps(apps=None):
+    """(ok, packages): send the apps home, then force-stop each. `apps` is a
+    list of packages; None means every running app. ok is False if one of
+    them is still running."""
+    apps = running_apps() if apps is None else apps
     if not apps:
         return True, []
     adb("shell", "input", "keyevent", "KEYCODE_HOME")
@@ -428,13 +440,16 @@ if __name__ == "__main__":
                 ok &= passed
                 _answer(f"{game}: {'in lobby' if passed else 'lobby not reached'}", passed)
         sys.exit(0 if ok else 1)
-    elif cmd in ("start", "stop", "status"):
-        full = "--fullscreen" in args
-        for game in [a for a in args if a != "--fullscreen"] or list(GAMES):
-            if cmd == "start":
-                ok = start_game(game, fullscreen=full)
-                _answer(f"{game}: {'started' if ok else 'failed to start'}", ok)
-            elif cmd == "stop":
+    elif cmd == "start":
+        games = [a for a in args if a != "--fullscreen"]
+        if len(games) != 1:
+            sys.exit("start takes one game: starting it closes the others")
+        ok = start_game(games[0], fullscreen="--fullscreen" in args)
+        _answer(f"{games[0]}: {'started' if ok else 'failed to start'}", ok)
+        sys.exit(0 if ok else 1)
+    elif cmd in ("stop", "status"):
+        for game in args or list(GAMES):
+            if cmd == "stop":
                 ok = stop_game(game)
                 _answer(f"{game}: {'stopped' if ok else 'still running'}", ok)
             else:

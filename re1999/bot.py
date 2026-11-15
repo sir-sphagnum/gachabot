@@ -1,6 +1,6 @@
 """Reverse: 1999 bot entry point.
 
-Usage: python -m re1999.bot start          launch Reverse: 1999 (or bring it to the front), fullscreen
+Usage: python -m re1999.bot start          launch Reverse: 1999 (or bring it to the front), fullscreen, closing any other running game
        python -m re1999.bot stop           force-stop Reverse: 1999
        python -m re1999.bot back           close the current menu
        python -m re1999.bot ROUTINE ...    run routines from re1999.routines.ROUTINES, in order

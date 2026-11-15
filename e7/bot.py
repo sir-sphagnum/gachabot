@@ -1,6 +1,6 @@
 """E7 bot entry point.
 
-Usage: python -m e7.bot start          launch E7 (or bring it to the front), fullscreen
+Usage: python -m e7.bot start          launch E7 (or bring it to the front), fullscreen, closing any other running game
        python -m e7.bot stop           force-stop E7
        python -m e7.bot back           close the current menu
        python -m e7.bot ROUTINE ...    run routines from e7.routines.ROUTINES, in order
