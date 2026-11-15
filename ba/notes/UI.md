@@ -22,6 +22,62 @@ The home screen: player level top left, AP, credits and pyroxene top centre, sho
 - Automated by `ba/routines/lobby.py` (`python -m ba.bot lobby`). After a load or a popup close it watches 4 s more before counting the lobby as reached, since news shows ~2 s after Campaign. Run from the news popup, it closed news and reached the lobby. On later launches, news closed with no new-products after it.
 - Tested after a BlueStacks restart: two cold starts (`start start_screen`, then `lobby`) each ended in the lobby, 37 s and 34 s after launch; and `python -m ba.bot start lobby` alone waited out the launch (the "Now Loading" template also matches the launch loads), handed over at the start screen, closed news and reached the lobby 32 s after launch. Not tested yet: from a menu a few taps deep, and the first launch of a new day with its popups.
 
+## cafe (`ba/templates/start-screen/lobby/cafe/`)
+
+Reached from the lobby's Cafe button. A "Tip!" loading screen (black with a gameplay tip) shows for 1–2 s on the way in. The room with visiting students; top: Back, "Cafe", AP/credits/pyroxene, settings, Home; Move to Cafe No. 2 and "Until Next Visit" timer under it; left: Planned Visit, Unannounced Visit; bottom: Edit, Gifts, Furniture, Presets, Store All, Bonus Invitation, Invitation, Comfort, Cafe Earnings.
+
+- Identified by the "Cafe" title (`info_cafe_title_158-14-92-46.png`), and by the identifier of whichever dialog below is open. The title scores 1.00 under the reward popup too, so popups are checked first (Rule 1).
+- Home (`btn_cafe_lobby_1830-12-54-46.png`, top right) goes straight to the lobby, no load. The lobby's Cafe dot went red → orange once earnings were claimed and the invite used.
+- Only Cafe No. 1 (the one the cafe opens on) is mapped; Move to Cafe No. 2 isn't.
+- Automated by `ba/routines/cafe.py` (`python -m ba.bot cafe`): claim earnings, invite the top-ranked student, Home. Tested only with nothing to claim and the invitation on cooldown (both skipped, back in the lobby in 19 s); the claim and invite paths are the steps mapped by hand, not yet run by the routine.
+
+The dialogs below are states of the cafe (`screen-<state>.png`), each closed by its own button, not common popups.
+
+### guide (`screen-guide.png`)
+
+"Guide" / "Visiting Student List" with the visiting students' portraits, Confirm and X. Showed over the cafe on the first entry after launch; not on a later entry the same session.
+
+- Identified by "Visiting Student List" (`info_cafe_guide-title_820-360-282-46.png`): at most 0.26 elsewhere. It can show after the "Cafe" title already matches, so the routine watches 3 s for it.
+- Closed by Confirm (`btn_cafe_guide-confirm_792-636-338-104.png`).
+
+### earnings (`screen-earnings.png`, `screen-claimed.png`)
+
+Opened by Cafe Earnings bottom right (`btn_cafe_earnings_1668-950-196-36.png`, just the label: the full panel's crop included "100.0 %" and stopped matching at 0.0 %). Three panels (No. 1 credits, No. 1 AP, No. 2 credits) with earnings per hour and status, a Claim button and X.
+
+- Identified by "Cafe Earnings" (`info_cafe_earnings-title_806-196-310-54.png`): at most 0.25 elsewhere.
+- Claim (`btn_cafe_earnings-claim_796-742-330-100.png`) opens the reward popup. Afterwards the dialog stays open with the counters at 0 and Claim grey (`screen-claimed.png`). The template still scores 0.86 on grey Claim, so the routine tells them apart by colour: mean red minus blue over the button is +165 yellow, 0 grey.
+- Closed by the X (`btn_cafe_earnings-close_1446-194-56-56.png`).
+- A full claim gave 570,000 credits and 530 AP (No. 1 and No. 2 credits together).
+
+### invitation (`screen-invitation.png`)
+
+Opened by the Invitation ticket (`btn_cafe_invitation_1270-940-112-98.png`). A MomoTalk panel listing every student with heart level and an Invite button. Once used, the ticket turns grey with a ~20 h cooldown in its bubble, and the template no longer matches at all: that is how the routine skips it.
+
+- Identified by the tips line "Only two students can be invited per Cafe at a time." (`info_cafe_invitation-tip_708-920-598-40.png`): at most 0.29 elsewhere. Not by the MomoTalk header, which the lobby's MomoTalk likely shares.
+- Sorted by Name by default. The sort button (`btn_cafe_invitation-sort_998-200-186-56.png`) opens the sort state below; after sorting by Relationship Rank it reads so (`info_cafe_sort-by-relationship_1008-212-166-36.png`), and the order arrow flipped to descending on its own (highest rank first). Not seen yet: whether the sort persists to the next visit, and whether the direction can come up ascending.
+- Invite on the first row (`btn_cafe_invite-first_1050-302-212-68.png`) opens invite-confirm. Not seen yet: what the first row shows when that student is already in the cafe.
+
+### invitation-sort (`screen-invitation-sort.png`)
+
+"Sort" panel over the list: Name, Academy, Relationship Rank, Pinned, and Confirm.
+
+- Identified by "Sort" (`info_cafe_sort-title_636-294-72-40.png`): at most 0.28 elsewhere.
+- Relationship Rank (`btn_cafe_sort-relationship_642-446-308-66.png`) turns pink when selected (`info_cafe_sort-relationship-selected_...`); Confirm (`btn_cafe_sort-confirm_640-562-632-60.png`) applies it and closes the panel.
+
+### invite-confirm (`screen-invite-confirm.png`)
+
+"Notice" / "<name> will be invited to the cafe." with Cancel and Confirm.
+
+- Identified by "Notice" (`info_cafe_invite-notice_884-220-150-56.png`), which also matches network-unstable's title (1.00): trusted only after the common popups are checked. The message line is centred, so it moves with the name's length.
+- Confirm (`btn_cafe_invite-confirm_972-706-354-100.png`) plays a MomoTalk "Inviting..." animation (~3 s), then the plain cafe shows with the student in the room.
+
+## reward popup (`ba/templates/common/popups/reward/`)
+
+"REWARD ACQUIRED!" with the items received and "TOUCH TO CONTINUE" at the bottom. Seen after the cafe earnings Claim; likely the same screen for other claims.
+
+- Identified by "REWARD ACQUIRED!" (`info_reward_reward-acquired_556-200-590-78.png`, cropped short of the sparkle on its right end): at most 0.07 elsewhere.
+- Closed by tapping "TOUCH TO CONTINUE" (`btn_reward_close_740-925-440-46.png`, centre (960, 948)): at most 0.19 elsewhere. It went back to the dialog it was opened from.
+
 ## news popup (`ba/templates/common/popups/news/`)
 
 The news panel over the dimmed lobby: a sidebar of icons on the left, banners, and a "Main News" list. Showed on every launch so far (four on one day, not only the first), ~2 s after Campaign: a lobby seen right after the load isn't popup-free yet.
