@@ -8,7 +8,7 @@ Usage: python -m core.device connect
        python -m core.device restart [--fullscreen] [game ...]
            closes the running apps, then BlueStacks, opens it again and waits
            for Android to boot, then starts the games given (none if no game
-           is given)
+           is given) and runs each one's start_screen routine, if it has one
        python -m core.device start|stop|status [--fullscreen] [game ...]
            game is a short name from GAMES (e.g. e7) or a package name;
            no game means every game in GAMES. --fullscreen applies to start.
@@ -16,6 +16,7 @@ Usage: python -m core.device connect
 
 import ctypes
 import glob
+import importlib
 import re
 import subprocess
 import sys
@@ -308,6 +309,23 @@ def restart(boot_timeout=BOOT_TIMEOUT):
     return True, "BlueStacks restarted"
 
 
+def run_start_screen(game):
+    """The result of the game's start_screen routine (its <game>.routines
+    ROUTINES entry), or None when the game has no such routine. `game` is a
+    short name from GAMES; a package name has no routines here."""
+    if game not in GAMES:
+        return None
+    module = f"{game}.routines"
+    try:
+        routines = importlib.import_module(module).ROUTINES
+    except ModuleNotFoundError as e:
+        if e.name not in (game, module):  # the routines exist but import something missing
+            raise
+        return None
+    routine = routines.get("start_screen")
+    return routine() if routine else None
+
+
 def _close_apps_before_restart():
     """Close the apps, logging what happened. Never stops the restart: a
     BlueStacks that needs restarting may not answer adb."""
@@ -379,6 +397,10 @@ if __name__ == "__main__":
             started = start_game(game, fullscreen="--fullscreen" in args)
             ok &= started
             _answer(f"{game}: {'started' if started else 'failed to start'}", started)
+            passed = run_start_screen(game) if started else None
+            if passed is not None:
+                ok &= passed
+                _answer(f"{game}: {'past start screen' if passed else 'start_screen failed'}", passed)
         sys.exit(0 if ok else 1)
     elif cmd in ("start", "stop", "status"):
         full = "--fullscreen" in args
