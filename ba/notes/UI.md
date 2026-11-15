@@ -18,7 +18,8 @@ The title screen: character art, "TOUCH TO START" in a bar at the bottom centre,
 The home screen: player level top left, AP, credits and pyroxene top centre, shortcuts on the left (Notice, MomoTalk, Attendance, Tasks, Cash Shop), the bottom bar (Cafe to Recruit) and Campaign bottom right.
 
 - Identified by Campaign (`info_lobby_campaign_1728-996-156-46.png`) alone. It scores 1.00 under both popups below too, because neither covers it, so popups are checked before trusting it (Rule 1).
-- Not seen yet: whether the HUD hides when idle, and what Back does here (a quit prompt?). `BACK_KEY` is still the scaffold's Android Back, untested on a menu.
+- The HUD hides when the lobby sits idle: the art alone shows, framed differently (zoomed in), and Campaign stops matching. Back does nothing there (10 presses, still idle). A tap on the art (e.g. (1500, 600)) brings the HUD back. `ba/routines/lobby.py` doesn't handle this yet: from the idle lobby it presses Back 10 times and fails, so `goto` fails too.
+- Not seen yet: what Back does on the lobby with its HUD up (a quit prompt?).
 - Automated by `ba/routines/lobby.py` (`python -m ba.bot lobby`). After a load or a popup close it watches 4 s more before counting the lobby as reached, since news shows ~2 s after Campaign. Run from the news popup, it closed news and reached the lobby. On later launches, news closed with no new-products after it.
 - Tested after a BlueStacks restart: two cold starts (`start start_screen`, then `lobby`) each ended in the lobby, 37 s and 34 s after launch; and `python -m ba.bot start lobby` alone waited out the launch (the "Now Loading" template also matches the launch loads), handed over at the start screen, closed news and reached the lobby 32 s after launch. Not tested yet: from a menu a few taps deep, and the first launch of a new day with its popups.
 
@@ -128,7 +129,36 @@ Each menu below is identified by its header at the top left (left of the "?" ico
 
 ### mission (`campaign/mission/`)
 
-Header "Mission" (`info_mission_title_158-12-156-50.png`). Shows the current area (Area 20, 20th Mission): its art, Star Acquisition, Clear Reward, Multi-Sweep, and the stages on the right under Normal/Hard tabs (Hard showed, its stages locked).
+Header "Mission" (`info_mission_title_158-12-156-50.png`). Shows the current area (Area 20, 20th Mission): its art, Star Acquisition, Clear Reward, Multi-Sweep, and the stages on the right under Normal/Hard tabs (Hard showed, its stages locked). Home (`btn_mission_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
+
+- Multi-Sweep (`btn_mission_multi-sweep_712-860-182-44.png`) looks the same whether or not today's sweeps are used: open it to find out.
+- Mission toasts ("Use 7000 AP", "Obtain 30 equipment blueprint(s)") slide over the top centre after a sweep, covering dialog titles there. Identifiers for the dialogs below sit lower for that reason.
+- Automated by `ba/routines/sweep_hard.py` (`python -m ba.bot sweep_hard`): sweep the preset Multi-Sweep opens on, MAX times, then Home. Tested with the sweeps used up: Mission to lobby in 24 s, nothing spent. The sweep path is the one done by hand (180 AP for 14-2, 17-2, 18-3 × 3), not yet run by the routine. Not seen yet: what shows when AP is short.
+
+The dialogs below are states of mission (`screen-<state>.png`), not common popups.
+
+#### multi-sweep (`screen-multi-sweep.png`, `screen-multi-sweep-done.png`)
+
+Preset tabs 1–7 and an edit pencil; a Selection List of stages (preset 1: Hard 14-2, 17-2, 18-3 and more below, each ticked, with Remaining Count N/3 and drops); Filter, sort, Undo all selections; Register Target (three student pieces), MIN / − / count / + / MAX, Save, and a yellow Multi-Sweep button with an AP bubble (964 → 904 at count 1).
+
+- Identified by "Selection List" (`info_mission_selection-list_166-324-186-44.png`): 1.00 on all three captures of it, at most 0.33 elsewhere. Not by the "Multi-Sweep" title, which a toast covered (0.67).
+- MAX (`btn_mission_sweep-max_1174-856-108-64.png`) set the count 1 → 3, the daily limit; MAX and + then go grey, − orange; the bubble read 964 → 784.
+- The Multi-Sweep button (`btn_mission_sweep-start_1546-862-246-50.png`) opens sweep-content. Once every ticked stage is used up (`screen-multi-sweep-done.png`: rows dimmed "Used all remaining counts.", count 0, bubble 784 → 784) it turns grey, and its template still scores 0.91 there. The routine tells them apart by colour: mean red minus blue over the button is +139 yellow, −2 grey.
+- Closed by the X (`btn_mission_multi-sweep-close_1808-126-50-50.png`).
+
+#### sweep-content (`screen-sweep-content.png`)
+
+"Sweep Content" / "Use 180 AP to sweep the stages below." with the selected stages and their Sweep Count, Cancel, Confirm and X.
+
+- Identified by its title (`info_mission_sweep-content-title_784-126-352-56.png`): at most 0.42 elsewhere.
+- Confirm (`btn_mission_sweep-confirm_980-832-344-94.png`) spends the AP; Sweep Complete showed ~2 s later.
+
+#### sweep-complete (`screen-sweep-complete.png`)
+
+"Sweep Complete": player EXP gained (+450, Bonus +180), a scrolling list of rewards per sweep, "Final Rewards Earned", Confirm and X.
+
+- Identified by "Final Rewards Earned" (`info_mission_sweep-complete-final_304-686-234-82.png`): at most 0.41 elsewhere. The title sits under the toasts.
+- Confirm (`btn_mission_complete-confirm_784-820-354-110.png`) goes back to multi-sweep, now in its done state.
 
 ### bounty (`campaign/bounty/`)
 
