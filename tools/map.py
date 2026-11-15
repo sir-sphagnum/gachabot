@@ -5,6 +5,8 @@ Usage: python -m tools.map start GAME
        python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay]
        python -m tools.map info HERE ELEMENT X Y W H [--on CAPTURE]
        python -m tools.map leads MENU [--after CAPTURE]
+       python -m tools.map popup NAME [--on CAPTURE]
+       python -m tools.map state MENU STATE [--on CAPTURE]
        python -m tools.map note TEXT...
        python -m tools.map log
        python -m tools.map finish
@@ -29,6 +31,11 @@ info    log box X Y W H of the current screen as element ELEMENT of menu HERE.
 leads   mark the last click as opening menu MENU (drops --stay, renames its
         target). --after: that capture is the menu's screen, for a menu that
         only showed on a later `shot` (a load after the tap).
+popup   mark the current screen (or --on CAPTURE) as showing popup NAME:
+        finish creates common/popups/NAME/ from it and crops the info and
+        close lines logged on NAME there.
+state   mark the current screen (or --on CAPTURE) as state STATE of MENU (a
+        dialog the menu opens). finish saves it as MENU's screen-STATE.png.
 note    log an observation for the game's notes, with the current screen.
 log     print the log, then the menus it touches that nothing identifies yet
         (new ones, and existing ones with no info_ or button to another menu).
@@ -240,6 +247,29 @@ def _write(entries):
     LOG.write_text("".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8")
 
 
+def popup(name, on=None):
+    """Mark the current capture (or `on`) as showing popup `name`. At finish it
+    becomes <game>/templates/common/popups/<name>/, with that capture as its
+    screen.png, and info/btn lines logged on `name` are cropped there."""
+    entries = _entries()
+    _check_names(name)
+    screen = _capture_path(on) if on else _current(entries)
+    _append({"popup": name, "screen": screen})
+    log.info(f"popup {name} on {screen}")
+    print(f"Logged popup {name} on {screen}")
+
+
+def state(menu, name, on=None):
+    """Mark the current capture (or `on`) as state `name` of menu `menu`. At
+    finish it is saved as screen-<name>.png in the menu's folder."""
+    entries = _entries()
+    _check_names(menu, name)
+    screen = _capture_path(on) if on else _current(entries)
+    _append({"state": name, "menu": menu, "screen": screen})
+    log.info(f"state {menu}/{name} on {screen}")
+    print(f"Logged state {name} of {menu} on {screen}")
+
+
 def note(text):
     entries = _entries()
     _append({"note": text, "screen": _current(entries)})
@@ -250,8 +280,11 @@ def note(text):
 def finish():
     """Build the tree from the log and print a report.
 
-    For each logged btn/info, in order:
-    - HERE must be a menu in the tree, or a TARGET created earlier in the log.
+    First, each logged popup gets common/popups/NAME/ with its capture as
+    screen.png (kept if the popup exists). Then, for each logged line, in order:
+    - state: copies the capture to MENU's screen-STATE.png.
+    - btn/info: HERE must be a menu in the tree, a TARGET created earlier in
+      the log, or a popup (existing or logged).
     - A btn logged with --stay is cropped on HERE and makes no menu.
     - Any other btn whose TARGET has no folder gets a new folder inside HERE's, with
       the click's after-capture as its screen.png. A TARGET that already exists
@@ -268,6 +301,13 @@ def finish():
     game = entries[0]["game"]
     menus, _ = tree.load(game)
     folders = {name: ROOT / m["path"] for name, m in menus.items()}
+    for name, p in tree.load_popups(game)[0].items():
+        folders.setdefault(name, ROOT / p["path"])
+    # Popups first, so their info/close lines find them wherever the popup
+    # line sits in the log (it can be logged late, with --on).
+    for e in entries[1:]:
+        if "popup" in e:
+            _make_popup(game, e, folders)
     notes, made = [], []
     taps = {}
     for e in entries[1:]:
@@ -277,6 +317,18 @@ def finish():
     for e in entries[1:]:
         if "note" in e:
             notes.append(e)
+            continue
+        if "popup" in e:
+            continue
+        if "state" in e:
+            if e["menu"] not in folders:
+                print(f"state {e['menu']}/{e['state']}: no menu '{e['menu']}' in the tree; skipped")
+                log.warning(f"state {e['menu']}/{e['state']}: no menu {e['menu']} in the tree, skipping")
+                continue
+            out = folders[e["menu"]] / f"screen-{e['state']}.png"
+            shutil.copy(ROOT / e["screen"], out)
+            print(f"state {e['menu']}/{e['state']}: {_rel(out)}")
+            log.info(f"state {_rel(out)}")
             continue
         if "kind" not in e:
             continue
@@ -339,6 +391,27 @@ def finish():
     popups, popup_problems = tree.load_popups(game)
     print()
     tree.show(game, menus, problems + popup_problems, popups)
+
+
+def _make_popup(game, e, folders):
+    """Create popup e["popup"]'s folder (first time it's logged) and add it to
+    `folders`, so the info/btn lines logged on it are cropped there. An
+    existing popup keeps its screen.png, like an existing menu."""
+    name = e["popup"]
+    d = templates_dir(game) / tree.COMMON / tree.POPUPS / name
+    if name in folders and folders[name] != d:
+        print(f"popup {name}: a menu has that name ({_rel(folders[name])}); skipped")
+        log.warning(f"popup {name}: a menu has that name, skipping")
+        return
+    if d.is_dir():
+        if name not in folders:
+            print(f"popup {name}: exists ({_rel(d)}); screen.png kept, new capture is {e['screen']}")
+    else:
+        d.mkdir(parents=True)
+        shutil.copy(ROOT / e["screen"], d / "screen.png")
+        print(f"popup {name}: new popup {_rel(d)}")
+        log.info(f"new popup {_rel(d)}")
+    folders[name] = d
 
 
 def _key(e):
@@ -452,6 +525,10 @@ if __name__ == "__main__":
         info(args[0], args[1], _box(args[2:]), opts.get("--on"))
     elif cmd == "leads" and len(args) == 1:
         leads(args[0], opts.get("--after"))
+    elif cmd == "popup" and len(args) == 1:
+        popup(args[0], opts.get("--on"))
+    elif cmd == "state" and len(args) == 2:
+        state(args[0], args[1], opts.get("--on"))
     elif cmd == "rename" and len(args) == 2:
         rename(*args)
     elif cmd == "note" and args:
