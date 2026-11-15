@@ -7,9 +7,11 @@ Usage: python -m e7.routines.claim_auto [--debug]
    while a background battle has rewards waiting, and also, spinning, while
    one is still running.
 3. Tap the clock until the auto menu ("Background Battling") opens.
-4. Tap Calculate until "Calculation Complete" shows. No Calculate on auto is
-   a failure. A still-running battle likely ends here too: opened from
-   hunt-team, auto showed Stop instead (not yet seen from the clock).
+4. Tap Calculate until Calculation Complete (its title or its "Tap to close")
+   or the claimed auto's Close shows. No Calculate on auto is a failure. A
+   still-running battle likely ends here too: opened from hunt-team, auto
+   showed Stop instead (not yet seen from the clock). If none of them shows,
+   the screen is saved to logs/ before failing.
 5. Close Calculation Complete with "Tap to close"; auto then shows Close.
 6. Tap Close until the lobby's main-menu icon shows.
 
@@ -20,9 +22,13 @@ clock.
 """
 
 import sys
+import time
+from pathlib import Path
 
+from core.input import capture
 from core.log import logger, setup
 from core.nav import game_popups, locate, open_popup, past_black, tap_until
+from core.vision import save
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import lobby
 
@@ -72,11 +78,18 @@ def run(delay=1.5, tries=5, attempts=2):
     if not locate(CALCULATE, past_black()):
         log.error("auto shows no Calculate")
         return False
-    if not tap_until(CALCULATE, COMPLETE_TITLE, delay, tries, popups=popups):
-        log.error("Calculation Complete not shown")
+    # Calculation Complete's title has gone unseen after a Calculate that did
+    # claim the rewards (notes/UI.md, claim-auto), so its "Tap to close" and
+    # the claimed Close count as done too.
+    done = tap_until(CALCULATE, [COMPLETE_TITLE, COMPLETE_CLOSE, CLOSE], delay, tries, popups=popups)
+    if not done:
+        Path("logs").mkdir(exist_ok=True)
+        path = Path("logs") / f"claim_auto-{time.strftime('%Y%m%d-%H%M%S')}.png"
+        save(capture(), path)
+        log.error(f"Calculation Complete not shown, screen saved to {path.as_posix()}")
         return False
     log.info("calculated, closing")
-    if not tap_until(COMPLETE_CLOSE, CLOSE, delay, tries, popups=popups):
+    if done[0] != str(CLOSE) and not tap_until(COMPLETE_CLOSE, CLOSE, delay, tries, popups=popups):
         log.error("Calculation Complete not closed")
         return False
     if not tap_until(CLOSE, lobby.MAIN_MENU, delay, tries, popups=popups):

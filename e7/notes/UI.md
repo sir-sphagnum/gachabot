@@ -213,7 +213,7 @@ Four states:
 
 Task `claim-auto` (`e7/routines/claim_auto.py`, `python -m e7.bot claim_auto`): from the active lobby, tap the clock, Calculate, Tap to close, Close. No clock on the HUD means nothing to claim (success). No Calculate on auto means failure.
 
-- Once, the tap on Calculate was followed by no "Calculation Complete" in 5 tries, so the routine failed, yet the rewards were claimed: the lobby routine came back to a HUD without the clock. What showed instead wasn't captured.
+- Once, the tap on Calculate was followed by no "Calculation Complete" title in 5 tries, so the routine failed, yet the claim had gone through (a false failure): the lobby routine came back to a HUD without the clock. What showed instead wasn't captured. So after Calculate the routine also takes Complete's "Tap to close" or the claimed Close as done, and saves the screen to `logs/claim_auto-<time>.png` when none of them shows.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
