@@ -6,8 +6,9 @@ Usage: python -m core.device connect
        python -m core.device health      exits 1 when BlueStacks needs a restart
                                          or Windows is low on memory
        python -m core.device restart [--fullscreen] [game ...]
-           closes BlueStacks, opens it again and waits for Android to boot,
-           then starts the games given (none if no game is given)
+           closes the running apps, then BlueStacks, opens it again and waits
+           for Android to boot, then starts the games given (none if no game
+           is given)
        python -m core.device start|stop|status [--fullscreen] [game ...]
            game is a short name from GAMES (e.g. e7) or a package name;
            no game means every game in GAMES. --fullscreen applies to start.
@@ -179,6 +180,32 @@ def stop_game(game, timeout=10):
     return bool(wait_until(lambda: not is_running(pkg), timeout, interval=0.5))
 
 
+def running_apps():
+    """Packages of the installed (non-system) apps that have a process running."""
+    installed = [line.split(":", 1)[1] for line in adb("shell", "pm", "list", "packages", "-3").splitlines()
+                 if line.startswith("package:")]
+    procs = adb("shell", "ps", "-A", "-o", "NAME").split()
+    return [p for p in installed if any(n == p or n.startswith(p + ":") for n in procs)]
+
+
+# Seconds the apps get in the background before they are force-stopped. Going
+# home first gives them Android's pause/stop callbacks, where an app saves and
+# closes what it has open; a force-stop or a killed BlueStacks gives them none.
+BACKGROUND_WAIT = 3
+
+
+def close_apps():
+    """(ok, packages): send the running apps home, then force-stop each.
+    ok is False if one of them is still running."""
+    apps = running_apps()
+    if not apps:
+        return True, []
+    adb("shell", "input", "keyevent", "KEYCODE_HOME")
+    time.sleep(BACKGROUND_WAIT)
+    stopped = [stop_game(app) for app in apps]
+    return all(stopped), apps
+
+
 # --- health -----------------------------------------------------------------
 
 # BlueStacks' own memory grows while the bot captures the screen (9.6 GB to
@@ -260,10 +287,13 @@ PLAYER_ARGS = ["--guest", "--present=embed", "--chrome=windows"]
 
 
 def restart(boot_timeout=BOOT_TIMEOUT):
-    """(ok, message): close BlueStacks, open it again, and wait until Android
-    has booted and adb answers. Frees the memory BlueStacks builds up while
-    the bot captures the screen. Games are not started."""
+    """(ok, message): close the running apps, close BlueStacks, open it again,
+    and wait until Android has booted and adb answers. Frees the memory
+    BlueStacks builds up while the bot captures the screen. Games are not
+    started."""
     player = _player_exe()
+    if player_pids():
+        _close_apps_before_restart()
     if not _close_player():
         return False, "BlueStacks still open after closing it"
     connect.cache_clear()  # the cached serial belongs to the closed BlueStacks
@@ -276,6 +306,20 @@ def restart(boot_timeout=BOOT_TIMEOUT):
     if not wait_until(_booted, boot_timeout, interval=2):
         return False, f"BlueStacks not booted {boot_timeout}s after opening it"
     return True, "BlueStacks restarted"
+
+
+def _close_apps_before_restart():
+    """Close the apps, logging what happened. Never stops the restart: a
+    BlueStacks that needs restarting may not answer adb."""
+    try:
+        ok, apps = close_apps()
+    except RuntimeError as e:  # includes AdbTimeout
+        log.warning(f"apps not closed: {e}, closing BlueStacks anyway")
+        return
+    if not ok:
+        log.warning(f"not all of {', '.join(apps)} stopped, closing BlueStacks anyway")
+    elif apps:
+        log.info(f"closed {', '.join(apps)}")
 
 
 def _player_exe():
