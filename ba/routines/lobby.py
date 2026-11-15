@@ -13,6 +13,8 @@ Until Campaign shows with no popup over it:
   close it and look again;
 - if the start screen is up, hand over to the start_screen routine (and
   reset the Back count);
+- if the lobby is idle with its HUD hidden (REST), tap the art to wake it
+  (wake());
 - otherwise press Back.
 
 Popups are checked before Campaign because neither news nor new-products
@@ -28,7 +30,7 @@ HUD up.
 import sys
 
 from core.device import uptime, wait_until
-from core.input import back, capture
+from core.input import back, capture, tap
 from core.log import logger, setup
 from core.nav import close_popup, game_popups, locate, open_popup, past_black
 from ba.config import BACK_KEY, GAME, TEMPLATES_DIR
@@ -38,6 +40,11 @@ log = logger(__file__)
 
 LOBBY = TEMPLATES_DIR / "start-screen" / "lobby"
 CAMPAIGN = LOBBY / "info_lobby_campaign_1728-996-156-46.png"
+# The idle lobby (HUD hidden, art zoomed in): the hanging sign top right,
+# 1.00 on three idle captures, at most 0.47 elsewhere. Back does nothing
+# there; a tap on the art brings the HUD back.
+REST = LOBBY / "info_lobby_rest-sign_1530-90-320-370.png"
+WAKE = (1500, 600)  # a spot of the art with no HUD button under it
 # Loading screens: nothing on them answers Back, so the routine waits them out.
 # Masked to the letters of "Now Loading": the art behind changes every load.
 LOADING = [TEMPLATES_DIR / "common" / "loading" / "info_loading_now-loading_1388-968-292-52.png"]
@@ -99,6 +106,14 @@ def run(backs=10, delay=1.5):
             presses = 0
             changed = True
             continue
+        if locate(REST, screen):
+            if presses == backs:
+                log.error(f"HUD not woken after {backs} taps")
+                return False
+            presses += 1
+            screen = wake(delay)
+            changed = True
+            continue
         age = uptime(GAME)
         if age is not None and age < LAUNCH:
             log.debug(f"game started {age}s ago, waiting")
@@ -117,6 +132,15 @@ def run(backs=10, delay=1.5):
             screen = capture()
 
 
+def wake(delay=1.5):
+    """Tap the idle lobby's art once and return the screen after: Campaign
+    once the HUD shows, else the last capture after `delay` seconds."""
+    x, y = tap(*WAKE)
+    log.info(f"lobby idle, waking HUD at ({x}, {y})")
+    screen = wait_until(_campaign, delay)
+    return capture() if screen is None else screen
+
+
 def loading(screen):
     """True when one of the game's loading screens shows."""
     return any(locate(t, screen) for t in LOADING)
@@ -125,6 +149,7 @@ def loading(screen):
 def _known(screen, known):
     """`screen` if the routine knows what to do on it, else None."""
     if (loading(screen) or open_popup(known, screen) or locate(CAMPAIGN, screen)
+            or locate(REST, screen)
             or start_screen.at_start_screen(screen)):
         return screen
     return None
