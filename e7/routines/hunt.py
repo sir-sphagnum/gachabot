@@ -2,8 +2,10 @@
 
 Usage: python -m e7.routines.hunt [--hunt NAME] [--leifs N] [--debug]
 
-1. Get to the active lobby. If the HUD clock is spinning, a background battle
-   is already running: stop, starting nothing.
+1. Get to the active lobby and look at the HUD clock. Spinning: a background
+   battle is already running, so stop, starting nothing. Still (rewards
+   waiting): claim them first with the claim_auto routine, and go on once the
+   clock is gone, even if claim_auto reported a failure.
 2. Go to hunt (core.nav.goto) and pick the hunt NAME (default wyvern) from the
    cards under Available Dungeons. The cards move: tapping one scrolls the list
    so it shows below the one before it. So until NAME is chosen, tap the
@@ -36,7 +38,7 @@ from core.input import capture, tap
 from core.log import logger, setup
 from core.nav import game_popups, goto, locate, open_popup, past_black, tap_until
 from e7.config import GAME, TEMPLATES_DIR
-from e7.routines import lobby
+from e7.routines import claim_auto, lobby
 
 log = logger(__file__)
 
@@ -109,12 +111,22 @@ def run(hunt="wyvern", leifs=0, delay=1.5, tries=5):
         log.error(f"{hunt} has no Hunt - Hell, not supported yet")
         return False
     popups = game_popups(GAME)
-    running = _running(popups)
-    if running is None:
+    clock = _clock(popups)
+    if clock is None:
         return False
-    if running:
+    if clock == "spinning":
         log.error("a background battle is already running, not starting another")
         return False
+    if clock == "still":
+        log.info("rewards waiting on the clock, claiming first")
+        # claim_auto can fail after Calculate with the rewards claimed all
+        # the same (see notes/UI.md, claim-auto), so the clock decides.
+        if not claim_auto.run():
+            clock = _clock(popups)
+            if clock != "none":
+                log.error("rewards not claimed")
+                return False
+            log.warning("claim_auto failed but the clock is gone, going on")
     if not goto(GAME, MENU):
         log.error(f"{MENU} not reached")
         return False
@@ -159,10 +171,12 @@ def _changed(a, b, box):
     return float(np.abs(_cut(a, box) - _cut(b, box)).mean())
 
 
-def _running(popups, attempts=3):
-    """True if the lobby's HUD clock is spinning, False if it's still or
-    missing, None if the HUD wasn't seen. Two frames SPIN_GAP apart, both with
-    the HUD up, since the lobby hides it again within seconds."""
+def _clock(popups, attempts=3):
+    """The lobby's HUD clock: "spinning" (a battle running), "still" (rewards
+    waiting), "none", or None if the HUD wasn't seen. Two frames SPIN_GAP
+    apart, both with the HUD up, since the lobby hides it again within
+    seconds. Spinning is decided first: the still clock's template matched a
+    spinning clock on 1 frame in 6."""
     for attempt in range(1, attempts + 1):
         if not lobby.run():
             log.error("lobby not reached")
@@ -175,7 +189,9 @@ def _running(popups, attempts=3):
         if locate(lobby.MAIN_MENU, first) and locate(lobby.MAIN_MENU, second):
             change = _changed(first, second, CLOCK_BOX)
             log.debug(f"clock change {change:.1f}")
-            return change >= SPIN_MIN
+            if change >= SPIN_MIN:
+                return "spinning"
+            return "still" if locate(claim_auto.CLOCK, first) else "none"
         log.debug(f"HUD not showing, attempt {attempt}/{attempts}")
     log.error(f"HUD not seen in {attempts} attempts")
     return None

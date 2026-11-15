@@ -174,7 +174,7 @@ Three states: the menu, **background-battling** and **confirm**.
 
 Task `hunt` (`e7/routines/hunt.py`, `python -m e7.bot hunt`): starts Background Battling on Wyvern, Hunt - Hell, paid with stamina only. `python -m e7.routines.hunt --hunt NAME --leifs N` picks another hunt and adds N leif steps. Ogre is refused.
 
-- It first checks the lobby's HUD clock. If the clock is spinning, a battle is running: it stops without starting anything.
+- It first checks the lobby's HUD clock. If the clock is spinning, a battle is running: it stops without starting anything. If it is still (rewards waiting), it runs claim-auto first and goes on once the clock is gone, even when claim-auto failed (see claim-auto above).
 - On the dialog it ticks Use Owned Energy First (going on without it when it won't tick), then taps +1 while the leif cost shows 0. With 0 leifs it takes back the first leif step with -1. If even the first step costs a leif, stamina is too low, so it closes the dialog and counts that as success.
 - If Background Battling opens auto's running state after all, it closes that with "Tap to close." and stops.
 - Tested on a running battle: it stopped at the clock check; with the clock check skipped, it chose caides and then wyvern and stopped on the running state. A full run on wyvern ticked Use Owned Energy First, took 3 stamina steps with no leifs, started the battle and got back to the lobby. The too-low-stamina branch and a greyed-out tick box haven't been run yet.
@@ -212,6 +212,8 @@ Four states:
 - **claimed** (`screen-claimed.png`): the tiles show blue check marks and the green button is **Close** (`btn_auto_close_780-908-370-70.png`, no orange dot): 1.0 here, 0.55 on Calculate, at most 0.34 elsewhere. Close goes back to the menu the clock was tapped on (the lobby, active), now without the clock.
 
 Task `claim-auto` (`e7/routines/claim_auto.py`, `python -m e7.bot claim_auto`): from the active lobby, tap the clock, Calculate, Tap to close, Close. No clock on the HUD means nothing to claim (success). No Calculate on auto means failure.
+
+- Once, the tap on Calculate was followed by no "Calculation Complete" in 5 tries, so the routine failed, yet the rewards were claimed: the lobby routine came back to a HUD without the clock. What showed instead wasn't captured.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 
