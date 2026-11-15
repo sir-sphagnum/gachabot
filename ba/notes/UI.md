@@ -177,7 +177,7 @@ Header "Bounty" (`info_bounty_title_158-12-148-50.png`). Tickets Owned (21/6 whe
 - Ticket count: just the first digit (`info_overpass_tickets-zero_414-278-24-36.png`) scores 1.00 on 0 and 0.42 on 21. Other counts weren't seen, so the routine counts 0 only at 0.95 or more.
 - Automated by `ba/routines/bounty.py` (`python -m ba.bot bounty`): sweep the lowest gold-starred row MAX times (every ticket), then Home. Tested with 0 tickets: lobby to Overpass and back in 18 s, nothing spent. The sweep path is the one done by hand (21 tickets on 09 Overpass I), not yet run by the routine. If a new stage is 3-starred lower in the list, the picker follows it on its own. A list longer than five visible rows below 05 wasn't seen.
 
-The dialogs below are states of overpass (`screen-<state>.png`), not common popups.
+The dialogs below are states of overpass (`screen-<state>.png`), not common popups. Scrimmage's gehenna opens the same three, and uses these images.
 
 ##### mission-info (`screen-mission-info.png`, `screen-mission-info-done.png`)
 
@@ -207,7 +207,20 @@ Header "Commissions" (`info_commissions_title_158-12-270-50.png`). Request Selec
 
 ### scrimmage (`campaign/scrimmage/`)
 
-Header "Scrimmage" (`info_scrimmage_title_158-12-230-50.png`). Tickets Owned (7/6 when mapped) and Academy Select: Trinity, Gehenna, Millennium. A 3x rewards event was running too.
+Header "Scrimmage" (`info_scrimmage_title_158-12-230-50.png`). Tickets Owned (7/6 when mapped) and Academy Select: Trinity, Gehenna, Millennium. A 3x rewards event was running too. The ticket count is shared by all three academies.
+
+- The header stays on every academy's screen below (1.00 on gehenna), so an academy is identified by its own panel title, never by the header.
+- Gehenna (`btn_scrimmage_gehenna_1624-410-204-54.png`, the name only) opens gehenna with no load: at most 0.54 elsewhere. Trinity and Millennium aren't mapped yet.
+
+#### gehenna (`campaign/scrimmage/gehenna/`)
+
+Panel on the left: "Gehenna", Tickets Owned N/6, the event line, art. Right: Stage List, four rows (01 Gehenna A to 04 Gehenna D; 03 and 04 locked when mapped). The list doesn't scroll. Home (`btn_gehenna_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
+
+- Identified by "Gehenna" (`info_gehenna_title_162-220-202-54.png`): at most 0.47 elsewhere.
+- Rows share overpass's layout: Enter at x 1676, y 279 / 429 / 578 / 728, stars 10–38 px below Enter. Stars read +64 on 01 (3 gold), −2 to +6 on 02–04 (grey, locked). `btn_gehenna_stage-enter_...` is row 01's Enter.
+- Ticket count: just the first digit (`info_gehenna_tickets-zero_430-278-20-36.png`) scores 1.00 on 0 and 0.46 on 7 (common: Reading a zero).
+- Enter opens the same Mission Info, Notice and Sweep Complete as overpass, in the same places: overpass's images score 1.00 on gehenna's captures, so gehenna has no copies and its routine uses overpass's. Each sweep costs 1 ticket and 10 AP; the Notice reads "Use Scrimmage Ticket N, AP 10N to Sweep N time(s)?". 7 sweeps of 01 gave 9 + 21 keys and 189K credits at the 3x event.
+- Automated by `ba/routines/scrimmage.py` (`python -m ba.bot scrimmage`): sweep the lowest gold-starred row MAX times, then Home. The sweep steps are shared with bounty (`ba/routines/stage_sweep.py`). Tested with 0 tickets: from the idle lobby to Gehenna and back in 16 s, nothing spent. The sweep path is the one done by hand (7 tickets on 01 Gehenna A), not yet run by the routine.
 
 ### tactical-challenge (`campaign/tactical-challenge/`)
 
