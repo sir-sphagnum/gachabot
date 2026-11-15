@@ -1,11 +1,13 @@
 """Create the files every game package needs (new-game skill, part 1).
 
-Usage: python -m tools.new_game GAME PACKAGE
+Usage: python -m tools.new_game GAME PACKAGE [--title TITLE]
 
 GAME is the game's short name, lowercase (e.g. e7): it becomes the folder
 <game>/ and a Python package, so it must be a valid identifier and can't shadow
 a module Python already has. PACKAGE is its Android package name
-(e.g. com.stove.epic7.google).
+(e.g. com.stove.epic7.google). TITLE is the game's name as the files
+should write it (e.g. "Reverse: 1999"); without it, GAME in capitals when
+it's 3 letters or fewer (E7), else GAME title-cased.
 
 Adds GAME to core.device.GAMES (unless it is already there with PACKAGE) and
 creates:
@@ -124,8 +126,9 @@ run it by name, e.g.:
     from {game}.routines import arena
     ROUTINES = {{"arena": arena.run}}
 
-core.device restart runs the "start_screen" entry after starting the game,
-and core.nav loads {game}/routines/lobby.py by name, so keep both names.
+core.device restart runs the "start_screen" and "lobby" entries after
+starting the game, and core.nav loads {game}/routines/lobby.py by name, so
+keep both names.
 """
 
 ROUTINES = {{}}
@@ -187,7 +190,7 @@ def add_to_games(game, package):
     return None
 
 
-def create(game, package):
+def create(game, package, title=None):
     """Create the game's package. Returns (ok, message)."""
     problem = check_name(game) or (None if PACKAGE.fullmatch(package)
                                    else f"{package!r} is not an Android package name")
@@ -196,7 +199,8 @@ def create(game, package):
     problem = add_to_games(game, package)
     if problem:
         return False, problem
-    title = game.upper() if len(game) <= 3 else game.replace("_", " ").title()
+    if not title:
+        title = game.upper() if len(game) <= 3 else game.replace("_", " ").title()
     pad = " " * max(1, 20 - len(game))  # lines GAME's comment up with PACKAGE's
     base = ROOT / game
     for rel, body in FILES.items():
@@ -210,10 +214,15 @@ def create(game, package):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args) != 2:
+    title = None
+    if "--title" in args:
+        i = args.index("--title")
+        title = args[i + 1] if i + 1 < len(args) else ""
+        del args[i:i + 2]
+    if len(args) != 2 or title == "":
         print(__doc__)
         sys.exit(1)
     setup(console=False)
-    ok, message = create(*args)
+    ok, message = create(*args, title)
     print(message)
     sys.exit(0 if ok else 1)

@@ -86,5 +86,7 @@ Every process that calls `setup()` saves the BlueStacks screen on each ERROR lin
 To watch a routine run, stream only the lines worth acting on and read the error screen only when one is logged:
 
 ```bash
-python -m <game>.bot <routine> 2>&1 | grep --line-buffered -E "INFO|WARNING|ERROR|Traceback"
+python -m <game>.bot <routine> 2>&1 | grep --line-buffered -E "INFO|WARNING|ERROR|Traceback|^  |Error"
 ```
+
+`^  ` and `Error` let a crash's traceback through whole (its `  File` lines and the exception), not just its first line.

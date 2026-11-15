@@ -8,7 +8,8 @@ Usage: python -m core.device connect
        python -m core.device restart [--fullscreen] [game ...]
            closes the running apps, then BlueStacks, opens it again and waits
            for Android to boot, then starts the games given (none if no game
-           is given) and runs each one's start_screen routine, if it has one
+           is given) and runs each one's start_screen and lobby routines,
+           if it has them, so each ends in its lobby
        python -m core.device start|stop|status [--fullscreen] [game ...]
            game is a short name from GAMES (e.g. e7) or a package name;
            no game means every game in GAMES. --fullscreen applies to start.
@@ -152,6 +153,20 @@ def package(game):
 
 def is_running(game):
     return bool(adb("shell", "pidof", package(game)))
+
+
+def uptime(game):
+    """Seconds since the game's process started, or None if it isn't running.
+    Reads ps's ETIME: [[DD-]HH:]MM:SS."""
+    pid = adb("shell", "pidof", package(game)).split()
+    if not pid:
+        return None
+    etime = adb("shell", "ps", "-o", "ETIME=", "-p", pid[0]).strip()
+    m = re.fullmatch(r"(?:(?:(\d+)-)?(\d+):)?(\d+):(\d+)", etime)
+    if not m:
+        return None
+    days, hours, minutes, seconds = (int(v or 0) for v in m.groups())
+    return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
 
 
 def start_game(game, fullscreen=False, timeout=30):
@@ -309,10 +324,16 @@ def restart(boot_timeout=BOOT_TIMEOUT):
     return True, "BlueStacks restarted"
 
 
-def run_start_screen(game):
-    """The result of the game's start_screen routine (its <game>.routines
-    ROUTINES entry), or None when the game has no such routine. `game` is a
-    short name from GAMES; a package name has no routines here."""
+def run_to_lobby(game):
+    """Run the game's start_screen routine, then its lobby routine (their
+    <game>.routines ROUTINES entries), and return the last one's result, or
+    None when the game has neither. `game` is a short name from GAMES; a
+    package name has no routines here.
+
+    The lobby routine runs whatever start_screen returned: start_screen
+    returns False when a popup is open after START (a game's first launch of
+    the day shows several), and the lobby routine is the one that closes them.
+    From the lobby it returns at once."""
     if game not in GAMES:
         return None
     module = f"{game}.routines"
@@ -322,8 +343,12 @@ def run_start_screen(game):
         if e.name not in (game, module):  # the routines exist but import something missing
             raise
         return None
-    routine = routines.get("start_screen")
-    return routine() if routine else None
+    result = None
+    for name in ("start_screen", "lobby"):
+        if name in routines:
+            result = routines[name]()
+            log.info(f"{game} {name}: {'ok' if result else 'not done'}")
+    return result
 
 
 def _close_apps_before_restart():
@@ -397,10 +422,10 @@ if __name__ == "__main__":
             started = start_game(game, fullscreen="--fullscreen" in args)
             ok &= started
             _answer(f"{game}: {'started' if started else 'failed to start'}", started)
-            passed = run_start_screen(game) if started else None
+            passed = run_to_lobby(game) if started else None
             if passed is not None:
                 ok &= passed
-                _answer(f"{game}: {'past start screen' if passed else 'start_screen failed'}", passed)
+                _answer(f"{game}: {'in lobby' if passed else 'lobby not reached'}", passed)
         sys.exit(0 if ok else 1)
     elif cmd in ("start", "stop", "status"):
         full = "--fullscreen" in args

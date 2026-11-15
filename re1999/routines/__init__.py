@@ -10,8 +10,9 @@ run it by name, e.g.:
     from re1999.routines import arena
     ROUTINES = {"arena": arena.run}
 
-core.device restart runs the "start_screen" entry after starting the game,
-and core.nav loads re1999/routines/lobby.py by name, so keep both names.
+core.device restart runs the "start_screen" and "lobby" entries after
+starting the game, and core.nav loads re1999/routines/lobby.py by name, so
+keep both names.
 """
 
 from re1999.routines import lobby, start_screen
