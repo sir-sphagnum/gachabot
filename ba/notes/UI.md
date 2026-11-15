@@ -115,6 +115,37 @@ Lesson Location, Relationship Points (students who earned them, a BONUS tag on s
 - Identified by "Lesson Report" (`info_location_lesson-report-title_816-184-290-52.png`): at most 0.39 elsewhere.
 - Confirm (`btn_location_report-confirm_864-808-192-56.png`) goes back to all-locations with the ticket count one lower.
 
+## campaign (`ba/templates/start-screen/lobby/campaign/`)
+
+Reached from the lobby's Campaign button (`btn_lobby_campaign_1728-996-156-46.png`, the label; it's also the lobby's identifier), with no load. Top row: Mission (with the current area and mission under it), Virtual Aptitude Test (locked, "Coming Soon..."), Story. Left column: Bounty, Commissions, Scrimmage. Right grid: Total Assault, Joint Firing Drill, Grand Assault, Tactical Challenge, Final Restriction Release. A guide character and an event banner on the left change between visits.
+
+- Identified by the "Campaign" title (`info_campaign_title_158-12-206-50.png`): at most 0.47 elsewhere.
+- Buttons are cropped to their title text only: the yellow dots, "In Progress" tags and subtitles (Mission's area and mission) come and go. Each scores at most 0.54 elsewhere.
+- Every menu below has the same back arrow (`btn_<menu>_campaign_40-12-92-88.png`), which goes back to Campaign. The same arrow sits on the cafe, campus and location screens (0.98+), so it identifies nothing. Tactical Challenge's back arrow wasn't tapped yet.
+- Not mapped yet: Story, Total Assault, Joint Firing Drill, Grand Assault, Final Restriction Release.
+
+Each menu below is identified by its header at the top left (left of the "?" icon), at most 0.60 on any other saved screen.
+
+### mission (`campaign/mission/`)
+
+Header "Mission" (`info_mission_title_158-12-156-50.png`). Shows the current area (Area 20, 20th Mission): its art, Star Acquisition, Clear Reward, Multi-Sweep, and the stages on the right under Normal/Hard tabs (Hard showed, its stages locked).
+
+### bounty (`campaign/bounty/`)
+
+Header "Bounty" (`info_bounty_title_158-12-148-50.png`). Tickets Owned (21/6 when mapped) and a Location Select list: Overpass, Desert Railroad, Classroom. A 3x rewards event was running ("In Progress" tags on each area).
+
+### commissions (`campaign/commissions/`)
+
+Header "Commissions" (`info_commissions_title_158-12-270-50.png`). Request Select: Base Defense (student EXP items) and Item Retrieval (credits).
+
+### scrimmage (`campaign/scrimmage/`)
+
+Header "Scrimmage" (`info_scrimmage_title_158-12-230-50.png`). Tickets Owned (7/6 when mapped) and Academy Select: Trinity, Gehenna, Millennium. A 3x rewards event was running too.
+
+### tactical-challenge (`campaign/tactical-challenge/`)
+
+Header "Tactical Challenge" (`info_tactical-challenge_title_158-12-372-50.png`). The PvP screen. Left: player card, rank, Time Reward and Daily Reward with Claim buttons (both grey when mapped), Tickets Owned (5/5), Battle History, Defense Formation. Right: the season's three opponents (rank, team, level, name), Time Left and Refresh List.
+
 ## relationship-rank-up popup (`ba/templates/common/popups/relationship-rank-up/`)
 
 Full-screen student art with a heart rank, "Relationship rank up!" and the stat gained (ATK +11, Healing +4, ...). Seen after lessons: one per student who ranked up (two in a row after Theater Room, none after Gym). It stays until tapped.
