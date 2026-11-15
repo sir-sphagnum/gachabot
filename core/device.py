@@ -34,7 +34,7 @@ log = logger(__file__)
 GAMES = {
     "e7": "com.stove.epic7.google",
     "chaoszero": "com.smilegate.chaoszero.stove.google",
-    "reverse1999": "com.bluepoch.m.en.reverse1999",
+    "re1999": "com.bluepoch.m.en.reverse1999",
 }
 
 

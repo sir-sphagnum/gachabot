@@ -17,7 +17,7 @@ Part 1 creates the files with a script. Part 2 maps the screens from launch to t
 ## Part 1: the package
 
 1. Ask the user which game, unless they said. Have them open it in BlueStacks, then find its package: `python -m core.device focus` prints the package in focus. If the game isn't installed, stop and tell them.
-2. Agree on a short name: lowercase letters, digits and `_` (e.g. `e7`, `reverse1999`). `core.device.GAMES` may already list the game; then use that name.
+2. Agree on a short name: lowercase letters, digits and `_` (e.g. `e7`, `re1999`). `core.device.GAMES` may already list the game under a short name that has no folder yet; use that name, or rename its key there if the user wants another (the script refuses a package that is already listed under another name).
 3. Run:
    ```
    python -m tools.new_game <game> <package>
