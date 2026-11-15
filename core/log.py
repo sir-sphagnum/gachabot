@@ -45,7 +45,8 @@ def logger(file):
 
 def setup(debug=False, console=True):
     """Send log lines in FORMAT to the open skill log, if any, at every level,
-    and to the terminal: INFO and above, or everything with debug.
+    and to the terminal: INFO and above, or everything with debug. ERROR
+    lines also save the screen (ErrorScreen).
 
     console=False: not to the terminal. For commands whose output is a printed
     answer (.claude/logging.md §1), so what they did reaches the skill log
@@ -64,8 +65,44 @@ def setup(debug=False, console=True):
         file = logging.FileHandler(path, encoding="utf-8")
         file.setFormatter(fmt)
         root.addHandler(file)
-    if not root.handlers:
-        root.addHandler(logging.NullHandler())  # else WARNINGs fall back to stderr
+    # Also keeps root from having no handler, where WARNINGs would fall back
+    # to stderr.
+    if not any(isinstance(h, ErrorScreen) for h in root.handlers):
+        root.addHandler(ErrorScreen())
+
+
+class ErrorScreen(logging.Handler):
+    """On an ERROR line, save the BlueStacks screen as
+    logs/YYYYMMDD-HHMMSS-error-LOGGER.png and log its path.
+
+    An ERROR is a routine giving up (.claude/logging.md §3), and the screen
+    it gave up on is what explains it; a capture taken afterwards may show
+    the game moved on. One capture per SPACING seconds: a routine's ERROR and
+    the bot's "failed" line that follows it show the same screen.
+    """
+
+    SPACING = 5  # seconds
+
+    def __init__(self):
+        super().__init__(logging.ERROR)
+        self.last = None
+
+    def emit(self, record):
+        now = datetime.now()
+        if self.last and (now - self.last).total_seconds() < self.SPACING:
+            return
+        self.last = now
+        try:
+            # Imported here, not at the top: core.input imports this module.
+            from core.input import capture
+            from core.vision import save
+            LOGS.mkdir(exist_ok=True)
+            path = LOGS / f"{now:%Y%m%d-%H%M%S}-error-{record.name}.png"
+            save(capture(retries=3), path)
+        except Exception as e:  # BlueStacks down, ADB lost: the ERROR line stands alone
+            log.warning(f"error screen not saved: {e}")
+            return
+        log.info(f"error screen: {_rel(path)}")
 
 
 def _open():

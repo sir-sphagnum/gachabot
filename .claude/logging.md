@@ -78,3 +78,13 @@ Each skill run (recon, map, navigate) keeps its log lines in one file, `logs/YYY
 - **Nesting.** A skill started while another's log is open writes into that log (`navigate started, inside recon`), and its `end` leaves the log open for the outer skill. Lines from both land in one file, interleaved in time order, which is what a run that mixes them needs.
 - **A log left open.** If a run never reached `end`, the next `start` nests inside it and says `(inside <skill>)`. When that skill isn't one you started in this conversation, run `python -m core.log end --all` and start again.
 - **End after the loop stops.** A background process that is still running keeps writing to the file it opened, even after `end`. Stop the recon loop before closing its log.
+
+## 6. Error screens
+
+Every process that calls `setup()` saves the BlueStacks screen on each ERROR line as `logs/YYYYMMDD-HHMMSS-error-<logger>.png` (gitignored), and logs `error screen: <path>` at INFO right after it. An ERROR is a routine giving up (§3), and the screen it gave up on is what explains why; a capture taken later may show the game has moved on. One capture per 5 s per process, since a routine's ERROR and the bot's `failed` line that follows it show the same screen. If the capture itself fails (BlueStacks down), a WARNING says so and the ERROR stands alone.
+
+To watch a routine run, stream only the lines worth acting on and read the error screen only when one is logged:
+
+```bash
+python -m <game>.bot <routine> 2>&1 | grep --line-buffered -E "INFO|WARNING|ERROR|Traceback"
+```
