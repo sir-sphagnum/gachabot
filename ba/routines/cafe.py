@@ -8,7 +8,9 @@ Usage: python -m ba.routines.cafe [--debug]
    reward popup it opens. Grey means nothing to claim. Close the dialog (X).
 3. Invite: if the Invitation ticket is available (pink, not grey with a
    cooldown), open it, sort by Relationship Rank unless the sort button
-   already reads so, tap Invite on the first row and Confirm.
+   already reads so, and tap Invite on the top row, then Confirm. A student
+   visiting Cafe No. 2 opens "Invite Neighboring Student" instead: Cancel,
+   and try the next row down.
 4. Back to the lobby: Home icon, then the lobby routine.
 
 Only the cafe the game opens on (No. 1) is handled; Move to Cafe No. 2 isn't
@@ -58,7 +60,15 @@ SORT_TITLE = CAFE / "info_cafe_sort-title_636-294-72-40.png"
 RELATIONSHIP = CAFE / "btn_cafe_sort-relationship_642-446-308-66.png"
 RELATIONSHIP_SELECTED = CAFE / "info_cafe_sort-relationship-selected_642-446-308-66.png"
 SORT_CONFIRM = CAFE / "btn_cafe_sort-confirm_640-562-632-60.png"
-INVITE_FIRST = CAFE / "btn_cafe_invite-first_1050-302-212-68.png"
+# Invite on each row the list shows in full, tapped as points: the row
+# pitch is 117 px, from screen-invitation.png. The list doesn't show which
+# students are visiting a cafe; the dialog the tap opens does.
+INVITE_ROWS = [(1156, 336 + 117 * row) for row in range(5)]
+ROW_TRIES = 2  # an Invite that opens nothing is a student we can't invite; move on
+NEIGHBOR_TITLE = CAFE / "info_cafe_invite-neighbor-title_736-230-448-52.png"
+# The shared Cancel (common: Shared buttons): tapped only while
+# NEIGHBOR_TITLE shows.
+NEIGHBOR_CANCEL = CAFE / "btn_cafe_invite-neighbor-cancel_600-712-340-92.png"
 # "Notice" alone also matches network-unstable's title; that popup is checked
 # (its own message) before this is trusted.
 INVITE_NOTICE = CAFE / "info_cafe_invite-notice_884-220-150-56.png"
@@ -152,10 +162,21 @@ def _invite(popups, delay, tries):
                 and tap_until(SORT_CONFIRM, SORTED, delay, tries)):
             log.error("invite list not sorted")
             return False
-    if not tap_until(INVITE_FIRST, INVITE_NOTICE, delay, tries):
-        log.error("invite notice not shown")
+    for row, point in enumerate(INVITE_ROWS, 1):
+        hit = tap_until(point, [INVITE_NOTICE, NEIGHBOR_TITLE], delay, ROW_TRIES)
+        if hit and hit[0] == str(INVITE_NOTICE):
+            break
+        if not hit:
+            log.info(f"invite: row {row} opened nothing, trying the next")
+            continue
+        log.info(f"invite: row {row} is visiting Cafe No. 2, trying the next")
+        if not tap_until(NEIGHBOR_CANCEL, lambda s: not locate(NEIGHBOR_TITLE, s), delay, tries):
+            log.error("invite: neighboring-student dialog not closed")
+            return False
+    else:
+        log.error(f"invite: none of the top {len(INVITE_ROWS)} rows could be invited")
         return False
-    log.info("invite: inviting first student")
+    log.info(f"invite: inviting row {row}")
     # Done once the ticket stops matching: it goes grey after the invite.
     if not tap_until(INVITE_CONFIRM, TITLE, delay, tries) or not wait_until(
             lambda: not locate(INVITATION, capture()), INVITE_WAIT):

@@ -11,7 +11,7 @@ The title screen: character art, "TOUCH TO START" in a bar at the bottom centre,
 - After the tap, "Now Loading . . ." screens show before the lobby: full-screen art that changes from load to load, with "Now Loading . . ." and a rabbit icon bottom right. `ba/templates/common/loading/info_loading_now-loading_1388-968-292-52.png` is the words without the animated dots, alpha-masked to the pixels that were the same on two loads with different art (42% of the box): 0.96 and 1.00 on those two, no match on any other saved screen. Art not seen yet may need it remasked.
 - Launch to start screen took ~20 s on four cold starts; start screen to lobby 8–23 s.
 - Automated by `ba/routines/start_screen.py` (`python -m ba.bot start_screen`). It ends on the lobby, or returns False on a popup for the lobby routine to close.
-- Each cold start grows BlueStacks' memory by ~4–5 GB (9.2 GB after a restart, 22.8 GB after three launches), so restart it before a long session (common: BlueStacks memory). At 55 GB the load after TOUCH TO START stalled into the network-unstable popup. During the daily routines it grew 0.6–7 GB per routine (lesson: 9.2 → 15.9 GB), and at 23.9 GB lesson crashed on blank screenshots: check `core.device health` between routines and restart when it says so.
+- Each cold start grows BlueStacks' memory by ~4–5 GB (9.2 GB after a restart, 22.8 GB after three launches), so restart it before a long session (common: BlueStacks memory). At 55 GB the load after TOUCH TO START stalled into the network-unstable popup. During the daily routines it grew 0.6–7 GB per routine (lesson: 9.2 → 15.9 GB), and at 23.9 GB lesson stopped on blank screenshots. `ba.bot` runs each routine through `core.device.with_room`, which restarts BlueStacks before a routine when it's over 18 GB, and reruns the routine after a restart when it stops on blank screenshots anyway.
 
 ## lobby (`ba/templates/start-screen/lobby/`)
 
@@ -24,19 +24,7 @@ The home screen: player level top left, AP, credits and pyroxene top centre, sho
 - The Tasks shortcut is probably the daily missions (common: Daily missions); not mapped yet, so ba has no `claim_dailies`.
 - Automated by `ba/routines/lobby.py` (`python -m ba.bot lobby`). After a load or a popup close it watches 4 s more before counting the lobby as reached, since news shows ~2 s after Campaign. Run from the news popup, it closed news and reached the lobby. On later launches, news closed with no new-products after it.
 - Tested after a BlueStacks restart: two cold starts (`start start_screen`, then `lobby`) each ended in the lobby, 37 s and 34 s after launch; and `python -m ba.bot start lobby` alone waited out the launch (the "Now Loading" template also matches the launch loads), handed over at the start screen, closed news and reached the lobby 32 s after launch. Not tested yet: from a menu a few taps deep.
-- The first launch of a new day fails in both routines: they know none of its screens (below), and Back on them only toasts "Unavailable right now." Getting past them took taps by hand.
-
-### New-day screens (not mapped yet)
-
-Seen on the first launch of 2026-11-16, in this order, after TOUCH TO START and before the lobby. None has `info_`/`btn_` images yet; captures are in no template folder.
-
-- A live-stream banner (full-screen art, "Don't show again today" bottom left, X top right around (1853, 50)). Closed somehow during the routines' Back presses; the X wasn't tapped on purpose.
-- "Arona's Daily Attendance!" board: Day 1–10 cards, earlier days stamped "complete!". It waits for a tap: a tap on today's card (Day 5, (1727, 420)) stamped it and moved on.
-- "5-YEAR ANNIVERSARY Login Bonus" board (an event, 21 days left): Day 1–7. Moved on after one tap on (1727, 420).
-- "Back to Work Login Bonus!" whiteboard of reward cards (an event). Moved on after a tap on the empty line under it, (1260, 1000), so no card was tapped.
-- Then a dark fade into the lobby, which the lobby routine took from there (idle lobby, woke the HUD).
-
-Event boards come and go, so a routine likely needs to tell "a login board" apart generically (e.g. the footer "These rewards can only be earned through the event." on both event boards) rather than one image per board.
+- The first launch of a day shows, after TOUCH TO START and before the lobby, a banner and then one login board after another (2026-11-16: live-stream banner, Daily Attendance, 5-Year Anniversary, Back to Work), then a dark fade into the idle lobby. Back on them only toasts "Unavailable right now." Both are common popups (banner, login-board below), so start_screen and lobby close them like news. That is unlike e7 and re1999, whose login dialogs are lobby states (common: Lobbies): ba's show before the lobby is drawn, while nothing identifies the lobby yet. Not tested yet on a real new day: the images were cut from that day's captures, and the boards were passed by hand then.
 
 ## cafe (`ba/templates/start-screen/lobby/cafe/`)
 
@@ -45,7 +33,7 @@ Reached from the lobby's Cafe button. A "Tip!" loading screen (black with a game
 - Identified by the "Cafe" title (`info_cafe_title_158-14-92-46.png`), and by the identifier of whichever dialog below is open. The title scores 1.00 under the reward popup too, so popups are checked first (Rule 1).
 - Home (`btn_cafe_lobby_1830-12-54-46.png`, top right) goes straight to the lobby, no load. The lobby's Cafe dot went red → orange once earnings were claimed and the invite used.
 - Only Cafe No. 1 (the one the cafe opens on) is mapped; Move to Cafe No. 2 isn't.
-- Automated by `ba/routines/cafe.py` (`python -m ba.bot cafe`): claim earnings, invite the top-ranked student, Home. Tested with nothing to claim and the invitation on cooldown (both skipped, back in the lobby in 19 s), and with both ready: the claim worked; the invite failed when the top student was visiting Cafe No. 2 (invite-neighbor below).
+- Automated by `ba/routines/cafe.py` (`python -m ba.bot cafe`): claim earnings, invite the top-ranked student, Home. Tested with nothing to claim and the invitation on cooldown (both skipped, back in the lobby in 19 s), and with both ready: the claim worked. The invite skips students visiting Cafe No. 2 (invite-neighbor below); that path hasn't run yet: the ticket was on cooldown once it was written.
 
 The dialogs below are states of the cafe (`screen-<state>.png`), each closed by its own button, not common popups.
 
@@ -71,11 +59,14 @@ Opened by the Invitation ticket (`btn_cafe_invitation_1270-940-112-98.png`). A M
 
 - Identified by the tips line "Only two students can be invited per Cafe at a time." (`info_cafe_invitation-tip_708-920-598-40.png`): at most 0.29 elsewhere. Not by the MomoTalk header, which the lobby's MomoTalk likely shares.
 - Sorted by Name by default. The sort button (`btn_cafe_invitation-sort_998-200-186-56.png`) opens the sort state below; after sorting by Relationship Rank it reads so (`info_cafe_sort-by-relationship_1008-212-166-36.png`), and the order arrow flipped to descending on its own (highest rank first). Not seen yet: whether the sort persists to the next visit, and whether the direction can come up ascending.
-- Invite on the first row (`btn_cafe_invite-first_1050-302-212-68.png`) opens invite-confirm, or invite-neighbor when that student is visiting Cafe No. 2. Not seen yet: what the first row shows when that student is already in Cafe No. 1.
+- Five rows show in full, 117 px apart: Invite centres at x 1156, y 336 / 453 / 570 / 687 / 804 (`btn_cafe_invite-first_1050-302-212-68.png` is the first). The rows look the same whether or not the student is in a cafe, so the routine taps them as points, top down: invite-confirm means the student can come; invite-neighbor means they're visiting Cafe No. 2, so Cancel and try the next row. Not seen yet: what a row does when the student is already in Cafe No. 1; the routine moves on when a row opens neither dialog.
 
-### invite-neighbor (not mapped yet)
+### invite-neighbor (`screen-invite-neighbor.png`, `screen-invite-neighbor-move.png`)
 
-"Invite Neighboring Student" in two steps, both with Cancel and Confirm and an X: first "Invite a student visiting the Neighboring Cafe. If you invite a student, there will be an empty spot in that cafe. Proceed?", Confirm around (1148, 757); then the student's portrait "No. 2 → No. 1", Confirm around (1146, 764). After the second Confirm the student is in Cafe No. 1 and the ticket on cooldown, with no "Inviting..." animation seen. The routine doesn't know either step yet: it waits for invite-confirm's "Notice" and fails.
+"Invite Neighboring Student" in two steps, both with Cancel, Confirm and an X: first "Invite a student visiting the Neighboring Cafe. If you invite a student, there will be an empty spot in that cafe. Proceed?"; then the student's portrait "No. 2 → No. 1" (`screen-invite-neighbor-move.png`). Confirming both (done by hand once) moved the student to Cafe No. 1 and put the ticket on cooldown, with no "Inviting..." animation.
+
+- Identified by its title (`info_cafe_invite-neighbor-title_736-230-448-52.png`): 1.00 on the first step, 0.95 on the second (it sits 7 px lower), at most 0.44 elsewhere.
+- Cancel (`btn_cafe_invite-neighbor-cancel_600-712-340-92.png`) is the shared Confirm/Cancel art, 1.00 on invite-confirm and sweep-confirm, so it's tapped only while the title shows (common: Shared buttons).
 
 ### invitation-sort (`screen-invitation-sort.png`)
 
@@ -317,3 +308,16 @@ The news panel over the dimmed lobby: a sidebar of icons on the left, banners, a
 - Identified by its first line (`info_network-unstable_message_636-430-644-48.png`): 1.00 on the popup, no match on any other saved screen.
 - Closed by Confirm (`btn_network-unstable_close_600-708-345-100.png`), which goes back to the start screen, where the routines carry on. Reconnect would retry the load. Not tapped yet. Its image also scores 0.98 on new-products' Confirm, but searched over the whole screen: that button sits outside this box.
 - Android Back on the popup also seemed to leave it (black, a load, then the start screen).
+
+## login-board popup (`ba/templates/common/popups/login-board/`)
+
+A full-screen login reward board: Arona on the left in a classroom over water, a board on the right whose title, cards and size change by event (`screen.png` Daily Attendance, `screen-anniversary.png`, `screen-back-to-work.png`). It waits for a tap before the next board or the lobby.
+
+- Identified by the classroom's sky and windows top left (`info_login-board_sky_0-0-640-120.png`), the one part no board covers and Arona doesn't move through: 1.00 on all three boards, at most 0.56 on every other saved screen. So a new event's board needs no new image, as long as it keeps the classroom.
+- Closed by a tap on that same sky (`btn_login-board_close_...`, centre (320, 60)). Not tried there yet: by hand, a tap on today's card, on another day's card and on the empty space under the board each moved on, so a tap anywhere seems to.
+
+## banner popup (`ba/templates/common/popups/banner/`)
+
+A full-screen event banner (art changes per event) with "Don't show again today" bottom left and an X top right. Showed first on the new day's launch.
+
+- Identified by "Don't show again today" (`info_banner_dont-show_40-1002-320-48_white.png`), and closed by the X (`btn_banner_close_1818-16-72-72_white.png`): both over the art, so both are matched white-only. 1.00 on the banner, at most 0.29 elsewhere. news's X is a different image (0.17 on the banner's).

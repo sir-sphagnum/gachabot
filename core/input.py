@@ -93,7 +93,12 @@ def capture(retries=10):
         img = _frame(raw)
         if img is not None and img.any():
             return cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
-    raise RuntimeError(f"BlueStacks returned {retries} blank screenshots in a row")
+    raise BlankScreen(f"BlueStacks returned {retries} blank screenshots in a row")
+
+
+class BlankScreen(RuntimeError):
+    """capture() got only empty frames. Seen once BlueStacks' memory is past
+    ~22 GB; a BlueStacks restart clears it (core.device.with_room)."""
 
 
 def _frame(raw):

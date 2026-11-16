@@ -62,4 +62,4 @@ Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and 
 
 ## BlueStacks memory
 
-BlueStacks' memory grows with every capture and every cold start (e7: 9.6 → 22 GB in ~45 min of two processes capturing each second; ba: ~4–5 GB per cold start). Past ~22 GB screencaps came back empty; with 0.2 GB free on the PC, ba's load stalled into its network-unstable popup. `python -m core.device health` says when a restart is due; restart BlueStacks before a long session.
+BlueStacks' memory grows with every capture and every cold start (e7: 9.6 → 22 GB in ~45 min of two processes capturing each second; ba: ~4–5 GB per cold start). Past ~22 GB screencaps came back empty; with 0.2 GB free on the PC, ba's load stalled into its network-unstable popup. `python -m core.device health` says when a restart is due. Each `<game>.bot` runs its routines through `core.device.with_room`, which restarts BlueStacks (and the game, to its lobby) before a routine once it's over 18 GB, and once more, rerunning the routine, if it stops on blank screenshots.

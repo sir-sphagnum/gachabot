@@ -27,7 +27,7 @@ import sys
 import time
 
 from core.adb import adb, connect, player_pids, run
-from core.input import tap
+from core.input import BlankScreen, tap
 from core.log import logger, setup
 
 log = logger(__file__)
@@ -332,6 +332,44 @@ def restart(boot_timeout=BOOT_TIMEOUT):
     if not wait_until(_booted, boot_timeout, interval=2):
         return False, f"BlueStacks not booted {boot_timeout}s after opening it"
     return True, "BlueStacks restarted"
+
+
+def with_room(game, routine):
+    """Run routine() with BlueStacks' memory kept in check, and return its
+    result (False when a restart failed).
+
+    Before it: when BlueStacks is over PLAYER_MAX_GB, restart it and bring
+    `game` back to its lobby. During it: if it stops on blank screenshots
+    (core.input.BlankScreen), do the same and run it once more. A rerun is
+    safe because routines start by going to their menu from wherever the
+    game is and read what is left to do from the screen. One daily routine
+    alone grew BlueStacks by up to ~7 GB, so the check runs before each.
+    """
+    player = player_gb()
+    if player is not None and player > PLAYER_MAX_GB:
+        log.info(f"BlueStacks uses {player:.1f} GB (over {PLAYER_MAX_GB}), restarting it first")
+        if not _restart_with(game):
+            return False
+    try:
+        return routine()
+    except BlankScreen as e:
+        log.warning(f"{e}: restarting BlueStacks and running it again")
+    if not _restart_with(game):
+        return False
+    return routine()
+
+
+def _restart_with(game):
+    """Restart BlueStacks, start `game` and take it to its lobby. True on success."""
+    ok, msg = restart()
+    (log.info if ok else log.error)(msg)
+    if not ok or not start_game(game):
+        log.error(f"{game} not started after the restart")
+        return False
+    if run_to_lobby(game) is False:
+        log.error(f"{game} lobby not reached after the restart")
+        return False
+    return True
 
 
 def run_to_lobby(game):
