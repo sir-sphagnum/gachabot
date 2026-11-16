@@ -28,12 +28,11 @@ than rely on Purchase Flags alone to stop it.
 import sys
 import time
 
-import cv2
-
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import close_popup, dialog, game_popups, goto, locate, open_popup, past_black, tap_until
+from core.nav import clear, close_popup, dialog, game_popups, goto, locate, open_popup, tap_until
+from core.vision import tint
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import lobby
 
@@ -135,8 +134,9 @@ def _fights(fights, delay, tries):
     while fights is None or done < fights:
         # Refresh's dialog left open closes like a popup here, but not in
         # tap_until, which would close it while _refresh waits for it.
-        screen = _clear({**popups, "refresh": REFRESH_DIALOG}, delay, tries)
+        screen = clear({**popups, "refresh": REFRESH_DIALOG}, None, delay, tries)
         if screen is None:
+            log.error(f"{MENU} not usable")
             return False
         if locate(WEEKLY_TITLE, screen):
             if not _weekly_reward(popups, delay, tries):
@@ -185,21 +185,9 @@ def _weekly_reward(popups, delay, tries):
     """Take skystones from the Weekly Rank Reward Selection popup. True once
     it's closed and arena shows."""
     log.info("weekly rank reward open, taking skystones")
-    for attempt in range(1, tries + 1):
-        screen = capture()
-        if _picked(screen):
-            break
-        hit = locate(SKYSTONE, screen)
-        if not hit:
-            log.error("skystone tile not on screen")
-            return False
-        x, y = tap(*hit[:2])
-        log.debug(f"skystone tap {attempt}/{tries} at ({x}, {y})")
-        wait_until(lambda: _picked(capture()), delay)
-    else:
-        if not _picked(capture()):
-            log.error(f"skystones not chosen after {tries} taps")
-            return False
+    if not tap_until(SKYSTONE, _picked, delay, tries, popups=popups):
+        log.error("skystones not chosen")
+        return False
     if not tap_until(RECEIVE, DEFENSE, delay, tries, popups=popups):
         log.error(f"{MENU} not back after Receive")
         return False
@@ -208,36 +196,14 @@ def _weekly_reward(popups, delay, tries):
 
 
 def _picked(screen):
-    r, _, b = _mean(screen, PICKED_BOX)
-    return r - b >= PICKED_MIN
-
-
-def _clear(popups, delay, tries):
-    """The current screen with no common popup open, or None if one couldn't
-    be closed (Rule 1)."""
-    screen = past_black()
-    name = open_popup(popups, screen)
-    if name:
-        log.warning(f"popup_{name} open, closing")
-        if not close_popup(name, popups[name], delay, tries):
-            log.error(f"popup_{name} not closed")
-            return None
-        screen = past_black()
-    return screen
-
-
-def _mean(screen, box):
-    x, y, w, h = box
-    b, g, r = cv2.mean(screen[y:y + h, x:x + w])[:3]
-    return r, g, b
+    return tint(screen, PICKED_BOX, "r-b") >= PICKED_MIN
 
 
 def _free_row(screen):
     """Index (0-2) of the first opponent row that isn't red, or None."""
     for i in range(3):
         x, y, w, h = ROW_STRIP
-        r, _, b = _mean(screen, (x, y + i * ROW_STEP, w, h))
-        if r - b < RED_MIN:
+        if tint(screen, (x, y + i * ROW_STEP, w, h), "r-b") < RED_MIN:
             return i
     return None
 
@@ -262,8 +228,7 @@ def _refresh(popups, delay, tries):
 
 
 def _lit(screen):
-    _, g, b = _mean(screen, CHALLENGE_BOX)
-    return g - b >= LIT_MIN
+    return tint(screen, CHALLENGE_BOX, "g-b") >= LIT_MIN
 
 
 def _fight(row, popups, delay, tries):
@@ -272,13 +237,10 @@ def _fight(row, popups, delay, tries):
     is on arena-team), False if it couldn't go on."""
     point = (ROW_TAP[0], ROW_TAP[1] + row * ROW_STEP)
     log.info(f"opponent {row + 1}/3, challenging")
-    for attempt in range(1, tries + 1):
-        tap(*point)
-        if wait_until(lambda: _lit(capture()), delay):
-            break
-        log.debug(f"row tap {attempt}/{tries}: Challenge still dim")
-    else:
-        log.error(f"Challenge not lit after {tries} row taps")
+    # Challenge can still be lit from the row chosen before, so the row is
+    # always tapped once.
+    if not tap_until(point, _lit, delay, tries, popups=popups, first=False):
+        log.error("Challenge not lit")
         return False
     if not tap_until(CHALLENGE, START, delay, tries, popups=popups):
         log.error("arena-team not reached")
@@ -303,8 +265,9 @@ def _start(popups, delay, tries):
     it's tapped again only once the load has had its full time and Start is
     still there."""
     for attempt in range(1, tries + 1):
-        screen = _clear(popups, delay, tries)
+        screen = clear(popups, None, delay, tries)
         if screen is None:
+            log.error(f"{MENU} not usable")
             return False
         if open_popup(PURCHASE, screen):  # Start matches under it (Rule 1)
             return _no_flags(delay, tries)
@@ -357,8 +320,9 @@ def _results(popups, delay, tries):
     deadline = time.monotonic() + BATTLE_WAIT
     still = retaps = 0
     while time.monotonic() < deadline:
-        screen = _clear(popups, delay, tries)
+        screen = clear(popups, None, delay, tries)
         if screen is None:
+            log.error(f"{MENU} not usable")
             return False
         if locate(CONFIRM, screen) and locate(VICTORY_POINTS, screen):
             log.info("results showing")

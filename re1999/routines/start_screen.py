@@ -25,12 +25,11 @@ and looks again.
 """
 
 import sys
-import time
 
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import locate, open_popup
+from core.nav import held, locate, open_popup
 from re1999.config import TEMPLATES_DIR
 
 log = logger(__file__)
@@ -142,18 +141,7 @@ def _gone(timeout):
     """A fresh capture once START has been missing for GONE seconds in a row,
     or None if that doesn't happen within `timeout` seconds. START, not the
     logo: the logo stays up for ~20 s after the tap while the game logs in."""
-    deadline = time.monotonic() + timeout
-    since = None
-    while time.monotonic() < deadline:
-        screen = capture()
-        if locate(START_BUTTON, screen):
-            since = None
-        else:
-            since = since or time.monotonic()
-            if time.monotonic() - since >= GONE:
-                return screen
-        time.sleep(0.2)
-    return None
+    return held(lambda screen: None if locate(START_BUTTON, screen) else screen, GONE, timeout)
 
 
 def _after_tap():
@@ -163,6 +151,7 @@ def _after_tap():
         return found
     screen = _with_start()
     return None if screen is None else ("start", screen)
+
 
 if __name__ == "__main__":
     setup(debug="--debug" in sys.argv[1:], run=__spec__.name)

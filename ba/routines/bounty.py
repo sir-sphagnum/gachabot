@@ -14,22 +14,18 @@ Usage: python -m ba.routines.bounty [--debug]
 
 import sys
 
-from core.device import wait_until
 from core.input import capture
 from core.log import logger, setup
-from core.nav import goto, locate, past_black, tap_until
-from core.vision import difference, fingerprint, load
+from core.nav import goto, locate, settled, tap_until
 from ba.config import GAME, TEMPLATES_DIR
 from ba.routines import lobby, stage_sweep
 
-import cv2
 
 log = logger(__file__)
 
 MENU = "overpass"
 OVERPASS = TEMPLATES_DIR / "start-screen" / "lobby" / "campaign" / "bounty" / MENU
 SETTLE = 5          # seconds to wait for the stage list to stop scrolling
-STILL = 1.0         # percent of changed pixels below which the list is still
 
 # First digit of "Bounty Ticket N/6": 1.00 on 0, 0.42 on 21. Other counts
 # weren't seen, hence the high threshold (as lesson's ticket digit).
@@ -50,7 +46,8 @@ def run(delay=1.5, tries=5):
     if not goto(GAME, MENU):
         log.error(f"{MENU} not reached")
         return False
-    _settle()
+    if not settled(SETTLE):
+        log.debug(f"stage list still moving after {SETTLE}s, going on")
     if _no_tickets():
         log.info("no tickets left, nothing to do")
     elif not _sweep(delay, tries):
@@ -74,24 +71,6 @@ def _sweep(delay, tries):
         log.warning("tickets left after the sweep")
     log.info("swept")
     return True
-
-
-def _settle():
-    """Wait until two captures in a row barely differ (the list stopped)."""
-    last = [_print(past_black())]
-
-    def still():
-        now = _print(capture())
-        moved = difference(last[0], now)
-        last[0] = now
-        return moved < STILL
-
-    if not wait_until(still, SETTLE, interval=0.3):
-        log.debug(f"stage list still moving after {SETTLE}s, going on")
-
-
-def _print(screen):
-    return fingerprint(cv2.cvtColor(load(screen), cv2.COLOR_BGR2GRAY))
 
 
 def _no_tickets():

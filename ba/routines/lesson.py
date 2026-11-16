@@ -17,15 +17,12 @@ No tickets left at the start counts as done, not as a failure.
 
 import sys
 
-from core.device import wait_until
 from core.input import capture
 from core.log import logger, setup
-from core.nav import close_popup, dialog, goto, locate, past_black, tap_until
-from core.vision import difference, fingerprint, load
+from core.nav import close_popup, dialog, goto, locate, settled, tap_until
 from ba.config import GAME, TEMPLATES_DIR
 from ba.routines import lobby
 
-import cv2
 
 log = logger(__file__)
 
@@ -36,7 +33,6 @@ LOCATION = CAMPUS / "location"
 # matter (it was Schale Office).
 FIRST_AREA = (1338, 283)
 SETTLE = 5          # seconds to wait for the area list to stop scrolling
-STILL = 1.0         # percent of changed pixels below which the list is still
 
 TITLE = LOCATION / "info_location_title_158-12-300-50.png"
 ALL_LOCATIONS = LOCATION / "btn_location_all-locations_1630-970-240-54.png"
@@ -73,7 +69,8 @@ def run(delay=1.5, tries=5):
     if not goto(GAME, MENU):
         log.error(f"{MENU} not reached")
         return False
-    _settle()
+    if not settled(SETTLE):
+        log.debug(f"area list still moving after {SETTLE}s, tapping anyway")
     if not tap_until(FIRST_AREA, TITLE, delay, tries):
         log.error("area map not opened")
         return False
@@ -108,24 +105,6 @@ def run(delay=1.5, tries=5):
         log.error("lobby not reached")
         return False
     return True
-
-
-def _settle():
-    """Wait until two captures in a row barely differ (the list stopped)."""
-    last = [_print(past_black())]
-
-    def still():
-        now = _print(capture())
-        moved = difference(last[0], now)
-        last[0] = now
-        return moved < STILL
-
-    if not wait_until(still, SETTLE, interval=0.3):
-        log.debug(f"area list still moving after {SETTLE}s, tapping anyway")
-
-
-def _print(screen):
-    return fingerprint(cv2.cvtColor(load(screen), cv2.COLOR_BGR2GRAY))
 
 
 def _no_tickets():

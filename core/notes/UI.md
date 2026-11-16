@@ -2,11 +2,11 @@
 
 Menu behaviour that more than one game shows, and how the bot deals with it. Each game's `notes/UI.md` keeps what is specific to its menus (boxes, scores, which button, thresholds) and cites a section here as "(common: <section>)" instead of explaining it again. Every `<game>/CLAUDE.md` imports this file next to its own notes.
 
-A pattern moves here once a second game shows it: one game alone can't tell a quirk of that game from a general one. How to cut images (`_anywhere`, `_white`, alpha masks) is in the map skill; this file says when a menu needs them. Rules the routines must follow are in `.claude/doc_policy.md` §4 (Rule 1: popups before indicators).
+A pattern moves here once a second game shows it: one game alone can't tell a quirk of that game from a general one. How to cut images (`_anywhere`, `_white`, alpha masks) is in the map skill; this file says when a menu needs them. Rules the routines must follow are in `.claude/doc_policy.md` §4 (Rule 1: popups before indicators; Rule 2: judge a tap by the screen it settles on; Rule 3: each check described here is written once, in core).
 
 ## Dims
 
-A popup or dialog dims the screen but leaves what's underneath matching, often at 0.96–1.00: e7's barrel under the quit dialog, re1999's Crew under quit, ba's Campaign and Cafe titles under their popups. Rule 1 covers what to do. A game's notes record only the score under the dim.
+A popup or dialog dims the screen but leaves what's underneath matching, often at 0.96–1.00: e7's barrel under the quit dialog, re1999's Crew under quit, ba's Campaign and Cafe titles under their popups. Rule 1 covers what to do: routines read a menu from `core.nav.clear`, which closes the game's popups and the menu's own dialogs first. A game's notes record only the score under the dim.
 
 ## Shared buttons
 
@@ -20,7 +20,7 @@ A dialog's identifier is its unique text: the question line, or a title nothing 
 
 ## Lit or grey
 
-Matching ignores brightness, so a lit button and its greyed, claimed or used-up version score alike (0.86–0.98). Tell them apart by colour: the mean of one channel minus another over the button's box, red minus blue for yellow, orange, gold and red, green minus blue for green and blue. The threshold goes halfway between the lit and grey values the game's notes record. A dim pulls the value toward grey, so it's read only with dialogs closed. Each routine has its own `_lit`.
+Matching ignores brightness, so a lit button and its greyed, claimed or used-up version score alike (0.86–0.98). Tell them apart by colour: the mean of one channel minus another over the button's box, red minus blue for yellow, orange, gold and red, green minus blue for green and blue. The threshold goes halfway between the lit and grey values the game's notes record. A dim pulls the value toward grey, so it's read only with dialogs closed. `core.vision.tint(screen, box, "r-b")` reads it; the routine keeps the box and threshold, with the values they came from.
 
 Seen on e7's Cultivate, secret-shop's Buy, arena's Challenge and lost rows, orbis-guide's chest badge and the HUD badge; ba's cafe Claim, Multi-Sweep and bounty's stars; re1999's chosen Tasks tab (orange fill).
 
@@ -52,7 +52,7 @@ Chat and mission toasts slide over the top of the screen for a few seconds (e7's
 
 ## Lists that move
 
-Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and the daily-shop grid moves bought products to the end; ba's lesson area list and bounty stage list scroll on entry. Entries are found with `_anywhere` images or tapped by position once the list has settled, never while it scrolls.
+Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and the daily-shop grid moves bought products to the end; ba's lesson area list and bounty stage list scroll on entry. Entries are found with `_anywhere` images or tapped by position once the list has settled (`core.nav.settled`), never while it scrolls. A list that reorders can push an entry off screen: e7's daily-shop grid, with three products bought, puts 5 Flags past the right edge.
 
 ## Lobbies
 

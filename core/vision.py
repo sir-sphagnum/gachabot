@@ -188,6 +188,35 @@ def difference(a, b):
     return 100 * (cv2.absdiff(a, b) > PIXEL_CHANGE).mean()
 
 
+# --- reading a box ----------------------------------------------------------
+
+CHANNEL = {"b": 0, "g": 1, "r": 2}
+
+
+def _cut(screen, box):
+    x, y, w, h = box
+    return load(screen)[y:y + h, x:x + w].astype(np.int16)
+
+
+def tint(screen, box, channels):
+    """Mean of one colour channel minus another over `box` (x, y, w, h), e.g.
+    channels "r-b" for yellow, orange, gold and red, "g-b" for green and blue.
+
+    Matching ignores brightness, so a lit button and its grey version score
+    alike; this tells them apart (core/notes/UI.md, "Lit or grey").
+    """
+    plus, minus = (CHANNEL[c] for c in channels.split("-"))
+    cut = _cut(screen, box)
+    return float((cut[..., plus] - cut[..., minus]).mean())
+
+
+def diff(a, b, box):
+    """Mean absolute pixel difference (0-255) between two screens over `box`:
+    0 when nothing in it changed. Reads a counter that changed, or a spinning
+    icon, where matching can't."""
+    return float(np.abs(_cut(a, box) - _cut(b, box)).mean())
+
+
 if __name__ == "__main__":
     setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])

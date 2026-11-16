@@ -24,12 +24,10 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
-
 from core.input import capture
 from core.log import logger, setup
 from core.nav import game_popups, locate, open_popup, past_black, tap_until
-from core.vision import save
+from core.vision import diff, save, tint
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import lobby
 
@@ -102,8 +100,8 @@ def _read(popups, attempts=3):
         if not (locate(lobby.MAIN_MENU, first) and locate(lobby.MAIN_MENU, second)):
             log.debug(f"HUD not showing, attempt {attempt}/{attempts}")
             continue
-        change = _changed(first, second, CLOCK_BOX)
-        badge = _redness(first, BADGE_BOX)
+        change = diff(first, second, CLOCK_BOX)
+        badge = tint(first, BADGE_BOX, "r-b")
         log.debug(f"clock change {change:.1f}, badge {badge:+.0f}")
         if change >= SPIN_MIN:
             log.info("clock spinning, a battle is running")
@@ -145,21 +143,6 @@ def _claim(popups, delay, tries):
         return
     if not tap_until(CLOSE, lobby.MAIN_MENU, delay, tries, popups=popups):
         log.warning("auto not closed")
-
-
-def _cut(screen, box):
-    x, y, w, h = box
-    return screen[y:y + h, x:x + w].astype(np.int16)
-
-
-def _changed(a, b, box):
-    return float(np.abs(_cut(a, box) - _cut(b, box)).mean())
-
-
-def _redness(screen, box):
-    """Mean red minus blue over `box` (BGR)."""
-    cut = _cut(screen, box)
-    return float((cut[..., 2] - cut[..., 0]).mean())
 
 
 if __name__ == "__main__":

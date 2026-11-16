@@ -23,7 +23,7 @@ import sys
 from core.device import wait_until
 from core.input import capture
 from core.log import logger, setup
-from core.nav import close_popup, dialog, game_popups, goto, locate, open_popup, past_black, tap_until
+from core.nav import clear, close_popup, dialog, game_popups, goto, locate, past_black, tap_until
 from core.vision import find
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import lobby
@@ -74,24 +74,10 @@ def run(delay=1.5, tries=5):
     return True
 
 
-def _clear(popups, delay, tries):
-    """The current screen with no common popup or shop dialog open, or None
-    if one couldn't be closed. Rule 1: a dialog dims the grid, so the titles
-    still match under it while Free and the pills don't."""
-    known = {**popups, "reward": REWARD, "buy": BUY}
-    screen = past_black()
-    name = open_popup(known, screen)
-    if name:
-        if not close_popup(name, known[name], delay, tries):
-            log.error(f"popup_{name} not closed")
-            return None
-        screen = past_black()
-    return screen
-
-
 def _claim_free(popups, delay, tries):
-    screen = _clear(popups, delay, tries)
+    screen = clear({**popups, "reward": REWARD, "buy": BUY}, None, delay, tries)
     if screen is None:
+        log.error(f"{MENU} not usable")
         return False
     if not locate(FREE, screen):
         log.info("Free: none showing, already claimed today")
@@ -121,8 +107,9 @@ def _pill(title, offset, screen):
 
 
 def _buy(name, title, offset, popups, delay, tries):
-    screen = _clear(popups, delay, tries)
+    screen = clear({**popups, "reward": REWARD, "buy": BUY}, None, delay, tries)
     if screen is None:
+        log.error(f"{MENU} not usable")
         return False
     if not locate(title, screen):
         log.error(f"{name}: card not on screen")

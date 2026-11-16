@@ -12,7 +12,7 @@ import time
 from core.input import capture, tap
 from core.log import logger
 from core.nav import close_popup, dialog, locate, tap_until
-from core.vision import load
+from core.vision import tint
 from ba.config import TEMPLATES_DIR
 
 log = logger(__file__)
@@ -22,8 +22,7 @@ OVERPASS = TEMPLATES_DIR / "start-screen" / "lobby" / "campaign" / "bounty" / "o
 ENTER_X = 1676
 # A row's three stars sit left of its name, 10-38 px below Enter's centre.
 # Mean red minus blue over them: +62/+64 gold, -5 to +6 grey (overpass, gehenna).
-STARS_X = slice(1042, 1116)
-STARS_DY = (10, 38)
+STARS = (1042, 10, 74, 28)  # x, y offset from the row's Enter, w, h
 GOLD = 30
 
 INFO_TITLE = OVERPASS / "info_overpass_mission-info-title_824-186-274-52.png"
@@ -45,11 +44,11 @@ COMPLETE_CONFIRM = OVERPASS / "btn_overpass_sweep-done_788-822-346-106.png"
 def last_three_star(screen, rows):
     """Enter's y on the lowest of `rows` (Enter ys, top to bottom) whose stars
     are gold, or None."""
-    img = load(screen)
+    x, dy, w, h = STARS
     for y in reversed(rows):
-        b, _, r = img[y + STARS_DY[0]:y + STARS_DY[1], STARS_X].reshape(-1, 3).mean(axis=0)
-        if r - b > GOLD:
-            log.debug(f"3-starred row at y {y} (r-b {r - b:.0f})")
+        gold = tint(screen, (x, y + dy, w, h), "r-b")
+        if gold > GOLD:
+            log.debug(f"3-starred row at y {y} (r-b {gold:.0f})")
             return y
     return None
 

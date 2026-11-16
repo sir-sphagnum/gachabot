@@ -56,7 +56,8 @@ Only tap what the user asked for. If a step would spend premium currency, make a
 5. If Start had to go part of the way by hand, fix the route now (navigate skill, step 5) and check `python -m core.nav <game> goto <menu>` reaches the menu.
 6. Write `<game>/routines/<task>.py` with `run()`, following `e7/routines/start_screen.py` and `.claude/logging.md`:
    - first `core.nav.goto(GAME, <menu>)`; return False if it fails;
-   - then each step with `core.nav.tap_until(<button image>, <what shows after>)`, which closes the game's common popups before trusting a match (Rule 1). A step whose control may legitimately be missing checks for it first (`core.nav.locate`) and skips it at INFO;
+   - then each step with `core.nav.tap_until(<button image>, <what shows after>)`, which closes the game's common popups before trusting a match (Rule 1) and judges the tap by the screen over `delay`, not one look (Rule 2). `<what shows after>` can be a `check(screen)`, e.g. a button read lit. A tap that spends something is tapped once and waited on instead. A step whose control may legitimately be missing checks for it first (`core.nav.locate`) and skips it at INFO;
+   - read the screen with core's helpers, not your own (Rule 3): `core.nav.clear` before any check on the menu, `core.vision.tint` for lit or grey, `core.vision.diff` for a count that changed, `core.nav.held` for a result that can flicker, `core.nav.settled` for a list that scrolls;
    - True once the last step's result shows.
    Register it in `<game>/routines/__init__.py`'s `ROUTINES` under its module name.
 7. Ask before running it: a rerun repeats the task, and a claim already taken leaves nothing to tap. If the user agrees, run `python -m core.device health` first: if it fails, handle it as in step 3. Then run `python -m <game>.bot <task> --debug` and report how it went.

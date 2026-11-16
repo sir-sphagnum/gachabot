@@ -22,9 +22,8 @@ import sys
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import (close_popup, dialog, game_popups, goto, locate, open_popup,
-                      past_black, tap_until)
-from core.vision import load
+from core.nav import clear, dialog, game_popups, goto, locate, open_popup, tap_until
+from core.vision import tint
 from ba.config import GAME, TEMPLATES_DIR
 from ba.routines import lobby
 
@@ -72,8 +71,8 @@ BEST_WAIT = 2  # seconds to watch for it after the result closes
 # (name, Claim's centre, its box as (rows, cols)). Mean red minus blue over
 # the box: +167 yellow, -2 grey. The templates score 0.81 on grey, so colour
 # decides.
-CLAIMS = [("time reward", (529, 582), (slice(548, 616), slice(452, 606))),
-          ("daily reward", (529, 700), (slice(666, 734), slice(452, 606)))]
+CLAIMS = [("time reward", (529, 582), (452, 548, 154, 68)),
+          ("daily reward", (529, 700), (452, 666, 154, 68))]
 YELLOW = 80
 CLAIM_WAIT = 5  # seconds for the reward popup to show after Claim
 
@@ -103,8 +102,9 @@ def run(delay=1.5, tries=5):
 
 def _fights(popups, delay, tries):
     for fight in range(1, FIGHTS + 1):
-        screen = _clear(popups, delay, tries)
+        screen = clear(popups, TITLE, delay, tries)
         if screen is None:
+            log.error(f"{MENU} not usable")
             return False
         if locate(ZERO, screen, ZERO_MATCH):
             log.info("no tickets left" if fight > 1 else "no tickets, nothing to fight")
@@ -151,11 +151,11 @@ def _fight(delay, tries):
 def _claim(name, point, box, popups, delay, tries):
     """Tap Claim while it is yellow, closing the reward popup it opens."""
     for taps in range(tries + 1):
-        screen = _clear(popups, delay, tries)
+        screen = clear(popups, TITLE, delay, tries)
         if screen is None:
+            log.error(f"{MENU} not usable")
             return False
-        b, _, r = load(screen)[box].reshape(-1, 3).mean(axis=0)
-        if r - b <= YELLOW:
+        if tint(screen, box, "r-b") <= YELLOW:
             log.info(f"{name}: claimed" if taps else f"{name}: nothing to claim")
             return True
         if taps == tries:
@@ -164,28 +164,9 @@ def _claim(name, point, box, popups, delay, tries):
         if not taps:
             log.info(f"{name}: claiming")
         tap(*point)
-        # The reward popup closes on the next round (_clear).
+        # The reward popup closes on the next round (core.nav.clear).
         wait_until(lambda: open_popup(popups, capture()), CLAIM_WAIT)
     return False
-
-
-def _clear(popups, delay, tries):
-    """The current screen once no popup or dialog is open and the title
-    shows, or None (logged) if that can't be had."""
-    for _ in range(tries + 1):
-        screen = past_black()
-        popup = open_popup(popups, screen)
-        if not popup:
-            if locate(TITLE, screen):
-                return screen
-            log.error(f"left {MENU}")
-            return None
-        log.warning(f"popup_{popup} open, closing")
-        if not close_popup(popup, popups[popup], delay, tries):
-            log.error(f"popup_{popup} not closed")
-            return None
-    log.error(f"popups still showing after closing {tries}")
-    return None
 
 
 if __name__ == "__main__":

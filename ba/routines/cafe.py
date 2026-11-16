@@ -20,9 +20,9 @@ import sys
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import (close_popup, dialog, game_popups, goto, locate, open_popup,
+from core.nav import (clear, close_popup, dialog, game_popups, goto, locate, open_popup,
                       past_black, tap_until)
-from core.vision import load
+from core.vision import tint
 from ba.config import GAME, TEMPLATES_DIR
 from ba.routines import lobby
 
@@ -44,7 +44,7 @@ EARNINGS_CLOSE = CAFE / "btn_cafe_earnings-close_1446-194-56-56.png"
 # Yellow vs grey Claim: the template scores 0.86 on the grey button, so tell
 # them apart by colour. Mean red minus mean blue over the button is +165
 # yellow and 0 grey.
-CLAIM_AREA = (slice(750, 840), slice(800, 1120))
+CLAIM_AREA = (800, 750, 320, 90)
 YELLOW = 60
 CLAIM_WAIT = 5  # seconds for the reward popup to show after Claim
 
@@ -79,7 +79,8 @@ def run(delay=1.5, tries=5):
     popups = {**game_popups(GAME), "guide": GUIDE}
     # The guide shows right after the load, sometimes after the title does.
     wait_until(lambda: open_popup({"guide": GUIDE}, capture()), GUIDE_WAIT)
-    if _clear(popups, delay, tries) is None:
+    if clear(popups, TITLE, delay, tries) is None:
+        log.error(f"{MENU} not usable")
         return False
     if not _earnings(popups, delay, tries):
         return False
@@ -132,8 +133,9 @@ def _earnings(popups, delay, tries):
 
 
 def _invite(popups, delay, tries):
-    screen = _clear(popups, delay, tries)
+    screen = clear(popups, TITLE, delay, tries)
     if screen is None:
+        log.error(f"{MENU} not usable")
         return False
     if not locate(INVITATION, screen):
         log.info("invite: on cooldown, skipping")
@@ -163,28 +165,8 @@ def _invite(popups, delay, tries):
     return True
 
 
-def _clear(popups, delay, tries):
-    """The current screen once no popup or dialog is open and the cafe's title
-    shows, or None (logged) if that can't be had."""
-    for _ in range(tries + 1):
-        screen = past_black()
-        popup = open_popup(popups, screen)
-        if not popup:
-            if locate(TITLE, screen):
-                return screen
-            log.error(f"left {MENU}")
-            return None
-        log.warning(f"popup_{popup} open, closing")
-        if not close_popup(popup, popups[popup], delay, tries):
-            log.error(f"popup_{popup} not closed")
-            return None
-    log.error(f"popups still showing after closing {tries}")
-    return None
-
-
 def _yellow(screen):
-    b, _, r = load(screen)[CLAIM_AREA].reshape(-1, 3).mean(axis=0)
-    return r - b > YELLOW
+    return tint(screen, CLAIM_AREA, "r-b") > YELLOW
 
 
 if __name__ == "__main__":

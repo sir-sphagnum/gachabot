@@ -16,8 +16,8 @@ Usage: python -m e7.routines.claim_dailies [--debug]
 import sys
 
 from core.log import logger, setup
-from core.nav import close_popup, dialog, game_popups, goto, locate, open_popup, past_black, tap_until
-from core.vision import load
+from core.nav import clear, close_popup, dialog, game_popups, goto, tap_until
+from core.vision import tint
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import lobby
 
@@ -36,7 +36,7 @@ REWARD = dialog(REWARD_TITLE, REWARD_CLOSE)
 # The chest image matches the same with or without its badge under a dim, so
 # lit is told by colour: mean red minus blue over the badge is +205 lit and
 # -4..+5 on every other capture (claimed under the reward dialog, main-menu).
-BADGE = (slice(113, 127), slice(1729, 1743))
+BADGE = (1729, 113, 14, 14)
 LIT = 100
 
 
@@ -51,8 +51,9 @@ def run(delay=1.5, tries=5):
         log.error(f"{MENU} not reached")
         return False
     popups = {**game_popups(GAME), "reward": REWARD}
-    screen = _clear(popups, delay, tries)
+    screen = clear(popups, TITLE, delay, tries)
     if screen is None:
+        log.error(f"{MENU} not usable")
         return False
     if _lit(screen):
         log.info("chest-100: badge lit, claiming")
@@ -73,30 +74,8 @@ def run(delay=1.5, tries=5):
     return True
 
 
-def _clear(popups, delay, tries):
-    """The current screen once no popup or reward dialog is open and the menu's
-    title shows, or None (logged) if that can't be had. The title still
-    matches under the reward dialog's and the date-changed popup's dim, so
-    popups are closed first (Rule 1)."""
-    for _ in range(tries + 1):
-        screen = past_black()
-        popup = open_popup(popups, screen)
-        if not popup:
-            if locate(TITLE, screen):
-                return screen
-            log.error(f"left {MENU}")
-            return None
-        log.warning(f"popup_{popup} open, closing")
-        if not close_popup(popup, popups[popup], delay, tries):
-            log.error(f"popup_{popup} not closed")
-            return None
-    log.error(f"popups still showing after closing {tries}")
-    return None
-
-
 def _lit(screen):
-    b, _, r = load(screen)[BADGE].reshape(-1, 3).mean(axis=0)
-    return r - b > LIT
+    return tint(screen, BADGE, "r-b") > LIT
 
 
 if __name__ == "__main__":

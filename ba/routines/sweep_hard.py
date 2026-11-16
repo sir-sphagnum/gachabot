@@ -17,7 +17,7 @@ import time
 from core.input import capture, tap
 from core.log import logger, setup
 from core.nav import close_popup, dialog, goto, locate, tap_until
-from core.vision import load
+from core.vision import tint
 from ba.config import GAME, TEMPLATES_DIR
 from ba.routines import lobby
 
@@ -35,7 +35,7 @@ SWEEP = MISSION / "btn_mission_sweep-start_1546-862-246-50.png"
 # Yellow vs grey Multi-Sweep: the template scores 0.91 on the grey button,
 # so tell them apart by colour. Mean red minus mean blue over the button is
 # +139 yellow and -2 grey (count 0, every stage used up).
-SWEEP_AREA = (slice(862, 912), slice(1550, 1790))
+SWEEP_AREA = (1550, 862, 240, 50)
 YELLOW = 60
 CONTENT_TITLE = MISSION / "info_mission_sweep-content-title_784-126-352-56.png"
 CONTENT_CONFIRM = MISSION / "btn_mission_sweep-confirm_980-832-344-94.png"
@@ -99,8 +99,7 @@ def _sweep(delay, tries):
 
 
 def _yellow(screen):
-    b, _, r = load(screen)[SWEEP_AREA].reshape(-1, 3).mean(axis=0)
-    return r - b > YELLOW
+    return tint(screen, SWEEP_AREA, "r-b") > YELLOW
 
 
 if __name__ == "__main__":

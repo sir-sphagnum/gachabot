@@ -15,11 +15,11 @@ tapping Claim All instead of reporting it.
 """
 
 import sys
-import time
 
-from core.input import capture, tap
+from core.input import capture
 from core.log import logger, setup
 from core.nav import close_popup, game_popups, goto, locate, tap_until
+from core.vision import tint
 from re1999.config import GAME, TEMPLATES_DIR
 
 log = logger(__file__)
@@ -40,25 +40,12 @@ CHOSEN_MIN = 75
 
 
 def _daily_chosen(screen):
-    x, y, w, h = TAB_BOX
-    b, _, r = screen[y:y + h, x:x + w].reshape(-1, 3).mean(axis=0)
-    return r - b >= CHOSEN_MIN
+    return tint(screen, TAB_BOX, "r-b") >= CHOSEN_MIN
 
 
 def _pick_daily(tries=5):
     """Tap the Daily Activeness tab until it's the chosen one."""
-    for _ in range(tries):
-        screen = capture()
-        if _daily_chosen(screen):
-            return True
-        hit = locate(DAILY_TAB, screen)
-        if not hit:
-            log.warning("daily tab not on screen")
-            return False
-        log.debug(f"daily tab tap at ({hit[0]}, {hit[1]})")
-        tap(hit[0], hit[1])
-        time.sleep(1.5)
-    return _daily_chosen(capture())
+    return tap_until(DAILY_TAB, _daily_chosen, tries=tries) is not None
 
 
 def run():

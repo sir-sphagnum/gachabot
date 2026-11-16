@@ -45,16 +45,19 @@ app in focus and fullscreen (not floating).
 import argparse
 import importlib
 import sys
+import time
 from collections import deque
 from functools import cache
 from pathlib import Path
+
+import cv2
 
 from core import ROOT, tree
 from core.device import floating_window, focused_app, is_running, package, wait_until
 from core.input import capture, tap
 from core.log import logger, setup
 from core.tree import ELEMENT, load_popups
-from core.vision import find, is_black
+from core.vision import difference, find, fingerprint, is_black, load
 
 log = logger(__file__)
 
@@ -86,30 +89,40 @@ def check_focus(game):
                          f"fullscreen. Fullscreen it with: python -m core.device fullscreen")
 
 
-def tap_until(button, expected, delay=1.5, tries=5, popups=True):
+def tap_until(button, expected, delay=1.5, tries=5, popups=True, first=True):
     """Tap `button` until one of `expected` is on screen.
+
+    This is how a routine taps (.claude/doc_policy.md Rule 2): it judges the
+    tap by the screen over `delay` seconds, not by one look right after it,
+    and taps again only once that time has passed with no result.
 
     button: template path of the element to tap, or an (x, y) point. A
         template is located on the live screen before each tap, so the tap
         lands on the match, not the stored box; if it isn't on screen, that
         round taps nothing and just waits. A point is tapped as is (e.g. an
         empty spot of a lobby, to wake its HUD).
-    expected: template path, or a list of them; stop when any one is found.
+    expected: template path, a check(screen) that returns something truthy
+        once the tap took (e.g. a button reads lit by colour), or a list of
+        them; stop when any one is found.
     delay: seconds to keep checking for `expected` after each tap before
         tapping again.
     tries: maximum number of taps on `button`.
     popups: which popups to close before trusting a match or tapping. True: the popups of the
         game the templates live in (<game>/templates/...). A game name: that
         game's popups. A dict from core.tree.load_popups. False/None: none.
+    first: look for `expected` before the first tap. False taps at least
+        once, for an `expected` that can already show before the tap (a
+        Challenge button still lit from the row chosen before).
     Returns (template, (cx, cy, score)) for the expected element that was
-    found with no known popup open, or None if it never appeared, a popup
+    found with no known popup open ((check, its result) for a check), or
+    None if it never appeared, a popup
     couldn't be closed, or more than `tries` popups were closed. Each None
     logs its reason as a WARNING, so the caller logs only what it gives up on.
     While the screen is black it neither taps nor looks: it waits (past_black).
     """
     if isinstance(button, (list, tuple)):
         button = tuple(int(v) for v in button)  # accept [x, y] as well as (x, y)
-    if isinstance(expected, (str, Path)):
+    if isinstance(expected, (str, Path)) or callable(expected):
         expected = [expected]
     known = _resolve_popups(popups, [button, *expected])
 
@@ -129,7 +142,7 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True):
                 return None
             continue
 
-        hit = _first(expected, screen)
+        hit = _first(expected, screen) if taps or first else None
         if hit:
             return hit
         if taps == tries:
@@ -163,6 +176,85 @@ def past_black(screen=None, timeout=BLACK_WAIT):
 
 def _unless_black(screen):
     return None if is_black(screen) else screen
+
+
+def _truthy(result):
+    # A capture (numpy array) counts as truthy: its own truth value raises.
+    return result is not None if hasattr(result, "shape") else bool(result)
+
+
+def held(check, hold, timeout, interval=0.2):
+    """check(screen)'s result once it has been truthy on every capture for
+    `hold` seconds in a row, or None if that doesn't happen within `timeout`.
+
+    For a result that can flicker (Rule 2): a button can drop out of one
+    capture during its animation, or flash back for a moment after a tap
+    that took, so one capture without it is no proof it's gone.
+    """
+    deadline = time.monotonic() + timeout
+    since = None
+    while time.monotonic() < deadline:
+        result = check(capture())
+        if _truthy(result):
+            since = since or time.monotonic()
+            if time.monotonic() - since >= hold:
+                return result
+        else:
+            since = None
+        time.sleep(interval)
+    return None
+
+
+STILL = 1.0  # percent of changed pixels (core.vision.difference) below which the screen is still
+
+
+def settled(timeout, still=STILL, interval=0.3):
+    """True once two captures `interval` apart barely differ (a list that
+    scrolls on entry has stopped), False if it still moves after `timeout`
+    seconds. Entries of a list that moves are tapped only once it's still
+    (core/notes/UI.md, "Lists that move")."""
+    last = [_print(past_black())]
+
+    def _still():
+        now = _print(capture())
+        moved = difference(last[0], now)
+        last[0] = now
+        return moved < still
+
+    return wait_until(_still, timeout, interval=interval) is not None
+
+
+def _print(screen):
+    return fingerprint(cv2.cvtColor(load(screen), cv2.COLOR_BGR2GRAY))
+
+
+def clear(popups, title=None, delay=1.5, tries=5):
+    """The current screen once none of `popups` is open, and, given `title`
+    (a template), once it shows; None if that can't be
+    had. Like every helper here it logs why at WARNING, and the routine logs
+    its ERROR (.claude/logging.md §3).
+
+    Rule 1: a dialog's dim can leave a menu's title matching, so every check
+    on a menu reads a screen from here. popups: as open_popup takes them,
+    usually the game's popups plus the menu's own dialogs (`dialog`).
+    Closing a popup can open another (a claim's reward); up to `tries` are
+    closed.
+    """
+    for _ in range(tries + 1):
+        screen = past_black()
+        name = open_popup(popups, screen)
+        if not name:
+            if title is None or locate(title, screen):
+                return screen
+            m = ELEMENT.match(Path(title).name)
+            log.warning(f"{m['menu'] if m else Path(title).name} not on screen")
+            return None
+        log.warning(f"popup_{name} open, closing")
+        if not close_popup(name, popups[name], delay, tries):
+            log.warning(f"popup_{name} not closed")
+            return None
+    log.warning(f"popups still showing after closing {tries}")
+    return None
 
 
 def open_popup(popups, screen):
@@ -228,7 +320,7 @@ def _resolve_popups(popups, templates):
     if isinstance(popups, str):
         return game_popups(popups)
     for t in templates:  # popups=True: infer the game from the template paths
-        if isinstance(t, tuple):
+        if isinstance(t, tuple) or callable(t):
             continue
         try:
             parts = Path(t).resolve().relative_to(ROOT).parts
@@ -248,6 +340,11 @@ def game_popups(game):
 
 def _first(templates, screen):
     for t in templates:
+        if callable(t):
+            result = t(screen)
+            if _truthy(result):
+                return t, result
+            continue
         match = locate(t, screen)
         if match:
             return str(t), match

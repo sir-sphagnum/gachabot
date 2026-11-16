@@ -17,13 +17,11 @@ Usage: python -m e7.routines.refresh_secret_shop [--refresh N] [--debug]
 import sys
 import time
 
-import cv2
-
 from core.device import wait_until
 from core.input import capture, swipe
 from core.log import logger, setup
-from core.nav import close_popup, dialog, game_popups, goto, locate, open_popup, past_black, tap_until
-from core.vision import find
+from core.nav import clear, close_popup, dialog, game_popups, goto, tap_until
+from core.vision import find, tint
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import lobby
 
@@ -99,25 +97,6 @@ def run(refreshes=0, delay=1.5, tries=5):
     return True
 
 
-def _clear(popups, delay, tries):
-    """The current screen on secret-shop with no popup or shop dialog open,
-    or None. Rule 1: the shop's title and the item titles still match under
-    the dialogs' dim."""
-    known = {**popups, **OPEN_DIALOGS}
-    screen = past_black()
-    name = open_popup(known, screen)
-    if name:
-        log.warning(f"popup_{name} open, closing")
-        if not close_popup(name, known[name], delay, tries):
-            log.error(f"popup_{name} not closed")
-            return None
-        screen = past_black()
-    if not locate(TITLE, screen):
-        log.error(f"{MENU} not on screen")
-        return None
-    return screen
-
-
 def _swipe(points):
     swipe(*points)
     time.sleep(SWIPE_SETTLE)
@@ -131,8 +110,7 @@ def _buy_y(icon, screen):
 
 def _lit(screen, y):
     x, dy, w, h = BUY_BOX
-    b, g, _ = cv2.mean(screen[y + dy:y + dy + h, x:x + w])[:3]
-    return g - b >= LIT_MIN
+    return tint(screen, (x, y + dy, w, h), "g-b") >= LIT_MIN
 
 
 def _scan(items, popups, delay, tries):
@@ -144,8 +122,9 @@ def _scan(items, popups, delay, tries):
         for name, icon in items:
             if name in seen:
                 continue
-            screen = _clear(popups, delay, tries)
+            screen = clear({**popups, **OPEN_DIALOGS}, TITLE, delay, tries)
             if screen is None:
+                log.error(f"{MENU} not usable")
                 return False
             y = _buy_y(icon, screen)
             if y is None:
@@ -187,8 +166,9 @@ def _buy(name, icon, y, popups, delay, tries):
 def _refresh(popups, delay, tries):
     """Tap Refresh and Confirm its dialog. True once the dialog is gone and
     the shop shows again (the new list starts at the top)."""
-    screen = _clear(popups, delay, tries)
+    screen = clear({**popups, **OPEN_DIALOGS}, TITLE, delay, tries)
     if screen is None:
+        log.error(f"{MENU} not usable")
         return False
     if not tap_until(REFRESH, REFRESH_QUESTION, delay, tries, popups=popups):
         log.error("refresh dialog not shown")
@@ -198,7 +178,8 @@ def _refresh(popups, delay, tries):
     if not close_popup("refresh", REFRESH_DIALOG, delay, tries):
         log.error("refresh dialog not closed")
         return False
-    if _clear(popups, delay, tries) is None:
+    if clear({**popups, **OPEN_DIALOGS}, TITLE, delay, tries) is None:
+        log.error(f"{MENU} not usable")
         return False
     log.info("refreshed")
     return True

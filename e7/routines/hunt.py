@@ -28,12 +28,11 @@ Ogre has no Hunt - Hell difficulty, so it's refused.
 import argparse
 import sys
 
-import numpy as np
-
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
 from core.nav import game_popups, goto, locate, past_black, tap_until
+from core.vision import diff
 from e7.config import GAME, TEMPLATES_DIR
 from e7.routines import check_background_status, lobby
 
@@ -145,15 +144,6 @@ def run(hunt="wyvern", leifs=0, delay=1.5, tries=5):
     return True
 
 
-def _cut(screen, box):
-    x, y, w, h = box
-    return screen[y:y + h, x:x + w].astype(np.int16)
-
-
-def _changed(a, b, box):
-    return float(np.abs(_cut(a, box) - _cut(b, box)).mean())
-
-
 def _pick(hunt, popups, delay, tries):
     """Make `hunt` the chosen hunt. True once its reward icon shows."""
     target = HUNTS.index(hunt)
@@ -212,7 +202,7 @@ def _step(button, delay):
         return None
     x, y = tap(*hit[:2])
     log.debug(f"{button.name} tap at ({x}, {y})")
-    return wait_until(lambda: _changed(screen, capture(), COUNT_BOX) >= COUNT_CHANGED, delay) is not None
+    return wait_until(lambda: diff(screen, capture(), COUNT_BOX) >= COUNT_CHANGED, delay) is not None
 
 
 def _set_count(leifs, delay):
