@@ -70,9 +70,36 @@ A 3D island with the player's buildings (Dust Bell Tower, Paleohall, Sharpodonty
 The story hub: "The Living and the Rest" at the top left, a row of chapter posters, a reward counter (gift icon, "351/430") at the top right, and a tab bar at the bottom (Story, Reflections, Anecdote, Resource, Insight, Artificial Somnambulism, The Window to Other Worlds, Wanderings). Back and Home at the top left. Opened by the "Enter the Show" ticket under the event banner on the lobby (`btn_lobby_show_1412-442-350-122.png`: 1.00 on the lobby, at most 0.18 elsewhere). The ticket sits under the current event's banner, so it may move or change when the event ends.
 
 - It always opens on the Story tab (three entries in a row), whichever tab was open when it was left. So a routine for another tab taps that tab after every entry.
-- Identified by the "The Living and the Rest" title (`info_show_title_190-140-510-60.png`: at most 0.15 elsewhere). The title is the Story tab's latest chapter, so it may change when a new chapter comes out.
+- The Story tab's row (a main-story card, then the chapter posters) doesn't always open at the same scroll: one entry showed the title at x≈190 and In Our Time cut off at the left edge, the next the title at x≈375 and In Our Time whole at x≈647. So both are searched anywhere.
+- Identified by the "The Living and the Rest" title (`info_show_title_190-140-510-60_anywhere.png`: 1.00 and 0.98 at the two scrolls, at most 0.31 elsewhere). The title is the Story tab's latest chapter, so it may change when a new chapter comes out.
 - The tab bar is the same on every tab; only the chosen tab's colour and underline change. The Resource tab (`btn_show_resource_692-935-132-100.png`) scores 0.61 on the Resource tab itself, so the tabs never identify which tab is open.
 - Home (186, 42) scores 0.94–0.99 on show, resource, both stage screens and wilderness (same art everywhere: common: Shared buttons). It's tapped only once the menu is known.
+
+## in-our-time (`re1999/templates/start-screen/lobby/show/in-our-time/`)
+
+A story chapter's stage map: a 3D snowy diorama with a stage timeline along the bottom, opened scrolled to "16 / Heaven Apostles" (probably the newest stage). Back, Home, "!" and a swirl icon at the top left; a quill icon and the 351/430 gift counter at the top right. Opened by the In Our Time poster, the first after the main-story card on show's Story tab (`btn_show_in-our-time_767-316-160-452_anywhere.png`, the poster's right part, which shows at both scrolls of the row: 1.00 and 0.99, at most 0.64 elsewhere).
+
+- Identified by the swirl icon at the top left (`info_in-our-time_trail-icon_478-40-66-66.png`: 1.00 with and without the stage panel, at most 0.30 elsewhere). battle-prep has a different icon there.
+- **stage** (`screen-stage.png`): tapping a stage label on the timeline opens its panel at the right: number and name, a Story/Hard toggle, "Recommended", a line of flavour text, Rewards and Start with its stamina cost. Heaven Apostles: Story Lv.18 for 10 stamina (orange); Hard Lv.30 for 14 (the panel and Start turn red).
+- The Heaven Apostles label (`btn_in-our-time_heaven-apostles_…_anywhere.png`) is searched anywhere: the timeline opens on the newest stage, so it moves once a new one comes out. 1.00 with and without the panel, at most 0.38 elsewhere.
+- Hard (`btn_in-our-time_hard_1700-370-95-50.png`) scores 1.00 and 0.99 with Story and Hard chosen, so it never says which mode is on; a tap when Hard is already chosen changes nothing.
+- Start (`btn_in-our-time_battle-prep_1726-890-110-52.png`, cut to the word) opens battle-prep and spends nothing yet.
+
+## battle-prep (`…/show/in-our-time/battle-prep/`)
+
+The team screen before a fight: Goals, Environment, Enemy and Recommended at the left, Team 1's four cards in the middle (the last is the Assist), and at the bottom a play icon, "Team 1" and Start with its stamina cost. Identified by "Goals" (`info_battle-prep_goals_98-143-82-38.png`: 1.00 in both states, at most 0.33 elsewhere). Home (186, 42) goes to the lobby through a loading screen (common: Shared buttons).
+
+- **replay** (`screen-replay.png`): the play icon left of Team 1 (`btn_battle-prep_replay_902-945-66-78.png`) shows the recorded team with "Preparing for replay. Cannot change line-up ..." at the top (`info_battle-prep_replay-text_798-70-500-34.png`: at most 0.22 elsewhere), "Recorded Rounds: 5", an "x1 ▲" count box and a green "-14 Lv.1 Replay" in Start's place. Whether the icon shows on a stage never cleared, and what the count box offers, wasn't tried.
+- Replay mode sticks: after a replay, battle-prep opens in it, even when entered again from the stage panel, and the play icon isn't there. So the routine checks the replay line before looking for the icon.
+- "Lv.1 Replay" (`btn_battle-prep_battle_1543-955-240-55.png`) spends the stamina and starts the fight.
+
+## battle (`…/battle-prep/battle/`)
+
+The fight: Wave and Round at the top left, the boss's HP bar at the top, three diamond icons at the top right, and the card hand at the bottom right. A replay shows "Replaying" at the right (`info_battle_replaying_1708-205-148-45.png`: at most 0.18 elsewhere); a manual fight wasn't seen.
+
+- A replay at x1 of Heaven Apostles (Hard, 5 recorded rounds) took ~50 s from the Replay tap to the victory screen. The top-right icons (probably speed and auto) weren't tried.
+- **victory** (`screen-victory.png`): "VICTORY" (`info_battle_victory-title_1150-160-450-95.png`: at most 0.20 elsewhere) with the stage, its goals, EXP and the rewards (Heaven Apostles Hard: EXP+140, Dust 1140, 400 of a crystal item, 1 tooth item). A tap anywhere closes it, through a "Secret Passage, The Walden" loading screen with a tip, back to battle-prep; the routine taps (1769, 64).
+- `re1999/routines/fight_boss.py` (`python -m re1999.bot fight_boss`) replays Heaven Apostles on Hard once (14 stamina) and goes back to the lobby. It returns False without replaying when the replay icon is missing or the fight doesn't start (stamina under 14).
 
 ## resource (`re1999/templates/start-screen/lobby/show/resource/`)
 
