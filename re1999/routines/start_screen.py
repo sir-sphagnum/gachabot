@@ -9,7 +9,12 @@ Usage: python -m re1999.routines.start_screen [--debug]
    without it. Tap again if START is still up after a moment. START goes
    at the tap, but the logo stays ~20 s while the game logs in, so a logo
    whose START never fades in is a game already starting.
-3. Wait for the lobby (its Crew button) while the game loads.
+3. Wait for the lobby (its Crew button) while the game loads. If START
+   shows again meanwhile, the tap was ignored: tap again (step 2).
+
+START counts as gone only once it has been missing for GONE seconds: during
+its intro animation it drops out of a capture now and then, and the game
+ignores taps until the intro ends.
 
 The lobby counts only when no popup or lobby dialog is open: Crew matches
 through the quit dialog's dim. On the first launch of the day the game shows
@@ -19,6 +24,7 @@ which hands over to this one, closes them and looks again.
 """
 
 import sys
+import time
 
 from core.device import wait_until
 from core.input import capture, tap
@@ -36,6 +42,7 @@ START_BUTTON = START / "btn_start-screen_lobby_883-789-140-28.png"
 # START, which fades in later.
 LOGO = START / "info_start-screen_logo_462-350-1000-182.png"
 CREW = START / "lobby" / "info_lobby_crew_1646-591-138-124.png"
+GONE = 1.5  # seconds START must stay missing to count as gone
 
 
 def run(appear=60, taps=3, delay=3, load=60, fade=20):
@@ -65,27 +72,29 @@ def run(appear=60, taps=3, delay=3, load=60, fade=20):
         # The logo without START is also the game logging in after a tap
         # (any tap on this screen starts it), so carry on to the lobby.
         log.info(f"no START after {fade}s, game already starting")
-    else:
-        for attempt in range(1, taps + 1):
-            match = locate(START_BUTTON, screen)
-            if not match:
-                break
-            x, y = tap(*match[:2])
-            log.debug(f"tap {attempt}/{taps} at ({x}, {y})")
-            screen = wait_until(_gone, delay)
-            if screen is not None:
-                break
-            screen = capture()
-        else:
-            log.error(f"START still showing after {taps} taps")
+        log.info("left start screen, waiting for lobby")
+    tapped = 0
+    while True:
+        if screen is not None:
+            if tapped == taps:
+                log.error(f"START still showing after {taps} taps")
+                return False
+            tapped += 1
+            x, y = tap(*locate(START_BUTTON, screen)[:2])
+            log.debug(f"tap {tapped}/{taps} at ({x}, {y})")
+            screen = _gone(delay + GONE)
+            if screen is None:
+                screen = _with_start()  # still up: tap again, or wait for it
+                continue
+            log.info("left start screen, waiting for lobby")
+        found = wait_until(_after_tap, load)
+        if found is None:
+            log.error(f"no lobby {load}s after start screen")
             return False
-
-    log.info("left start screen, waiting for lobby")
-    found = wait_until(lambda: _look(("popup", "lobby")), load)
-    if found is None:
-        log.error(f"no lobby {load}s after start screen")
-        return False
-    return _report(found[0])
+        state, screen = found
+        if state != "start":
+            return _report(state)
+        log.warning("START showing again, tap ignored")
 
 
 def at_start_screen(screen=None):
@@ -127,12 +136,31 @@ def _report(state):
     return True
 
 
-def _gone():
-    """A fresh capture once START has gone, else None. START, not the logo:
-    the logo stays up for ~20 s after the tap while the game logs in."""
-    screen = capture()
-    return None if locate(START_BUTTON, screen) else screen
+def _gone(timeout):
+    """A fresh capture once START has been missing for GONE seconds in a row,
+    or None if that doesn't happen within `timeout` seconds. START, not the
+    logo: the logo stays up for ~20 s after the tap while the game logs in."""
+    deadline = time.monotonic() + timeout
+    since = None
+    while time.monotonic() < deadline:
+        screen = capture()
+        if locate(START_BUTTON, screen):
+            since = None
+        else:
+            since = since or time.monotonic()
+            if time.monotonic() - since >= GONE:
+                return screen
+        time.sleep(0.2)
+    return None
 
+
+def _after_tap():
+    """(state, screen) once the lobby, a popup or START shows, else None."""
+    found = _look(("popup", "lobby"))
+    if found:
+        return found
+    screen = _with_start()
+    return None if screen is None else ("start", screen)
 
 if __name__ == "__main__":
     setup(debug="--debug" in sys.argv[1:], run=__spec__.name)
