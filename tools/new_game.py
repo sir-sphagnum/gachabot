@@ -98,7 +98,7 @@ COMMANDS = {{"start": start, "stop": stop, "back": back}}
 
 if __name__ == "__main__":
     names = [a for a in sys.argv[1:] if a != "--debug"]
-    setup(debug="--debug" in sys.argv[1:])
+    setup(debug="--debug" in sys.argv[1:], run=f"{{__spec__.name}}-{{'-'.join(names)}}")
     unknown = [n for n in names if n not in COMMANDS and n not in ROUTINES]
     if not names or unknown:
         if unknown:

@@ -319,6 +319,6 @@ def _results(popups, delay, tries):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    setup(debug="--debug" in args)
+    setup(debug="--debug" in args, run=__spec__.name)
     n = int(args[args.index("--fights") + 1]) if "--fights" in args else None
     sys.exit(0 if run(fights=n) else 1)

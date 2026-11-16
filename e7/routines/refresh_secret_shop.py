@@ -206,6 +206,6 @@ def _refresh(popups, delay, tries):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    setup(debug="--debug" in args)
+    setup(debug="--debug" in args, run=__spec__.name)
     n = int(args[args.index("--refresh") + 1]) if "--refresh" in args else 0
     sys.exit(0 if run(refreshes=n) else 1)

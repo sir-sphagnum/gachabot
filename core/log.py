@@ -14,8 +14,13 @@ commands (a background recon loop, one process per tap). A skill started
 while one is open is nested: it logs into the open file, and its `end`
 leaves that file open for the outer skill. `end --all` closes the file
 whatever is nested, for one left open by a run that never ended.
+
+Run logs: a routine run (setup(run=NAME)) also writes its lines, at every
+level, to logs/YYYYMMDD-HHMMSS-NAME.log, kept only when the run logged an
+ERROR, crashed or was interrupted (RunLog).
 """
 
+import atexit
 import logging
 import re
 import sys
@@ -43,7 +48,7 @@ def logger(file):
     return logging.getLogger(Path(file).stem)
 
 
-def setup(debug=False, console=True):
+def setup(debug=False, console=True, run=None):
     """Send log lines in FORMAT to the open skill log, if any, at every level,
     and to the terminal: INFO and above, or everything with debug. ERROR
     lines also save the screen (ErrorScreen).
@@ -51,6 +56,8 @@ def setup(debug=False, console=True):
     console=False: not to the terminal. For commands whose output is a printed
     answer (.claude/logging.md §1), so what they did reaches the skill log
     without doubling their answer on screen.
+    run: the run's name (e.g. "e7.bot-lobby-hunt"), for a routine run: also
+        write every line to a run log, kept only if the run fails (RunLog).
     """
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
@@ -65,6 +72,8 @@ def setup(debug=False, console=True):
         file = logging.FileHandler(path, encoding="utf-8")
         file.setFormatter(fmt)
         root.addHandler(file)
+    if run:
+        root.addHandler(RunLog(run))
     # Also keeps root from having no handler, where WARNINGs would fall back
     # to stderr.
     if not any(isinstance(h, ErrorScreen) for h in root.handlers):
@@ -103,6 +112,53 @@ class ErrorScreen(logging.Handler):
             log.warning(f"error screen not saved: {e}")
             return
         log.info(f"error screen: {_rel(path)}")
+
+
+class RunLog(logging.FileHandler):
+    """Every line of a routine run, in logs/YYYYMMDD-HHMMSS-NAME.log.
+
+    At exit the file is deleted unless the run went wrong: an ERROR line (a
+    routine giving up, .claude/logging.md §3), an uncaught exception (logged
+    here as an ERROR with its traceback) or Ctrl+C. A run that succeeds has
+    nothing to read afterwards; one that fails has its whole story, DEBUG
+    included, without having been run with --debug. Written as it goes, not
+    buffered, so a process killed outright keeps its log too.
+    """
+
+    def __init__(self, name):
+        LOGS.mkdir(exist_ok=True)
+        name = re.sub(r"[^\w.-]+", "_", name)
+        self.path = LOGS / f"{datetime.now():%Y%m%d-%H%M%S}-{name}.log"
+        super().__init__(self.path, encoding="utf-8")
+        self.setFormatter(logging.Formatter(FORMAT, DATEFMT))
+        self.failed = False
+        sys.excepthook = self._uncaught
+        # Registered after logging's own atexit hook, so it runs before
+        # logging.shutdown and can still log where the file is.
+        atexit.register(self._finish)
+
+    def emit(self, record):
+        if record.levelno >= logging.ERROR:
+            self.failed = True
+        super().emit(record)
+
+    def _uncaught(self, kind, value, tb):
+        # Logged, not printed by the default hook: the traceback reaches the
+        # run log and the error screen gets saved. The terminal still shows
+        # it, through the console handler.
+        if issubclass(kind, KeyboardInterrupt):
+            self.failed = True
+            logging.getLogger("run").warning("interrupted")
+            sys.__excepthook__(kind, value, tb)
+            return
+        logging.getLogger("run").error("crashed", exc_info=(kind, value, tb))
+
+    def _finish(self):
+        if self.failed:
+            log.info(f"run log: {_rel(self.path)}")
+        self.close()
+        if not self.failed:
+            self.path.unlink(missing_ok=True)
 
 
 def _open():

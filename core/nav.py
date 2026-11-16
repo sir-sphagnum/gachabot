@@ -427,7 +427,8 @@ def _main():
     t.add_argument("--tries", type=int, default=5, help="maximum taps (default 5)")
     t.add_argument("--no-popups", action="store_true", help="don't look for popups")
     a = p.parse_args()
-    setup(getattr(a, "debug", False))
+    setup(getattr(a, "debug", False),
+          run=f"{__spec__.name}-{a.game}-{a.cmd}" if a.cmd in ("goto", "tap") else None)
     if a.game not in tree.games():
         sys.exit(f"No game '{a.game}'. Games: {', '.join(tree.games())}")
     try:

@@ -163,5 +163,5 @@ def _redness(screen, box):
 
 
 if __name__ == "__main__":
-    setup(debug="--debug" in sys.argv[1:])
+    setup(debug="--debug" in sys.argv[1:], run=__spec__.name)
     sys.exit(0 if run() else 1)

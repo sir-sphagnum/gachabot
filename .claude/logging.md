@@ -30,7 +30,7 @@ How routines and navigation report what they are doing: what logs and what print
 - Each module takes its logger with `log = logger(__file__)`, named after the file (`lobby`, `start_screen`, `nav`). That tells you which code wrote the line, so the message doesn't repeat it.
 - The time shows how long each wait took, which matters because most failures in this bot are something taking longer than a timeout.
 - `-7s` pads the level to `WARNING`'s width so the messages line up.
-- Command-line entry points call `setup()` once. A normal run shows INFO and above. `--debug` adds the DEBUG lines (each tap and wait), for chasing a problem. A skill log (§5) always gets every level.
+- Command-line entry points call `setup()` once. A normal run shows INFO and above. `--debug` adds the DEBUG lines (each tap and wait), for chasing a problem. A skill log (§5) and a run log (§7) always get every level.
 
 ## 3. Levels
 
@@ -90,3 +90,12 @@ python -m <game>.bot <routine> 2>&1 | grep --line-buffered -E "INFO|WARNING|ERRO
 ```
 
 `^  ` and `Error` let a crash's traceback through whole (its `  File` lines and the exception), not just its first line.
+
+## 7. Run logs
+
+Every routine run writes all its lines, DEBUG included, to `logs/YYYYMMDD-HHMMSS-<run>.log` (gitignored). The file is kept only when the run goes wrong and deleted when it exits cleanly. A run goes wrong when it logs an ERROR (a routine giving up, §3), crashes, or is stopped with Ctrl+C. A failed run's log tells the whole story even without `--debug`. Successful runs leave nothing behind, so `logs/` holds only runs worth reading. A run that fails prints `run log: <path>` as its last line, next to the `error screen:` line (§6).
+
+- **Which runs.** Entry points that run a routine pass `setup(run=<name>)`. `<game>/bot.py` names the run after itself and its arguments (`e7.bot-lobby-hunt`). A routine's own `__main__` passes `__spec__.name` (`e7.routines.lobby`). `core.nav` passes one for `goto` and `tap`. Commands that only answer or act once (`core.input`, `core.device`, `tools.*`) don't, and a new routine's `__main__` copies the line from an existing one.
+- **Crashes.** An uncaught exception is logged as an ERROR (`run: crashed`) with its traceback, not printed by Python's default hook. That puts the traceback in the run log and saves its error screen, and the terminal still shows it through the console handler.
+- **Killed outright.** The file is written as the run goes, not buffered. A process that is killed (task manager, a closed terminal) keeps its log, ending wherever it stopped.
+- **With a skill log open.** The run's lines go to both the skill log (§5) and its run log. The skill log keeps everything, and the run log stays only if the run failed.

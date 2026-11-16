@@ -10,5 +10,5 @@
 __pycache__/
 *.pyc
 
-# Skill logs (core/log.py)
+# Skill logs, run logs and error screens (core/log.py)
 /logs/

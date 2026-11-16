@@ -266,5 +266,5 @@ if __name__ == "__main__":
     p.add_argument("--leifs", type=int, default=0)
     p.add_argument("--debug", action="store_true")
     a = p.parse_args()
-    setup(debug=a.debug)
+    setup(debug=a.debug, run=__spec__.name)
     sys.exit(0 if run(hunt=a.hunt, leifs=a.leifs) else 1)

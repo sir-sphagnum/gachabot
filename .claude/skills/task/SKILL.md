@@ -65,4 +65,4 @@ Only tap what the user asked for. If a step would spend premium currency, make a
 
 ## Running an existing task
 
-When the user asks for a task that already has a routine (`ROUTINES` in `<game>/routines/__init__.py`), open the log (`python -m core.log start task`), check `python -m core.device health` (on a failure, handle it as in step 3), run `python -m <game>.bot <task>`, report the outcome, and close the log. On a failure, capture the screen, Read it, run `python -m core.nav <game> where` on the capture, and tell the user where it stopped.
+When the user asks for a task that already has a routine (`ROUTINES` in `<game>/routines/__init__.py`), open the log (`python -m core.log start task`), check `python -m core.device health` (on a failure, handle it as in step 3), run `python -m <game>.bot <task>`, report the outcome, and close the log. On a failure, Read the error screen and run log the run printed (`.claude/logging.md` §6, §7), run `python -m core.nav <game> where` on the error screen, and tell the user where it stopped.
