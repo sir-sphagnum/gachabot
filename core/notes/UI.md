@@ -58,7 +58,15 @@ Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and 
 
 - Back on the lobby opens a quit dialog (e7, re1999), so the lobby routine opens it whenever it presses Back once too often. It's closed with Cancel; Confirm quits the game.
 - The lobby's HUD hides when idle (e7 after ~9 s, ba within minutes). The idle lobby needs an identifier from the scene (e7's barrel, ba's hanging sign), and the lobby routine wakes it before anything taps the HUD.
-- Login-day dialogs (check-in calendars) are lobby states, not common popups, because only the lobby shows them (e7, re1999).
+- Login dialogs are handled as First of the day or week (below) says.
+
+## First of the day or week
+
+Every game shows screens only on the first launch of a day, or the first entry of a menu in a day or week: e7's check-in dialogs (after the date change), its guild hall's dialog and arena's weekly rank reward; re1999's login reward, check-in card, event-login and profile panel; ba's banner and login boards. Mapping and testing happen on later launches, so these are missing from the templates, and a routine meets them first on the next day's run, where they stop it (`ffb80d0`, `8b62e7c`, `4575157`, `06f1cc9`).
+
+- Where they're handled depends on what can be read underneath. A dialog over a lobby that is already identifiable is a lobby state (e7's check-in, re1999's checkin card). One that shows before the lobby is drawn, or over any menu, is a common popup, so start_screen and lobby close it (ba's boards, re1999's event-login). One that a single menu shows on entry is that menu's dialog, waited for on entry (e7's arena reward).
+- Their art changes with events, so they're identified by what stays: ba's login boards by the classroom behind every board, not by a board's title.
+- Back often does nothing on them (ba: "Unavailable right now."), so a lobby routine's Back presses don't get past them.
 
 ## BlueStacks memory
 
