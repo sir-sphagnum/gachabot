@@ -99,3 +99,18 @@ Every routine run writes all its lines, DEBUG included, to `logs/YYYYMMDD-HHMMSS
 - **Crashes.** An uncaught exception is logged as an ERROR (`run: crashed`) with its traceback, not printed by Python's default hook. That puts the traceback in the run log and saves its error screen, and the terminal still shows it through the console handler.
 - **Killed outright.** The file is written as the run goes, not buffered. A process that is killed (task manager, a closed terminal) keeps its log, ending wherever it stopped.
 - **With a skill log open.** The run's lines go to both the skill log (§5) and its run log. The skill log keeps everything, and the run log stays only if the run failed.
+
+## 8. Step statistics
+
+Every call of `tap_until`, `close_popup` and `held` (`core/nav.py`) adds one JSON line to `logs/steps.jsonl` (gitignored), from every game and process, whether the run succeeds or fails. Run logs (§7) keep only failed runs, so this file is the only record of steps that needed help on runs that still went through. `python -m tools.steps` ranks the steps by how often they needed it.
+
+```
+{"t": "2026-11-16T17:32:41", "run": "e7.bot-run_arena", "game": "e7", "routine": "run_arena",
+ "kind": "tap_until", "button": "btn_arena_arena-team_….png", "expected": ["…"],
+ "found": "…", "taps": 2, "skipped": 1, "popups": 0, "s": 2.9, "ok": true}
+```
+
+- **Who.** `run` is the name `setup(run=…)` was given (None outside a routine run). `routine` is the file stem of the first caller outside `core/`, so steps `goto` takes are counted under the routine that called `goto`; `core` means core's own command line. `game` comes from the template paths, else from the calling routine's folder.
+- **Names.** `button` is the template's file name, `popup_<name>` for `close_popup`, a check's function name for `held` (or an `expected` check). Points and lambdas have no name, so they're `x,y@routine:line` and `check@routine:line`; editing the routine moves the line and starts a new row.
+- **Counts.** `taps` made, `skipped` (of them, taps on a button not on screen), `popups` closed on the way (`tap_until` only), `flickers` (`held` only: times the result showed and dropped), `s` seconds the call took, popups included, and `ok` whether it returned a result. A `close_popup` inside a `tap_until` writes its own line too.
+- **Never in the way.** A line that can't be written logs a WARNING and the step goes on. The file is appended to, never rotated: about 250 bytes a line, ~25 KB per full daily. Delete it to start the counts over.

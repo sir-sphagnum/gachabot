@@ -52,7 +52,7 @@ from pathlib import Path
 
 import cv2
 
-from core import ROOT, tree
+from core import ROOT, steps, tree
 from core.device import floating_window, focused_app, is_running, package, wait_until
 from core.input import capture, tap
 from core.log import logger, setup
@@ -119,6 +119,7 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, first=True):
     couldn't be closed, or more than `tries` popups were closed. Each None
     logs its reason as a WARNING, so the caller logs only what it gives up on.
     While the screen is black it neither taps nor looks: it waits (past_black).
+    Each call adds a line to the step statistics (core.steps).
     """
     if isinstance(button, (list, tuple)):
         button = tuple(int(v) for v in button)  # accept [x, y] as well as (x, y)
@@ -126,31 +127,45 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, first=True):
         expected = [expected]
     known = _resolve_popups(popups, [button, *expected])
 
-    taps = closed = 0
+    stats = {"taps": 0, "skipped": 0, "popups": 0}
+    start = time.monotonic()
+    hit = None
+    try:
+        hit = _tap_until(button, expected, delay, tries, known, first, stats)
+        return hit
+    finally:
+        steps.record("tap_until", steps.name(button), game=steps.game(button, *expected),
+                     expected=[steps.name(e) for e in expected],
+                     found=steps.name(hit[0]) if hit else None, **stats,
+                     s=round(time.monotonic() - start, 1), ok=bool(hit))
+
+
+def _tap_until(button, expected, delay, tries, known, first, stats):
     while True:
         screen = past_black()
         # Popups before `expected`: a popup that dims the screen can leave
         # `expected` matching underneath it.
         popup = open_popup(known, screen)
         if popup:
-            if closed == tries:
+            if stats["popups"] == tries:
                 log.warning(f"popups still showing after closing {tries}")
                 return None
-            closed += 1
+            stats["popups"] += 1
             log.warning(f"popup_{popup} open, closing")
             if not close_popup(popup, known[popup], delay, tries):
                 return None
             continue
 
-        hit = _first(expected, screen) if taps or first else None
+        hit = _first(expected, screen) if stats["taps"] or first else None
         if hit:
             return hit
-        if taps == tries:
+        if stats["taps"] == tries:
             log.warning(f"expected element not seen in {tries} tries")
             return None
 
-        taps += 1
-        _tap(button, screen, f"tap {taps}/{tries}")
+        stats["taps"] += 1
+        if not _tap(button, screen, f"tap {stats['taps']}/{tries}"):
+            stats["skipped"] += 1
         _wait_for(lambda s: open_popup(known, s) or _first(expected, s), delay)
 
 
@@ -190,19 +205,30 @@ def held(check, hold, timeout, interval=0.2):
     For a result that can flicker (Rule 2): a button can drop out of one
     capture during its animation, or flash back for a moment after a tap
     that took, so one capture without it is no proof it's gone.
+    Each call adds a line to the step statistics (core.steps), counting
+    `flickers`: the times the result showed and dropped again.
     """
-    deadline = time.monotonic() + timeout
+    start = time.monotonic()
+    deadline = start + timeout
     since = None
-    while time.monotonic() < deadline:
-        result = check(capture())
-        if _truthy(result):
-            since = since or time.monotonic()
-            if time.monotonic() - since >= hold:
-                return result
-        else:
-            since = None
-        time.sleep(interval)
-    return None
+    flickers = 0
+    result = None
+    try:
+        while time.monotonic() < deadline:
+            result = check(capture())
+            if _truthy(result):
+                since = since or time.monotonic()
+                if time.monotonic() - since >= hold:
+                    return result
+            else:
+                flickers += since is not None
+                since = None
+            time.sleep(interval)
+        result = None
+        return None
+    finally:
+        steps.record("held", steps.name(check), game=steps.game(), flickers=flickers,
+                     s=round(time.monotonic() - start, 1), ok=_truthy(result))
 
 
 STILL = 1.0  # percent of changed pixels (core.vision.difference) below which the screen is still
@@ -269,12 +295,27 @@ def open_popup(popups, screen):
 def close_popup(name, popup, delay=1.5, tries=5):
     """Tap `popup`'s close button until the popup is gone. Returns True once
     it is gone, False (logged as a WARNING) if it is still open after `tries`
-    taps. name: the popup's key in its popups dict, for the log."""
+    taps. name: the popup's key in its popups dict, for the log.
+    Each call adds a line to the step statistics (core.steps)."""
+    stats = {"taps": 0, "skipped": 0}
+    start = time.monotonic()
+    ok = False
+    try:
+        ok = _close_popup(name, popup, delay, tries, stats)
+        return ok
+    finally:
+        steps.record("close_popup", f"popup_{name}", game=steps.game(popup["close"]["file"]),
+                     **stats, s=round(time.monotonic() - start, 1), ok=ok)
+
+
+def _close_popup(name, popup, delay, tries, stats):
     for attempt in range(1, tries + 1):
         screen = capture()
         if not _is_open(popup, screen):
             return True
-        _tap(popup["close"]["file"], screen, f"popup_{name}: close tap {attempt}/{tries}")
+        stats["taps"] += 1
+        if not _tap(popup["close"]["file"], screen, f"popup_{name}: close tap {attempt}/{tries}"):
+            stats["skipped"] += 1
         if _wait_for(lambda s: not _is_open(popup, s), delay):
             return True
     if not _is_open(popup, capture()):
@@ -284,12 +325,14 @@ def close_popup(name, popup, delay=1.5, tries=5):
 
 
 def _tap(button, screen, label):
+    """Tap `button` where it is on `screen`. False when it isn't there (skipped)."""
     match = (*button, 1.0) if isinstance(button, tuple) else locate(button, screen)
     if match:
         x, y = tap(*match[:2])
         log.debug(f"{label} at ({x}, {y})")
-    else:
-        log.warning(f"{label} skipped: {Path(button).name} not on screen")
+        return True
+    log.warning(f"{label} skipped: {Path(button).name} not on screen")
+    return False
 
 
 def _wait_for(check, delay):

@@ -39,6 +39,10 @@ CURRENT = LOGS / "current"
 
 log = logging.getLogger("log")
 
+# The name setup(run=...) was given, for core.steps to tag its lines with;
+# None outside a routine run.
+RUN = None
+
 
 def logger(file):
     """The logger for the module in `file`, named after it (e.g. "lobby").
@@ -73,6 +77,8 @@ def setup(debug=False, console=True, run=None):
         file.setFormatter(fmt)
         root.addHandler(file)
     if run:
+        global RUN
+        RUN = run
         root.addHandler(RunLog(run))
     # Also keeps root from having no handler, where WARNINGs would fall back
     # to stderr.
