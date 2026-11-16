@@ -22,7 +22,16 @@ A dialog's identifier is its unique text: the question line, or a title nothing 
 
 Matching ignores brightness, so a lit button and its greyed, claimed or used-up version score alike (0.86–0.98). Tell them apart by colour: the mean of one channel minus another over the button's box, red minus blue for yellow, orange, gold and red, green minus blue for green and blue. The threshold goes halfway between the lit and grey values the game's notes record. A dim pulls the value toward grey, so it's read only with dialogs closed. Each routine has its own `_lit`.
 
-Seen on e7's Cultivate, secret-shop's Buy, arena's Challenge and lost rows, orbis-guide's chest badge and the HUD badge; ba's cafe Claim, Multi-Sweep and bounty's stars.
+Seen on e7's Cultivate, secret-shop's Buy, arena's Challenge and lost rows, orbis-guide's chest badge and the HUD badge; ba's cafe Claim, Multi-Sweep and bounty's stars; re1999's chosen Tasks tab (orange fill).
+
+## Daily missions
+
+Every game is assumed to have a daily-missions menu, and each one gets a `claim_dailies` routine (`python -m <game>.bot claim_dailies`) that only claims and never works on the missions. So far: e7's orbis-guide (Three Sisters' Diary), re1999's tasks (Daily Activeness tab); ba's Tasks shortcut on the lobby isn't mapped yet.
+
+- **One tap claims everything.** e7's 100 chest claims every ready chest on the bar; re1999's Claim All claims every finished task and milestone. The routine taps that one control, not each row.
+- **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner is there only then. So "not there" or "not lit" means already claimed or not earned yet, and the routine counts it as success, not failure.
+- **A claim opens a reward dialog** listing the items (e7: the menu's own reward state, closed by its shared "Tap to close"; re1999: the common obtained popup). When it's one of the game's common popups, the claim tap runs with `popups=False`, or `tap_until` closes it as an obstruction and keeps tapping.
+- **The menu may open on another tab or section**, so the routine picks the daily one after every entry (re1999 opens on a tab with rewards waiting, Weekly once Daily is claimed).
 
 ## Reading a zero
 
