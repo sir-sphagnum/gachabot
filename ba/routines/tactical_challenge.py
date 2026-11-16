@@ -134,7 +134,7 @@ def _fight(delay, tries):
     if not hit:
         log.error("battle result not shown")
         return False
-    if hit[0] == WIN_CONFIRM:
+    if hit[0] == str(WIN_CONFIRM):
         log.info("won")
         steps = [(WIN_CONFIRM, BOTTOM_CONFIRM, "reward")]
     else:

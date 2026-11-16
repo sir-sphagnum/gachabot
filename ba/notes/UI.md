@@ -11,7 +11,7 @@ The title screen: character art, "TOUCH TO START" in a bar at the bottom centre,
 - After the tap, "Now Loading . . ." screens show before the lobby: full-screen art that changes from load to load, with "Now Loading . . ." and a rabbit icon bottom right. `ba/templates/common/loading/info_loading_now-loading_1388-968-292-52.png` is the words without the animated dots, alpha-masked to the pixels that were the same on two loads with different art (42% of the box): 0.96 and 1.00 on those two, no match on any other saved screen. Art not seen yet may need it remasked.
 - Launch to start screen took ~20 s on four cold starts; start screen to lobby 8–23 s.
 - Automated by `ba/routines/start_screen.py` (`python -m ba.bot start_screen`). It ends on the lobby, or returns False on a popup for the lobby routine to close.
-- Each cold start grows BlueStacks' memory by ~4–5 GB (9.2 GB after a restart, 22.8 GB after three launches), so restart it before a long session (common: BlueStacks memory). At 55 GB the load after TOUCH TO START stalled into the network-unstable popup.
+- Each cold start grows BlueStacks' memory by ~4–5 GB (9.2 GB after a restart, 22.8 GB after three launches), so restart it before a long session (common: BlueStacks memory). At 55 GB the load after TOUCH TO START stalled into the network-unstable popup. During the daily routines it grew 0.6–7 GB per routine (lesson: 9.2 → 15.9 GB), and at 23.9 GB lesson crashed on blank screenshots: check `core.device health` between routines and restart when it says so.
 
 ## lobby (`ba/templates/start-screen/lobby/`)
 
@@ -23,7 +23,20 @@ The home screen: player level top left, AP, credits and pyroxene top centre, sho
 - Not seen yet: what Back does on the lobby with its HUD up (a quit prompt?).
 - The Tasks shortcut is probably the daily missions (common: Daily missions); not mapped yet, so ba has no `claim_dailies`.
 - Automated by `ba/routines/lobby.py` (`python -m ba.bot lobby`). After a load or a popup close it watches 4 s more before counting the lobby as reached, since news shows ~2 s after Campaign. Run from the news popup, it closed news and reached the lobby. On later launches, news closed with no new-products after it.
-- Tested after a BlueStacks restart: two cold starts (`start start_screen`, then `lobby`) each ended in the lobby, 37 s and 34 s after launch; and `python -m ba.bot start lobby` alone waited out the launch (the "Now Loading" template also matches the launch loads), handed over at the start screen, closed news and reached the lobby 32 s after launch. Not tested yet: from a menu a few taps deep, and the first launch of a new day with its popups.
+- Tested after a BlueStacks restart: two cold starts (`start start_screen`, then `lobby`) each ended in the lobby, 37 s and 34 s after launch; and `python -m ba.bot start lobby` alone waited out the launch (the "Now Loading" template also matches the launch loads), handed over at the start screen, closed news and reached the lobby 32 s after launch. Not tested yet: from a menu a few taps deep.
+- The first launch of a new day fails in both routines: they know none of its screens (below), and Back on them only toasts "Unavailable right now." Getting past them took taps by hand.
+
+### New-day screens (not mapped yet)
+
+Seen on the first launch of 2026-11-16, in this order, after TOUCH TO START and before the lobby. None has `info_`/`btn_` images yet; captures are in no template folder.
+
+- A live-stream banner (full-screen art, "Don't show again today" bottom left, X top right around (1853, 50)). Closed somehow during the routines' Back presses; the X wasn't tapped on purpose.
+- "Arona's Daily Attendance!" board: Day 1–10 cards, earlier days stamped "complete!". It waits for a tap: a tap on today's card (Day 5, (1727, 420)) stamped it and moved on.
+- "5-YEAR ANNIVERSARY Login Bonus" board (an event, 21 days left): Day 1–7. Moved on after one tap on (1727, 420).
+- "Back to Work Login Bonus!" whiteboard of reward cards (an event). Moved on after a tap on the empty line under it, (1260, 1000), so no card was tapped.
+- Then a dark fade into the lobby, which the lobby routine took from there (idle lobby, woke the HUD).
+
+Event boards come and go, so a routine likely needs to tell "a login board" apart generically (e.g. the footer "These rewards can only be earned through the event." on both event boards) rather than one image per board.
 
 ## cafe (`ba/templates/start-screen/lobby/cafe/`)
 
@@ -32,7 +45,7 @@ Reached from the lobby's Cafe button. A "Tip!" loading screen (black with a game
 - Identified by the "Cafe" title (`info_cafe_title_158-14-92-46.png`), and by the identifier of whichever dialog below is open. The title scores 1.00 under the reward popup too, so popups are checked first (Rule 1).
 - Home (`btn_cafe_lobby_1830-12-54-46.png`, top right) goes straight to the lobby, no load. The lobby's Cafe dot went red → orange once earnings were claimed and the invite used.
 - Only Cafe No. 1 (the one the cafe opens on) is mapped; Move to Cafe No. 2 isn't.
-- Automated by `ba/routines/cafe.py` (`python -m ba.bot cafe`): claim earnings, invite the top-ranked student, Home. Tested only with nothing to claim and the invitation on cooldown (both skipped, back in the lobby in 19 s); the claim and invite paths are the steps mapped by hand, not yet run by the routine.
+- Automated by `ba/routines/cafe.py` (`python -m ba.bot cafe`): claim earnings, invite the top-ranked student, Home. Tested with nothing to claim and the invitation on cooldown (both skipped, back in the lobby in 19 s), and with both ready: the claim worked; the invite failed when the top student was visiting Cafe No. 2 (invite-neighbor below).
 
 The dialogs below are states of the cafe (`screen-<state>.png`), each closed by its own button, not common popups.
 
@@ -58,7 +71,11 @@ Opened by the Invitation ticket (`btn_cafe_invitation_1270-940-112-98.png`). A M
 
 - Identified by the tips line "Only two students can be invited per Cafe at a time." (`info_cafe_invitation-tip_708-920-598-40.png`): at most 0.29 elsewhere. Not by the MomoTalk header, which the lobby's MomoTalk likely shares.
 - Sorted by Name by default. The sort button (`btn_cafe_invitation-sort_998-200-186-56.png`) opens the sort state below; after sorting by Relationship Rank it reads so (`info_cafe_sort-by-relationship_1008-212-166-36.png`), and the order arrow flipped to descending on its own (highest rank first). Not seen yet: whether the sort persists to the next visit, and whether the direction can come up ascending.
-- Invite on the first row (`btn_cafe_invite-first_1050-302-212-68.png`) opens invite-confirm. Not seen yet: what the first row shows when that student is already in the cafe.
+- Invite on the first row (`btn_cafe_invite-first_1050-302-212-68.png`) opens invite-confirm, or invite-neighbor when that student is visiting Cafe No. 2. Not seen yet: what the first row shows when that student is already in Cafe No. 1.
+
+### invite-neighbor (not mapped yet)
+
+"Invite Neighboring Student" in two steps, both with Cancel and Confirm and an X: first "Invite a student visiting the Neighboring Cafe. If you invite a student, there will be an empty spot in that cafe. Proceed?", Confirm around (1148, 757); then the student's portrait "No. 2 → No. 1", Confirm around (1146, 764). After the second Confirm the student is in Cafe No. 1 and the ticket on cooldown, with no "Inviting..." animation seen. The routine doesn't know either step yet: it waits for invite-confirm's "Notice" and fails.
 
 ### invitation-sort (`screen-invitation-sort.png`)
 
@@ -89,7 +106,7 @@ An area's map, "Select Location": rooms with the portraits of students there, an
 
 - Identified by the "Select Location" title (`info_location_title_158-12-300-50.png`), and by the identifier of whichever dialog below is open. The title still matches under them, so they are checked first.
 - Home (`btn_location_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
-- Automated by `ba/routines/lesson.py` (`python -m ba.bot lesson`): one lesson per room card, in grid order, until no tickets are left, then Home. Tested with 0 tickets: lobby to All Locations and back in 27 s, nothing spent. The lesson path is the six lessons done by hand, not yet run by the routine.
+- Automated by `ba/routines/lesson.py` (`python -m ba.bot lesson`): one lesson per room card, in grid order, until no tickets are left, then Home. Tested with 0 tickets (lobby to All Locations and back in 27 s, nothing spent) and with 6: six lessons, a rank-up popup closed on the way, lobby to lobby in 60 s.
 
 The dialogs below are states of location (`screen-<state>.png`), not common popups.
 
@@ -135,7 +152,7 @@ Header "Mission" (`info_mission_title_158-12-156-50.png`). Shows the current are
 
 - Multi-Sweep (`btn_mission_multi-sweep_712-860-182-44.png`) looks the same whether or not today's sweeps are used: open it to find out.
 - Mission toasts ("Use 7000 AP", "Obtain 30 equipment blueprint(s)") slide over the top centre after a sweep, covering dialog titles there, so the dialogs below are identified lower down (common: Toasts).
-- Automated by `ba/routines/sweep_hard.py` (`python -m ba.bot sweep_hard`): sweep the preset Multi-Sweep opens on, MAX times, then Home. Tested with the sweeps used up: Mission to lobby in 24 s, nothing spent. The sweep path is the one done by hand (180 AP for 14-2, 17-2, 18-3 × 3), not yet run by the routine. Not seen yet: what shows when AP is short.
+- Automated by `ba/routines/sweep_hard.py` (`python -m ba.bot sweep_hard`): sweep the preset Multi-Sweep opens on, MAX times, then Home. Tested with the sweeps used up (Mission to lobby in 24 s, nothing spent) and with them ready: swept, lobby to lobby in 2.5 min, most of it waiting on Sweep Complete. Not seen yet: what shows when AP is short.
 
 The dialogs below are states of mission (`screen-<state>.png`), not common popups.
 
@@ -176,7 +193,7 @@ Header "Bounty" (`info_bounty_title_158-12-148-50.png`). Tickets Owned (21/6 whe
 - The Stage List scrolls to its last stages on entry: 06–10 show, 05 is cut off at the top. Enter centres sit at x 1676, y 357 / 506 / 655 / 805 / 954. Enter looks the same on every row (`btn_overpass_stage-enter_...` is row 09's).
 - Stars tell cleared stages apart: mean red minus blue over a row's stars (x 1042–1116, 10–38 px below its Enter) is +62 gold, −5 grey. When mapped, 06–09 had 3 gold stars and 10 (Overpass J) grey.
 - Ticket count: just the first digit (`info_overpass_tickets-zero_414-278-24-36.png`) scores 1.00 on 0 and 0.42 on 21. Other counts weren't seen, so the routine counts 0 only at 0.95 or more.
-- Automated by `ba/routines/bounty.py` (`python -m ba.bot bounty`): sweep the lowest gold-starred row MAX times (every ticket), then Home. Tested with 0 tickets: lobby to Overpass and back in 18 s, nothing spent. The sweep path is the one done by hand (21 tickets on 09 Overpass I), not yet run by the routine. If a new stage is 3-starred lower in the list, the picker follows it on its own. A list longer than five visible rows below 05 wasn't seen.
+- Automated by `ba/routines/bounty.py` (`python -m ba.bot bounty`): sweep the lowest gold-starred row MAX times (every ticket), then Home. Tested with 0 tickets (lobby to Overpass and back in 18 s, nothing spent) and with tickets: swept, lobby to lobby in 27 s. If a new stage is 3-starred lower in the list, the picker follows it on its own. A list longer than five visible rows below 05 wasn't seen.
 
 The dialogs below are states of overpass (`screen-<state>.png`), not common popups. Scrimmage's gehenna opens the same three, and uses these images.
 
@@ -221,7 +238,7 @@ Panel on the left: "Gehenna", Tickets Owned N/6, the event line, art. Right: Sta
 - Rows share overpass's layout: Enter at x 1676, y 279 / 429 / 578 / 728, stars 10–38 px below Enter. Stars read +64 on 01 (3 gold), −2 to +6 on 02–04 (grey, locked). `btn_gehenna_stage-enter_...` is row 01's Enter.
 - Ticket count: just the first digit (`info_gehenna_tickets-zero_430-278-20-36.png`) scores 1.00 on 0 and 0.46 on 7 (common: Reading a zero).
 - Enter opens the same Mission Info, Notice and Sweep Complete as overpass, in the same places: overpass's images score 1.00 on gehenna's captures, so gehenna has no copies and its routine uses overpass's. Each sweep costs 1 ticket and 10 AP; the Notice reads "Use Scrimmage Ticket N, AP 10N to Sweep N time(s)?". 7 sweeps of 01 gave 9 + 21 keys and 189K credits at the 3x event.
-- Automated by `ba/routines/scrimmage.py` (`python -m ba.bot scrimmage`): sweep the lowest gold-starred row MAX times, then Home. The sweep steps are shared with bounty (`ba/routines/stage_sweep.py`). Tested with 0 tickets: from the idle lobby to Gehenna and back in 16 s, nothing spent. The sweep path is the one done by hand (7 tickets on 01 Gehenna A), not yet run by the routine.
+- Automated by `ba/routines/scrimmage.py` (`python -m ba.bot scrimmage`): sweep the lowest gold-starred row MAX times, then Home. The sweep steps are shared with bounty (`ba/routines/stage_sweep.py`). Tested with 0 tickets (from the idle lobby to Gehenna and back in 16 s, nothing spent) and with tickets: swept, lobby to lobby in 27 s.
 
 ### tactical-challenge (`campaign/tactical-challenge/`)
 
@@ -232,7 +249,8 @@ Header "Tactical Challenge" (`info_tactical-challenge_title_158-12-372-50.png`).
 - Standby Time stayed "--:--" through five fights in a row: no wait between fights.
 - Claim buttons (`btn_tactical-challenge_time-reward-claim_...`, `btn_tactical-challenge_daily-reward-claim_...`) score 0.81 on their grey state, so colour decides (common: Lit or grey): mean red minus blue over each is +167 yellow, −2 grey. Both turned yellow after the first win. Each opens the common reward popup: Time Reward gave 220 credits (Total back to 0), Daily Reward 12 pyroxene and 40 Tactical Challenge Coins, after which it shows a countdown (11:04).
 - Each win raised the rank to the beaten opponent's and paid pyroxene on a new best (80, 60, 60, 60); rank 4890 turned the rank icon gold.
-- Automated by `ba/routines/tactical_challenge.py` (`python -m ba.bot tactical_challenge`): fight the top row until the ticket count reads 0, skipping each battle, then claim both rewards while yellow, then Home. Tested with 0 tickets: from the idle lobby, it claimed the Time Reward built up since the last claim, skipped the grey Daily Reward and was back in the lobby in 20 s. The fight path is the one done by hand, not yet run by the routine.
+- Automated by `ba/routines/tactical_challenge.py` (`python -m ba.bot tactical_challenge`): fight the top row until the ticket count reads 0, skipping each battle, then claim both rewards while yellow, then Home. Tested with 0 tickets (from the idle lobby, it claimed the Time Reward built up since the last claim, skipped the grey Daily Reward and was back in the lobby in 20 s) and with 3: three wins (~30 s each, best-record closed after each), both rewards claimed, lobby to lobby in 2.5 min. The loss path hasn't run yet.
+- best-record left open blocks `core.nav.goto`'s walk to the lobby: Back on it only toasts "Unavailable right now." The routine closes it after each fight, so this happens only when a run stopped between a fight and that close.
 
 The dialogs below are states of tactical-challenge (`screen-<state>.png`), not common popups.
 
