@@ -106,8 +106,8 @@ The fight: Wave and Round at the top left, the boss's HP bar at the top, three d
 The Resource tab of show: a scrolling row of resource-stage records (Pneuma Analysis, The Poussiere, Mintage Aesthetics, Harvest Prime) over a grey sketch background, with "In-depth Analysis Chances: n" under Pneuma Analysis. It opens scrolled to the left end.
 
 - Identified by the chosen Resource tab with its underline (`info_resource_resource-tab_680-935-160-115.png`: 1.00 on three Resource captures, at most 0.55 elsewhere), and by the "In-depth Analysis Chances:" label (`info_resource_analysis-chances_290-795-350-45.png`, cut left of the count: at most 0.48 elsewhere) while that's at its spot.
-- The row reorders: with chances left Pneuma Analysis is first, with the label at (290, 795); once they're spent (0) it moves to the end, after Harvest Prime, and The Poussiere is first. So the label at its spot means chances are left, and the Pneuma Analysis and The Poussiere buttons below only hold while Pneuma has chances.
-- Pneuma Analysis (`btn_resource_pneuma-analysis_160-290-560-440.png`, at most 0.31 elsewhere) and The Poussiere (`btn_resource_the-poussiere_975-290-555-440.png`, at most 0.23 elsewhere) open their stage screens.
+- The row reorders: with chances left Pneuma Analysis is first, with the label at (290, 795); once they're spent (0) it moves to the end, after Harvest Prime, and The Poussiere is first. So the label at its spot means chances are left, and the Pneuma Analysis button below only holds while Pneuma has chances.
+- Pneuma Analysis (`btn_resource_pneuma-analysis_160-290-560-440.png`, at most 0.31 elsewhere) and The Poussiere (`btn_resource_the-poussiere_160-290-560-440_anywhere.png`) open their stage screens. The Poussiere's is searched anywhere since it sits first or second: 1.00 in the first slot, 0.99 in the second, at most 0.54 elsewhere.
 
 ## pneuma-analysis and the-poussiere (`…/show/resource/pneuma-analysis/`, `…/the-poussiere/`)
 
@@ -117,6 +117,21 @@ Stage select for one resource: a full-screen scene (rainy street; overgrown junk
 - the-poussiere is identified by its focused stage label, "The Poussiere VI" (`info_the-poussiere_stage-label_560-870-335-55.png`: at most 0.30 elsewhere). The label is the stage the timeline opens on, so it breaks once a new stage is reached or the timeline is scrolled; the scene has nothing fixed to use instead.
 - The scenes are animated (rain, butterflies), so nothing on them is matched.
 - pneuma-analysis **stage**: tapping the "Pneuma Analysis VII" label (`btn_pneuma-analysis_stage-vii_560-872-400-55_anywhere.png`, anywhere since the timeline opens on the newest stage: at most 0.46 elsewhere) opens the stage panel at the right: "In-depth Analysis Chances: n" at the top, PA 07, Recommended Insight II Level 40, the special drops, and Start costing one chance (`btn_pneuma-analysis_battle-prep-pneuma_1560-890-110-52.png`, cut to the word: at most 0.24 elsewhere). Start opens battle-prep-pneuma and spends nothing yet.
+- the-poussiere **stage**: tapping the "The Poussiere VI" label (`btn_the-poussiere_stage-vi_560-870-335-55_anywhere.png`, at most 0.41 elsewhere) opens the panel: LP 06, Recommended Insight II Level 10, Rewards (12500 Dust) and Start for 25 stamina (`btn_the-poussiere_battle-prep-poussiere_1728-892-110-52.png`, cut to the word). That Start is the same art and spot as In Our Time's (1.00 on its stage panel), so it's tapped only once the-poussiere's panel is open.
+
+## battle-prep-poussiere (`…/the-poussiere/battle-prep-poussiere/`)
+
+The Poussiere's team screen, laid out like battle-prep-pneuma with no chances line, so nothing identifies it apart from In Our Time's battle-prep: the routine checks Goals and the replay line from `…/in-our-time/battle-prep/`, and the fight and VICTORY screens are In Our Time's battle too. No daily chances: every run costs stamina.
+
+- The play icon (`btn_battle-prep-poussiere_replay_910-945-66-78.png`, 1.00 on In Our Time's too) turns on replay mode: "Recorded Rounds: 4", count box, "-25 Lv.1 Replay".
+- The count box, x4 and the "x4" set check (`btn_…_replay-count_1205-950-125-70.png`, `btn_…_replay-x4_1245-600-45-45.png`, `info_…_replay-x4-set_1225-960-60-50.png`: 1.00 at x4, 0.60 at x1) are at Pneuma's spots. x4 stays on after the fight.
+- At x4 the button reads "-100 Lv.4 Replay" (`btn_battle-prep-poussiere_battle_1555-955-240-55.png`, 0.92 at x1, so the x4 check comes first). The x4 run of LP 06 gave EXP+1000, Dust 50000 and 1000 Sharpodonty; the replay took ~33 s to VICTORY.
+- What Replay does with under 100 stamina is untested (it may offer to buy stamina), so the routine taps it once only.
+- `re1999/routines/poussiere.py` (`python -m re1999.bot poussiere`) goes to resource, replays LP 06 at x4 for 100 stamina and goes Home. Each call spends 100 stamina. The run was done by hand step by step; the routine itself hasn't run yet.
+
+## level-up popup (`re1999/templates/common/popups/level-up/`)
+
+A white "Level Up" band across the middle with the new player level in an orange circle and "Activity regen +100" (stamina +100), shown over VICTORY when a fight's EXP levels the player up. Identified and closed by its "Level Up" text (`info_level-up_title_695-500-160-45.png`, `btn_level-up_close_…`, the same box): 1.00 on it, at most 0.19 elsewhere. VICTORY still matches under it, so `tap_until`'s popup check closes it before the victory tap.
 
 ## battle-prep-pneuma (`…/pneuma-analysis/battle-prep-pneuma/`)
 

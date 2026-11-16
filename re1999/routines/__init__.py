@@ -16,10 +16,11 @@ keep both names.
 """
 
 from re1999.routines import (claim_wilderness, fight_boss, lobby, lobby_interact,
-                             pneuma_analysis, start_screen)
+                             pneuma_analysis, poussiere, start_screen)
 
 ROUTINES = {"start_screen": start_screen.run, "lobby": lobby.run,
             "lobby_interact": lobby_interact.run,
             "claim_wilderness": claim_wilderness.run,
             "fight_boss": fight_boss.run,
-            "pneuma_analysis": pneuma_analysis.run}
+            "pneuma_analysis": pneuma_analysis.run,
+            "poussiere": poussiere.run}
