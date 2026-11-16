@@ -55,6 +55,8 @@ DIALOGS = {
                       LOBBY / "btn_lobby_checkin-calendar_1094-70-92-62.png"),
     # The point, not the btn_ crop: that crop is blurred lobby, which changes.
     "checkin-calendar": dialog(LOBBY / "info_lobby_checkin-calendar-text_180-532-190-42.png", CORNER),
+    # Player profile, which can show at login. The corner is outside its panels.
+    "profile": dialog(LOBBY / "info_lobby_profile-detail_616-198-112-42.png", CORNER),
 }
 
 
