@@ -15,6 +15,7 @@ starting the game, and core.nav loads re1999/routines/lobby.py by name, so
 keep both names.
 """
 
-from re1999.routines import lobby, start_screen
+from re1999.routines import lobby, lobby_interact, start_screen
 
-ROUTINES = {"start_screen": start_screen.run, "lobby": lobby.run}
+ROUTINES = {"start_screen": start_screen.run, "lobby": lobby.run,
+            "lobby_interact": lobby_interact.run}
