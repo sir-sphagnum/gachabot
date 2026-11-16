@@ -188,6 +188,14 @@ A panel over the dimmed lobby, opened by Orbis Guide in `main-menu`. Tap its **i
 
 Task `claim-dailies` (`e7/routines/claim_dailies.py`, `python -m e7.bot claim_dailies`): goes to orbis-guide, taps the 100 chest only while its badge is lit, closes the reward dialog, then goes back to the lobby. No badge means nothing to claim (already claimed, or under 100 points), counted as success (common: Daily missions). A run on an already-claimed day passed. The claim branch hasn't been run by the routine yet.
 
+## guild (`e7/templates/start-screen/lobby/main-menu/guild/`)
+
+The guild hall, opened by Guild in `main-menu`. Tap its **icon** (`btn_main-menu_guild_1592-532-54-56.png`, centre (1617, 564), cut without the orange dot at its top left): 1.0 on `main-menu`, at most 0.43 elsewhere. The hall shows the guild's emblem, level, name and check-ins (n/4) top left, Guild Activities and Weekly Reward Chest down the left, and World Boss, Guild War and Ancient Inheritance in the hall. A guild member's greeting (name and line) sits top right; it's part of the hall, not a dialog.
+
+- Identified by its title "Guild", top left, without the back arrow (`info_guild_title_98-26-94-50.png`): 1.0 on guild, at most 0.70 elsewhere (hunt-team under background battling). The emblem and name belong to whichever guild the account is in, so they don't identify the menu.
+- **Locks**: a padlock on an entry's icon (bottom right) means it can't be entered yet. World Boss (padlock ~(461, 654)) and Ancient Inheritance (~(1279, 849)) are locked on this account and may open later; Guild War isn't. Neither is mapped. A routine that uses one checks for the padlock first.
+- A popup may show after the Guild tap; on the first tap the screenshots came back empty (BlueStacks at 23 GB, common: BlueStacks memory), and the tap after the restart opened the hall with none. Not yet captured.
+
 ## HUD (`e7/templates/common/hud/`)
 
 The icon row along the top right (clock, bell, inventory, mail, chat, main menu) is the same on every menu with a HUD: the active lobby, `main-menu`, `shop-landing`, `daily-shop`, `sanctuary` and `forest-of-souls`. `screen.png` is the active lobby. Its elements live in `common/` because no one menu owns them.
