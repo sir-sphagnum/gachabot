@@ -55,6 +55,8 @@ An event's sign-in panel: event title and time left at the top left, a row of da
 
 The mailbox: a list of mails at the left (Claim All, Delete Read), the open mail at the right with its attachments and Claim. Opened by Mail at the lobby's top left (`btn_lobby_mail_70-232-96-108.png`), identified by its "Mail" title (`info_mail_title_172-136-104-54.png`: 1.00 here, at most 0.13 elsewhere). Android Back closes it to the lobby.
 
+- Claim All (bottom left, ~(302, 926), not mapped) claims every attachment at once and opens a full-screen "Obtained" popup listing the items (not mapped).
+
 ## wilderness (`re1999/templates/start-screen/lobby/wilderness/`)
 
 A 3D island with the player's buildings (Dust Bell Tower, Paleohall, Sharpodonty Market, Wishing Spring, …), each with a round resource icon and a % badge. HUD: Back, Home (square) and an info icon at the top left; a currency bar at the top; a column of icons at the left and Dreamwell at the bottom left; Display Paleohall, Medium, Buy, Layout Plan, Place Characters and Edit Wilderness at the right. Opened by Wilderness on the lobby (`btn_lobby_wilderness_1410-600-165-86.png`, cut left of its badges: 1.00 on the lobby, at most 0.30 elsewhere). Entering and leaving both go through a ~5 s loading screen (film strip and a lore line, not mapped); `goto` copes, with two retaps skipped during the load.
