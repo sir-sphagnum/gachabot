@@ -80,7 +80,7 @@ def check_focus(game):
         state = "is running but not in focus" if is_running(game) else "is not running"
         front = focus[0] if focus else "nothing"
         raise NotInFocus(f"{game} ({pkg}) {state}; in focus: {front}. "
-                         f"Start it with: python -m core.device start --fullscreen {game}")
+                         f"Start it with: python -m core.device start {game}")
     if floating_window():
         raise NotInFocus(f"{game} ({pkg}) is in focus but in a floating window, not "
                          f"fullscreen. Fullscreen it with: python -m core.device fullscreen")

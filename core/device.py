@@ -5,13 +5,13 @@ Usage: python -m core.device connect
        python -m core.device fullscreen
        python -m core.device health      exits 1 when BlueStacks needs a restart
                                          or Windows is low on memory
-       python -m core.device restart [--fullscreen] [game ...]
+       python -m core.device restart [game ...]
            closes the running apps, then BlueStacks, opens it again and waits
            for Android to boot, then starts the games given (none if no game
            is given) one after another, each closing the one before, and runs
            each one's start_screen and lobby routines, if it has them, so each
            ends in its lobby; the last one is left running
-       python -m core.device start [--fullscreen] game
+       python -m core.device start game
            closes every other running game in GAMES, then starts this one
        python -m core.device stop|status [game ...]
            no game means every game in GAMES
@@ -138,9 +138,6 @@ def fullscreen(attempts=3, timeout=5):
     return False
 
 
-make_fullscreen = fullscreen  # for start_game, whose `fullscreen` argument hides this
-
-
 def _floating(task):
     """Whether this task is still a visible floating window."""
     tasks = adb("shell", "dumpsys", "activity", "activities")
@@ -173,14 +170,14 @@ def uptime(game):
     return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
 
 
-def start_game(game, fullscreen=False, timeout=30):
+def start_game(game, timeout=30):
     """Launch a game (or bring it to the front if it's already running),
     after closing every other game in GAMES that is running.
 
-    Waits until it is the app in focus, then fullscreens it if asked. Returns
-    True on success, False if another game didn't stop, the game didn't come
-    to the front within `timeout` seconds, or (with fullscreen=True) it stayed
-    floating.
+    Waits until it is the app in focus, then fullscreens it: templates are cut
+    from the fullscreen screen, so nothing matches in a floating window.
+    Returns True on success, False if another game didn't stop, the game
+    didn't come to the front within `timeout` seconds, or it stayed floating.
     """
     pkg = package(game)
     others = [p for p in running_apps() if p in GAMES.values() and p != pkg]
@@ -198,7 +195,7 @@ def start_game(game, fullscreen=False, timeout=30):
     adb("shell", "am", "start", "-n", component)
     if not wait_until(lambda: (focused_app() or ("",))[0] == pkg, timeout, interval=0.5):
         return False
-    return make_fullscreen() if fullscreen else True
+    return fullscreen()
 
 
 def stop_game(game, timeout=10):
@@ -432,8 +429,8 @@ if __name__ == "__main__":
             was = f"{before:.1f} GB before" if before is not None else "wasn't running"
             msg += f": {was}, {player_gb():.1f} GB now"
         _answer(msg, ok)
-        for game in [a for a in args if a != "--fullscreen"] if ok else []:
-            started = start_game(game, fullscreen="--fullscreen" in args)
+        for game in args if ok else []:
+            started = start_game(game)
             ok &= started
             _answer(f"{game}: {'started' if started else 'failed to start'}", started)
             passed = run_to_lobby(game) if started else None
@@ -442,11 +439,10 @@ if __name__ == "__main__":
                 _answer(f"{game}: {'in lobby' if passed else 'lobby not reached'}", passed)
         sys.exit(0 if ok else 1)
     elif cmd == "start":
-        games = [a for a in args if a != "--fullscreen"]
-        if len(games) != 1:
+        if len(args) != 1:
             sys.exit("start takes one game: starting it closes the others")
-        ok = start_game(games[0], fullscreen="--fullscreen" in args)
-        _answer(f"{games[0]}: {'started' if ok else 'failed to start'}", ok)
+        ok = start_game(args[0])
+        _answer(f"{args[0]}: {'started' if ok else 'failed to start'}", ok)
         sys.exit(0 if ok else 1)
     elif cmd in ("stop", "status"):
         for game in args or list(GAMES):

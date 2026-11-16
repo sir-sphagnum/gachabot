@@ -21,7 +21,7 @@ log = logger(__file__)
 
 def start():
     """Launch Reverse: 1999 fullscreen. Returns True once it is in focus and fullscreen."""
-    return device.start_game(GAME, fullscreen=True)
+    return device.start_game(GAME)
 
 
 def stop():
