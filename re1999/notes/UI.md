@@ -55,7 +55,8 @@ An event's sign-in panel: event title and time left at the top left, a row of da
 
 The mailbox: a list of mails at the left (Claim All, Delete Read), the open mail at the right with its attachments and Claim. Opened by Mail at the lobby's top left (`btn_lobby_mail_70-232-96-108.png`), identified by its "Mail" title (`info_mail_title_172-136-104-54.png`: 1.00 here, at most 0.13 elsewhere). Android Back closes it to the lobby.
 
-- Claim All (bottom left, ~(302, 926), not mapped) claims every attachment at once and opens a full-screen "Obtained" popup listing the items (not mapped).
+- Claim All (`btn_mail_claim-all_182-900-242-56.png`: 1.00 here, at most 0.13 elsewhere) shows and looks the same whether or not anything is left to claim. With attachments it claims them all and opens the obtained popup (its title scored 0.97 on that capture). Without, a "No mail with attachment" toast shows at the top right (`info_mail_no-attachment-toast_1505-150-400-75.png`: 1.00 on it, 0.00 on mail without it, at most 0.23 elsewhere).
+- `re1999/routines/claim_mail.py` (`python -m re1999.bot claim_mail`) taps Claim All until the obtained popup or the toast shows, closes the popup and goes back to the lobby. Its tap runs with `popups=False`, or tap_until would close the obtained popup as an obstruction instead of returning it. Its first run met nothing to claim (~6 s from the lobby back to the lobby); the claim path has run only by hand.
 
 ## wilderness (`re1999/templates/start-screen/lobby/wilderness/`)
 
