@@ -105,6 +105,7 @@ Controls (task `claim-daily-shop`, `e7/routines/claim_daily_shop.py`, `python -m
   - Titles, searched over the whole screen: `info_daily-shop_energy-40_545-245-40-32_anywhere.png` is the digits "40" only (1.0 on its card, 0.72 on "80 Energy", 0.65 on "20 Energy"); `info_daily-shop_flags-5_1165-243-85-36_anywhere.png` is "5 Flags" (1.0, at most 0.55 on other titles). The title stays on a bought card (0.92–1.0), and matches through a dialog's dim (0.98).
   - The pill (`btn_daily-shop_buy-100-hearts_540-515-130-45.png`, cut on 40 Energy) sits 277 px below the title's centre, +40 px right of "40"'s centre and straight below "5 Flags". There it scores 0.92–1.0 unbought, 0.23–0.25 bought (timer) and 0.17–0.61 under a dialog. So popups and dialogs are closed before the check (Rule 1).
   - Tapping the pill opens **buy**: "Buy", "Would you like to purchase this product?", the product's name, "Purchase Available: 1 time(s)", Cancel and a green [heart 100] Buy. Identified by its title (`info_daily-shop_buy-title_890-205-140-65.png`) and confirmed by `btn_daily-shop_buy-confirm_900-722-445-85.png` (the whole green button, centre (1122, 764)). Buy closes the dialog with no reward dialog after it. The hearts drop by 100 and the card moves to the end of the grid, but only a moment after the dialog closes: a check right after still saw the price, so the routine waits up to 5 s for it to go.
+  - With all three products bought, the grid pushes 5 Flags past the screen's right edge (seen 2026-11-16, the day's second run), so the routine counts a card it can't see as bought.
 
 ## arena-landing, arena, arena-team and arena-battle (`e7/templates/start-screen/lobby/main-menu/arena-landing/`)
 
@@ -223,6 +224,7 @@ Four states:
 Task `check-background-status` (`e7/routines/check_background_status.py`, `python -m e7.bot check_background_status`): from the active lobby, reads the HUD clock from two frames. Spinning: a battle is running (success, nothing done). Clock matched with its badge lit: a battle has finished, so it taps the clock, Calculate, Tap to close and Close. No clock: nothing running or waiting (success). A still clock without a lit badge hasn't been seen and is a failure. Its `status()` returns which of these it was, for `hunt`.
 
 - After a claim it reads the clock again, and the claim counts once the clock is gone, whatever the claim's steps reported. Once, the tap on Calculate was followed by no "Calculation Complete" title in 5 tries, yet the claim had gone through and the clock was gone (a false failure). What showed instead wasn't captured. So after Calculate it also takes Complete's "Tap to close" or the claimed Close as done, and saves the screen to `logs/check_background_status-<time>.png` when none of them shows.
+- Once, right after Calculate, the claimed Close matched for a moment, so Calculation Complete's "Tap to close" was skipped; Close then never matched again in 5 tries and the lobby routine's Back closed `auto`. The clock was gone, so the claim counted. What covered Close wasn't captured.
 
 ## date-changed popup (`e7/templates/common/popups/date-changed/`)
 

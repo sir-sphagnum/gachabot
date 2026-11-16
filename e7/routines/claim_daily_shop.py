@@ -112,8 +112,10 @@ def _buy(name, title, offset, popups, delay, tries):
         log.error(f"{MENU} not usable")
         return False
     if not locate(title, screen):
-        log.error(f"{name}: card not on screen")
-        return False
+        # A bought card moves to the end of the grid; with all three bought,
+        # 5 Flags ends up past the screen's right edge.
+        log.info(f"{name}: card not in view, moved to the end: already bought today")
+        return True
     pill = _pill(title, offset, screen)
     if not pill:
         log.info(f"{name}: no 100-heart price, already bought today")
