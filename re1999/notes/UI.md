@@ -62,5 +62,29 @@ A 3D island with the player's buildings (Dust Bell Tower, Paleohall, Sharpodonty
 - Identified by the "Dreamwell" label (`info_wilderness_dreamwell-text_8-1000-156-40.png`: 1.00 here, 0.99 with the camera elsewhere, at most 0.14 elsewhere) and the "Edit Wilderness" label (`info_wilderness_edit-wilderness-text_1740-995-150-52.png`: at most 0.34 elsewhere). The map behind the HUD swings and changes lighting (teal, sepia), so nothing on it identifies the menu.
 - **pan-map** (`btn_wilderness_pan-map_36-288-82-44.png`, the top icon of the left column, cut below its badge): swings the camera to the next building with something to collect, leaving that building's resource icon at ~(960, 286). Its badge seemed to count what's left (6, then 3 after the first collect). Once nothing is left it disappears and the icon below it (badge 9, not mapped) moves up into its spot; pan-map then scores None there, so it's located before every tap, never tapped as a point.
 - A tap on a building's resource icon collects it on the spot: a toast at the top right ("Dust +7125 (Vigor Bonus +25%)", "Sharpodonty +3600 …"), the badge drops to 0 % and the resource shows in the top bar. The icons move with the camera, so they're tapped as a point after a pan; the `btn_wilderness_dust-bell-tower-collect_…` and `btn_wilderness_market-collect_…` crops are 3D map art and only record where each was tapped.
-- Home (`btn_wilderness_lobby_186-42-56-56.png`) goes back to the lobby: 1.00 here, at most 0.19 elsewhere.
+- Home (`btn_wilderness_lobby_186-42-56-56.png`) goes back to the lobby: 1.00 here, but the same Home is on every show screen (0.94–0.99 there, see show), so it never identifies wilderness.
 - `re1999/routines/claim_wilderness.py` (`python -m re1999.bot claim_wilderness`) pans and taps the centre until pan-map is gone, then goes Home. Its first run met nothing to collect, so the pan-and-collect loop has run only by hand so far.
+
+## show (`re1999/templates/start-screen/lobby/show/`)
+
+The story hub: "The Living and the Rest" at the top left, a row of chapter posters, a reward counter (gift icon, "351/430") at the top right, and a tab bar at the bottom (Story, Reflections, Anecdote, Resource, Insight, Artificial Somnambulism, The Window to Other Worlds, Wanderings). Back and Home at the top left. Opened by the "Enter the Show" ticket under the event banner on the lobby (`btn_lobby_show_1412-442-350-122.png`: 1.00 on the lobby, at most 0.18 elsewhere). The ticket sits under the current event's banner, so it may move or change when the event ends.
+
+- It always opens on the Story tab (three entries in a row), whichever tab was open when it was left. So a routine for another tab taps that tab after every entry.
+- Identified by the "The Living and the Rest" title (`info_show_title_190-140-510-60.png`: at most 0.15 elsewhere). The title is the Story tab's latest chapter, so it may change when a new chapter comes out.
+- The tab bar is the same on every tab; only the chosen tab's colour and underline change. The Resource tab (`btn_show_resource_692-935-132-100.png`) scores 0.61 on the Resource tab itself, so the tabs never identify which tab is open.
+- Home (186, 42) scores 0.94–0.99 on show, resource, both stage screens and wilderness (same art everywhere: common: Shared buttons). It's tapped only once the menu is known.
+
+## resource (`re1999/templates/start-screen/lobby/show/resource/`)
+
+The Resource tab of show: a row of resource-stage records (Pneuma Analysis, The Poussiere, Mintage Aesthetics cut off at the right; more may be further right) over a grey sketch background, with "In-depth Analysis Chances: 2" under Pneuma Analysis.
+
+- Identified by the "In-depth Analysis Chances:" label (`info_resource_analysis-chances_290-795-350-45.png`, cut left of the count: at most 0.48 elsewhere).
+- Pneuma Analysis (`btn_resource_pneuma-analysis_160-290-560-440.png`, at most 0.31 elsewhere) and The Poussiere (`btn_resource_the-poussiere_975-290-555-440.png`, at most 0.23 elsewhere) open their stage screens. Whether the row scrolls, and so whether they keep these spots, wasn't tried.
+
+## pneuma-analysis and the-poussiere (`…/show/resource/pneuma-analysis/`, `…/the-poussiere/`)
+
+Stage select for one resource: a full-screen scene (rainy street; overgrown junkyard) with a stage timeline along the bottom, opened scrolled to one stage ("07 / Pneuma Analysis VII", "06 / The Poussiere VI"; probably the highest reached) with the one before it at the left. Back and Home at the top left; Home (`btn_…_lobby_186-42-56-56.png`) goes straight to the lobby.
+
+- pneuma-analysis is identified by the Psychube Shop button at the top right (`info_pneuma-analysis_psychube-shop_1700-30-190-80.png`: at most 0.16 elsewhere), which the-poussiere doesn't have.
+- the-poussiere is identified by its focused stage label, "The Poussiere VI" (`info_the-poussiere_stage-label_560-870-335-55.png`: at most 0.30 elsewhere). The label is the stage the timeline opens on, so it breaks once a new stage is reached or the timeline is scrolled; the scene has nothing fixed to use instead.
+- The scenes are animated (rain, butterflies), so nothing on them is matched.
