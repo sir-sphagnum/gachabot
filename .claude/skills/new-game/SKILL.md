@@ -38,12 +38,12 @@ Part 1 creates the files with a script. Part 2 maps the screens from launch to t
 5. **Routines.** Write `<game>/routines/start_screen.py` and `<game>/routines/lobby.py` from E7's (`e7/routines/start_screen.py`, `e7/routines/lobby.py`), with this game's templates and dialogs, and register both in `ROUTINES`. Keep what the E7 versions do for a reason, each found the hard way:
    - check popups and lobby dialogs before trusting the lobby or start-screen match (`.claude/doc_policy.md` Rule 1): the scene can still match through a popup's dim.
    - wait out black screens (`core.nav.past_black`) and the loading screens in `common/loading/`, never press Back on them (`re1999/routines/lobby.py` has the loading wait).
-   - the lobby routine hands over to `start_screen` when the start screen shows (a disconnect can lead there), and `start_screen` returns False when a popup is open, so the lobby routine closes it. `core.device restart` runs `start_screen` and then `lobby`, so it ends in the lobby either way.
+   - the lobby routine hands over to `start_screen` when the start screen shows (a disconnect can lead there), and `start_screen` returns True leaving a popup open, so the lobby routine, run after it, closes it; it returns False only when it could not get past the start screen. `core.device restart` runs `start_screen` and then `lobby`, so it ends in the lobby either way.
    - a dialog closed by a tap on empty space takes the point as its close (`core.nav.dialog(info, (x, y))`), not the `btn_` crop of the background.
    - if the lobby's HUD can be at rest, wake it with `core.nav.tap_until` on a spot that is safe to tap, until the HUD element shows.
    Drop whatever only E7 needs. Log as `.claude/logging.md` says.
 6. **Test**, each more than once, watching each run as `.claude/logging.md` §6 shows (the Monitor tool with that command): a failure's ERROR line names the screen it saved.
-   - a cold start: `python -m core.device stop <game>`, then `python -m <game>.bot start start_screen`, then `python -m <game>.bot lobby`. Separate commands: the bot stops at `start_screen` when it returns False on a popup.
+   - a cold start: `python -m core.device stop <game>`, then `python -m <game>.bot start start_screen lobby`.
    - `python -m <game>.bot lobby` from the start screen, from a menu a few taps deep, and with the quit prompt open.
    - optionally, `python -m core.device restart --fullscreen <game>`, which should end on `<game>: in lobby`. Ask first: it closes BlueStacks and every game in it.
    - the first launch of the next day, with its popups: the cold start above. Tell the user this test is still owed if it can't run yet, and name it in the notes.

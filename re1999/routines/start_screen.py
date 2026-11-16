@@ -19,8 +19,9 @@ ignores taps until the intro ends.
 The lobby counts only when no popup or lobby dialog is open: Crew matches
 through the quit dialog's dim. On the first launch of the day the game shows
 the obtained popup, then the check-in card and event-login, before the lobby.
-Any of them is left open and the routine returns False; the lobby routine,
-which hands over to this one, closes them and looks again.
+Any of them is left open and the routine returns True, its part done; the
+lobby routine, which hands over to this one and runs after it, closes them
+and looks again.
 """
 
 import sys
@@ -46,7 +47,8 @@ GONE = 1.5  # seconds START must stay missing to count as gone
 
 
 def run(appear=60, taps=3, delay=3, load=60, fade=20):
-    """Return True once past the start screen and the lobby shows, False otherwise.
+    """Return True once past the start screen, with the lobby showing or a popup
+    open for the lobby routine to close; False otherwise.
 
     appear: seconds to wait for the start screen (or the lobby) to show up.
         From launch it takes ~25 s (black, then a loading screen).
@@ -131,7 +133,7 @@ def _look(states=("popup", "start", "lobby")):
 def _report(state):
     if state == "popup":
         log.info("popup open, returning to caller")
-        return False
+        return True
     log.info("in lobby")
     return True
 

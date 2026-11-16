@@ -12,8 +12,8 @@ Usage: python -m e7.routines.start_screen [--debug]
 
 The lobby counts only when no common popup is open: some show over the lobby
 with the barrel still matching through the dim. A popup is left open and the
-routine returns False; the lobby routine, which hands over to this one, closes
-it and looks again.
+routine returns True, its part done; the lobby routine, which hands over to
+this one and runs after it, closes it and looks again.
 """
 
 import sys
@@ -32,7 +32,8 @@ BARREL = START / "lobby" / "info_lobby_barrel_1240-140-80-120.png"
 
 
 def run(appear=60, taps=3, delay=3, load=30):
-    """Return True once past the start screen and the lobby shows, False otherwise.
+    """Return True once past the start screen, with the lobby showing or a popup
+    open for the lobby routine to close; False otherwise.
 
     appear: seconds to wait for the start screen (or the lobby) to show up.
     taps: maximum taps on the start screen.
@@ -95,7 +96,7 @@ def _look(states=("popup", "start", "lobby")):
 def _report(state):
     if state == "popup":
         log.info("popup open, returning to caller")
-        return False
+        return True
     log.info("in lobby")
     return True
 

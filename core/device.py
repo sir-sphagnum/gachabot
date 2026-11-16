@@ -344,9 +344,10 @@ def run_to_lobby(game):
     package name has no routines here.
 
     The lobby routine runs whatever start_screen returned: start_screen
-    returns False when a popup is open after START (a game's first launch of
-    the day shows several), and the lobby routine is the one that closes them.
-    From the lobby it returns at once."""
+    leaves any popup open after START (a game's first launch of the day
+    shows several) for the lobby routine to close, and fails only when it
+    could not get past the start screen. From the lobby, lobby returns at
+    once."""
     if game not in GAMES:
         return None
     module = f"{game}.routines"
