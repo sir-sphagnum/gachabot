@@ -69,10 +69,10 @@ A 3D island with the player's buildings (Dust Bell Tower, Paleohall, Sharpodonty
 
 The story hub: "The Living and the Rest" at the top left, a row of chapter posters, a reward counter (gift icon, "351/430") at the top right, and a tab bar at the bottom (Story, Reflections, Anecdote, Resource, Insight, Artificial Somnambulism, The Window to Other Worlds, Wanderings). Back and Home at the top left. Opened by the "Enter the Show" ticket under the event banner on the lobby (`btn_lobby_show_1412-442-350-122.png`: 1.00 on the lobby, at most 0.18 elsewhere). The ticket sits under the current event's banner, so it may move or change when the event ends.
 
-- It always opens on the Story tab (three entries in a row), whichever tab was open when it was left. So a routine for another tab taps that tab after every entry.
-- The Story tab's row (a main-story card, then the chapter posters) doesn't always open at the same scroll: one entry showed the title at x≈190 and In Our Time cut off at the left edge, the next the title at x≈375 and In Our Time whole at x≈647. So both are searched anywhere.
-- Identified by the "The Living and the Rest" title (`info_show_title_190-140-510-60_anywhere.png`: 1.00 and 0.98 at the two scrolls, at most 0.31 elsewhere). The title is the Story tab's latest chapter, so it may change when a new chapter comes out.
-- The tab bar is the same on every tab; only the chosen tab's colour and underline change. The Resource tab (`btn_show_resource_692-935-132-100.png`) scores 0.61 on the Resource tab itself, so the tabs never identify which tab is open.
+- It always opens on the Story tab, whichever tab was open when it was left. So a routine for another tab taps that tab after every entry.
+- The Story tab opens at one of two levels: the volume list (three volume posters: The Living and the Rest, The Journey Back, The Roots of the Tale) or inside "The Living and the Rest" (its title at the top left, a main-story card, then the chapter posters, at varying scroll). Which one shows on entry hasn't been pinned down. In Our Time is only on the inner level, so `goto in-our-time` (and fight_boss) needs that level; its route doesn't yet tap through the volume list.
+- Identified by the chosen Story tab with its orange underline (`info_show_story-tab_80-935-160-115.png`: 1.00 at both levels, at most 0.42 elsewhere, the unchosen Story tab on the Resource tab). The chapter title isn't used: the volume list doesn't show it.
+- The tab bar is the same on every tab; only the chosen tab's colour, scribble and underline change. The Resource tab button (`btn_show_resource_695-993-126-44.png`) is cut to the word: its icon turns red when something there is pending, which broke a crop with the icon. It scores 1.00 and 0.99 on show's two levels and 0.88 on the Resource tab itself, so it never identifies which tab is open.
 - Home (186, 42) scores 0.94–0.99 on show, resource, both stage screens and wilderness (same art everywhere: common: Shared buttons). It's tapped only once the menu is known.
 
 ## in-our-time (`re1999/templates/start-screen/lobby/show/in-our-time/`)
@@ -103,10 +103,11 @@ The fight: Wave and Round at the top left, the boss's HP bar at the top, three d
 
 ## resource (`re1999/templates/start-screen/lobby/show/resource/`)
 
-The Resource tab of show: a row of resource-stage records (Pneuma Analysis, The Poussiere, Mintage Aesthetics cut off at the right; more may be further right) over a grey sketch background, with "In-depth Analysis Chances: 2" under Pneuma Analysis.
+The Resource tab of show: a scrolling row of resource-stage records (Pneuma Analysis, The Poussiere, Mintage Aesthetics, Harvest Prime) over a grey sketch background, with "In-depth Analysis Chances: n" under Pneuma Analysis. It opens scrolled to the left end.
 
-- Identified by the "In-depth Analysis Chances:" label (`info_resource_analysis-chances_290-795-350-45.png`, cut left of the count: at most 0.48 elsewhere).
-- Pneuma Analysis (`btn_resource_pneuma-analysis_160-290-560-440.png`, at most 0.31 elsewhere) and The Poussiere (`btn_resource_the-poussiere_975-290-555-440.png`, at most 0.23 elsewhere) open their stage screens. Whether the row scrolls, and so whether they keep these spots, wasn't tried.
+- Identified by the chosen Resource tab with its underline (`info_resource_resource-tab_680-935-160-115.png`: 1.00 on three Resource captures, at most 0.55 elsewhere), and by the "In-depth Analysis Chances:" label (`info_resource_analysis-chances_290-795-350-45.png`, cut left of the count: at most 0.48 elsewhere) while that's at its spot.
+- The row reorders: with chances left Pneuma Analysis is first, with the label at (290, 795); once they're spent (0) it moves to the end, after Harvest Prime, and The Poussiere is first. So the label at its spot means chances are left, and the Pneuma Analysis and The Poussiere buttons below only hold while Pneuma has chances.
+- Pneuma Analysis (`btn_resource_pneuma-analysis_160-290-560-440.png`, at most 0.31 elsewhere) and The Poussiere (`btn_resource_the-poussiere_975-290-555-440.png`, at most 0.23 elsewhere) open their stage screens.
 
 ## pneuma-analysis and the-poussiere (`…/show/resource/pneuma-analysis/`, `…/the-poussiere/`)
 
@@ -115,3 +116,14 @@ Stage select for one resource: a full-screen scene (rainy street; overgrown junk
 - pneuma-analysis is identified by the Psychube Shop button at the top right (`info_pneuma-analysis_psychube-shop_1700-30-190-80.png`: at most 0.16 elsewhere), which the-poussiere doesn't have.
 - the-poussiere is identified by its focused stage label, "The Poussiere VI" (`info_the-poussiere_stage-label_560-870-335-55.png`: at most 0.30 elsewhere). The label is the stage the timeline opens on, so it breaks once a new stage is reached or the timeline is scrolled; the scene has nothing fixed to use instead.
 - The scenes are animated (rain, butterflies), so nothing on them is matched.
+- pneuma-analysis **stage**: tapping the "Pneuma Analysis VII" label (`btn_pneuma-analysis_stage-vii_560-872-400-55_anywhere.png`, anywhere since the timeline opens on the newest stage: at most 0.46 elsewhere) opens the stage panel at the right: "In-depth Analysis Chances: n" at the top, PA 07, Recommended Insight II Level 40, the special drops, and Start costing one chance (`btn_pneuma-analysis_battle-prep-pneuma_1560-890-110-52.png`, cut to the word: at most 0.24 elsewhere). Start opens battle-prep-pneuma and spends nothing yet.
+
+## battle-prep-pneuma (`…/pneuma-analysis/battle-prep-pneuma/`)
+
+Pneuma Analysis's team screen: the same layout and art as In Our Time's battle-prep, so its Goals and replay line (`…/in-our-time/battle-prep/info_battle-prep_goals_…`, `info_battle-prep_replay-text_…`) match here too (0.98–1.00, 0.96) and fight_boss's constants are reused. The fight and VICTORY screens are In Our Time's battle too (replaying 1.00, victory title 0.99).
+
+- Identified by "In-depth Analysis Chances: 2 -1" at the top right (`info_battle-prep-pneuma_chances_1378-30-430-40.png`: 1.00 outside x4, at most 0.29 elsewhere). At x4 the stamina counter pushes it left, and with no chances it's gone, so it identifies the menu only before x4 is picked.
+- The play icon (`btn_battle-prep-pneuma_replay_940-945-66-78.png`, at most 0.20 elsewhere) sits right of In Our Time's. It turns on replay mode: "Recorded Rounds: 4", a count box and "Lv.1 Replay" for one chance.
+- The count box (`btn_battle-prep-pneuma_replay-count_1205-950-125-70.png`, also 1.00 on In Our Time's replay screen) opens a list x4/x3/x2/x1; x4 (`btn_battle-prep-pneuma_replay-x4_1245-600-45-45.png`, at most 0.38 elsewhere) sets it. "x4" in the box (`info_battle-prep-pneuma_replay-x4-set_1225-960-60-50.png`: 1.00 at x4, 0.60 at x1) tells x4 is on; it stays on after a fight.
+- At x4 the button reads "Lv.4 Replay": one fight with x4 rewards (PA VII: EXP+500, 14 and 18 of the two fixed drops, more), for "Chances: 2 -2" and 50 stamina. With 0 chances, x4 costs 100 stamina. The button (`btn_battle-prep-pneuma_battle_1555-955-240-55.png`) scores 0.92 at x1, so the x4 check comes first. The replay took ~40 s.
+- `re1999/routines/pneuma_analysis.py` (`python -m re1999.bot pneuma_analysis`) goes to resource, and if the chances label is there, replays PA VII at x4 and goes Home; with no chances it goes Home and returns True. Only the no-chances path has run as a routine so far; the x4 replay was run by hand.

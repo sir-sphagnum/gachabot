@@ -50,16 +50,16 @@ def run():
         return False
     if not tap_until(STAGE, HARD):
         log.error("Heaven Apostles stage panel not opened")
-        return _home(False)
+        return home(False)
     hit = locate(HARD, capture())
     if not hit:
         log.error("Hard not on the stage panel")
-        return _home(False)
+        return home(False)
     tap(hit[0], hit[1])
     time.sleep(HARD_WAIT)
     if not tap_until(START, GOALS, delay=3):
         log.error("battle-prep not reached")
-        return _home(False)
+        return home(False)
     # battle-prep opens in replay mode once a replay has run there, and the
     # play icon only shows outside it.
     screen = capture()
@@ -67,26 +67,26 @@ def run():
         log.debug("battle-prep already in replay mode")
     elif not locate(REPLAY_MODE, screen):
         log.warning("no replay icon on battle-prep, nothing replayed")
-        return _home(False)
+        return home(False)
     elif not tap_until(REPLAY_MODE, REPLAY_TEXT):
         log.error("battle-prep not in replay mode")
-        return _home(False)
+        return home(False)
     # Few tries and a long delay: every Replay tap that lands spends stamina,
     # and the fight takes a few seconds to load after it.
     if not tap_until(REPLAY, [REPLAYING, VICTORY], delay=8, tries=2):
         log.warning("replay didn't start (stamina under 14?), nothing replayed")
-        return _home(False)
-    if not _wait_victory():
+        return home(False)
+    if not wait_victory():
         log.error(f"no victory screen within {FIGHT_TIMEOUT} s")
         return False
     log.info("Heaven Apostles (Hard) replayed")
     if not tap_until(CLOSE_VICTORY, GOALS, delay=8, tries=3):
         log.error("battle-prep not back after the victory screen")
         return False
-    return _home(True)
+    return home(True)
 
 
-def _wait_victory():
+def wait_victory():
     """Wait for the victory screen. True once it shows."""
     end = time.monotonic() + FIGHT_TIMEOUT
     while time.monotonic() < end:
@@ -96,7 +96,7 @@ def _wait_victory():
     return False
 
 
-def _home(result):
+def home(result):
     """Go to the lobby, then return `result` (False if the lobby isn't reached)."""
     if not tap_until(HOME, lobby.CREW, delay=8):
         log.error("lobby not reached")
