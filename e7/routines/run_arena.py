@@ -2,8 +2,11 @@
 
 Usage: python -m e7.routines.run_arena [--fights N] [--debug]
 
-1. Go to arena, the opponent list (core.nav.goto).
+1. Go to arena-landing (core.nav.goto) and tap its Arena card until arena,
+   the opponent list, or the Weekly Rank Reward Selection popup shows.
 2. Until the top bar's flag counter shows 0 (or N fights are done):
+   - if the Weekly Rank Reward Selection popup is open (first entry of the
+     week), tap the skystone tile until its gold frame shows, then Receive;
    - pick the first opponent row that isn't red (an opponent already fought
      this list). If all three are red, tap Refresh while it shows "Free" and
      Confirm its dialog while Confirm says Free (else Cancel and stop); if
@@ -37,9 +40,11 @@ from e7.routines import lobby
 log = logger(__file__)
 
 MENU = "arena"
+LANDING = "arena-landing"
 ARENA = TEMPLATES_DIR / "start-screen" / "lobby" / "main-menu" / "arena-landing" / MENU
 TEAM = ARENA / "arena-team"
 BATTLE = TEAM / "arena-battle"
+CARD = ARENA.parent / "btn_arena-landing_arena_650-985-110-45.png"  # opens arena
 DEFENSE = ARENA / "info_arena_defense-team_125-785-210-50.png"       # identifies arena
 REFRESH_FREE = ARENA / "info_arena_refresh-free_1310-150-90-50.png"  # "Free" on Refresh
 # Refresh's dialog: "Would you like to refresh the opponent?", Cancel and a
@@ -49,6 +54,13 @@ REFRESH_QUESTION = ARENA / "info_arena_refresh-question_695-405-530-50.png"
 REFRESH_CONFIRM_FREE = ARENA / "info_arena_refresh-confirm-free_960-722-150-50.png"
 REFRESH_CONFIRM = ARENA / "btn_arena_refresh-confirm_1140-715-180-65.png"
 REFRESH_DIALOG = dialog(REFRESH_QUESTION, ARENA / "btn_arena_refresh-cancel_600-710-255-75.png")
+# Weekly Rank Reward Selection: two reward tiles and Receive, which stays dim
+# until a tile is chosen. It dims arena so far that Defense Team scores 0.14
+# under it, so goto(arena) can't reach arena while it's open. The user takes
+# skystones (left tile).
+WEEKLY_TITLE = ARENA / "info_arena_weekly-reward-title_635-250-650-65.png"
+SKYSTONE = ARENA / "btn_arena_weekly-reward-skystone_775-525-125-100.png"
+RECEIVE = ARENA / "btn_arena_weekly-reward-receive_880-775-160-50.png"
 CHALLENGE = ARENA / "btn_arena_arena-team_775-950-365-85.png"
 START = TEAM / "btn_arena-team_arena-battle_1180-960-180-65.png"     # "Start", without the flag count
 # Start with no flags opens Purchase Flags. Its Buy spends crystals, so the
@@ -71,6 +83,10 @@ RED_MIN = 25
 # Matching can't tell them apart (0.97 dim).
 CHALLENGE_BOX = (800, 960, 315, 65)
 LIT_MIN = 20
+# The chosen tile gets a gold frame: red minus blue over its top edge is
+# +51 chosen, -29 not.
+PICKED_BOX = (760, 486, 150, 7)
+PICKED_MIN = 10
 
 # The flag-0 image matches white-only: 0.94-1.00 on "0/5", 0.75-0.77 on 10, 9
 # and 8 (rounded digits), so it needs more than the usual 0.85. 2-6 weren't
@@ -112,10 +128,9 @@ def _fights(fights, delay, tries):
     if fights is None and zero is None:
         log.error("no flag-0 image and no fight count, not starting")
         return False
-    if not goto(GAME, MENU):
-        log.error(f"{MENU} not reached")
-        return False
     popups = game_popups(GAME)
+    if not _enter(popups, delay, tries):
+        return False
     done = 0
     while fights is None or done < fights:
         # Refresh's dialog left open closes like a popup here, but not in
@@ -123,6 +138,10 @@ def _fights(fights, delay, tries):
         screen = _clear({**popups, "refresh": REFRESH_DIALOG}, delay, tries)
         if screen is None:
             return False
+        if locate(WEEKLY_TITLE, screen):
+            if not _weekly_reward(popups, delay, tries):
+                return False
+            continue
         if not locate(DEFENSE, screen):
             log.error(f"{MENU} not on screen")
             return False
@@ -149,6 +168,48 @@ def _fights(fights, delay, tries):
         log.info(f"fight {done} done")
     log.info(f"{done} fights done")
     return True
+
+
+def _enter(popups, delay, tries):
+    """Go to arena. True once arena or the weekly reward popup over it shows."""
+    if not goto(GAME, LANDING):
+        log.error(f"{LANDING} not reached")
+        return False
+    if not tap_until(CARD, [DEFENSE, WEEKLY_TITLE], delay, tries, popups=popups):
+        log.error(f"{MENU} not reached")
+        return False
+    return True
+
+
+def _weekly_reward(popups, delay, tries):
+    """Take skystones from the Weekly Rank Reward Selection popup. True once
+    it's closed and arena shows."""
+    log.info("weekly rank reward open, taking skystones")
+    for attempt in range(1, tries + 1):
+        screen = capture()
+        if _picked(screen):
+            break
+        hit = locate(SKYSTONE, screen)
+        if not hit:
+            log.error("skystone tile not on screen")
+            return False
+        x, y = tap(*hit[:2])
+        log.debug(f"skystone tap {attempt}/{tries} at ({x}, {y})")
+        wait_until(lambda: _picked(capture()), delay)
+    else:
+        if not _picked(capture()):
+            log.error(f"skystones not chosen after {tries} taps")
+            return False
+    if not tap_until(RECEIVE, DEFENSE, delay, tries, popups=popups):
+        log.error(f"{MENU} not back after Receive")
+        return False
+    log.info("weekly rank reward received")
+    return True
+
+
+def _picked(screen):
+    r, _, b = _mean(screen, PICKED_BOX)
+    return r - b >= PICKED_MIN
 
 
 def _clear(popups, delay, tries):
