@@ -127,7 +127,7 @@ The Poussiere's team screen, laid out like battle-prep-pneuma with no chances li
 - The count box, x4 and the "x4" set check (`btn_…_replay-count_1205-950-125-70.png`, `btn_…_replay-x4_1245-600-45-45.png`, `info_…_replay-x4-set_1225-960-60-50.png`: 1.00 at x4, 0.60 at x1) are at Pneuma's spots. x4 stays on after the fight.
 - At x4 the button reads "-100 Lv.4 Replay" (`btn_battle-prep-poussiere_battle_1555-955-240-55.png`, 0.92 at x1, so the x4 check comes first). The x4 run of LP 06 gave EXP+1000, Dust 50000 and 1000 Sharpodonty; the replay took ~33 s to VICTORY.
 - What Replay does with under 100 stamina is untested (it may offer to buy stamina), so the routine taps it once only.
-- `re1999/routines/poussiere.py` (`python -m re1999.bot poussiere`) goes to resource, replays LP 06 at x4 for 100 stamina and goes Home. Each call spends 100 stamina. The run was done by hand step by step; the routine itself hasn't run yet.
+- `re1999/routines/poussiere.py` (`python -m re1999.bot poussiere`) goes to resource, replays LP 06 at x4 for 100 stamina and goes Home. Each call spends 100 stamina. Its first run took ~70 s from the lobby back to the lobby, with battle-prep already in replay mode at x4 (both stick), so the count steps were skipped; they ran only by hand.
 
 ## level-up popup (`re1999/templates/common/popups/level-up/`)
 
