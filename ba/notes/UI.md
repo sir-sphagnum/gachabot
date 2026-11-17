@@ -21,10 +21,21 @@ The home screen: player level top left, AP, credits and pyroxene top centre, sho
 - The HUD hides when the lobby sits idle (within a few minutes; the delay wasn't timed): the art alone shows, zoomed in (`screen-rest.png`), and Campaign stops matching. Back does nothing there (10 presses, still idle). A tap on the art at (1500, 600) brings the HUD back.
 - The idle lobby is identified by the hanging sign top right (`info_lobby_rest-sign_1530-90-320-370.png`): 1.00 on three idle captures, at most 0.47 elsewhere (0.47 on the lobby with its HUD up, whose framing differs). It is one of the lobby's identifiers, so `where` names an idle lobby as the lobby; the lobby routine wakes it before anything taps the HUD. Tested from the idle lobby: woken in one tap, lobby reached 10 s later (4 s of it the popup watch). Only this lobby art is known: another memorial lobby would need its own image.
 - Not seen yet: what Back does on the lobby with its HUD up (a quit prompt?).
-- The Tasks shortcut is probably the daily missions (common: Daily missions); not mapped yet, so ba has no `claim_dailies`.
+- The Tasks shortcut (`btn_lobby_tasks_44-378-62-30.png`, the label without its N/8 badge) opens tasks, with no load: at most 0.60 elsewhere.
 - Automated by `ba/routines/lobby.py` (`python -m ba.bot lobby`). After a load or a popup close it watches 4 s more before counting the lobby as reached, since news shows ~2 s after Campaign. Run from the news popup, it closed news and reached the lobby. On later launches, news closed with no new-products after it.
 - Tested after a BlueStacks restart: two cold starts (`start start_screen`, then `lobby`) each ended in the lobby, 37 s and 34 s after launch; and `python -m ba.bot start lobby` alone waited out the launch (the "Now Loading" template also matches the launch loads), handed over at the start screen, closed news and reached the lobby 32 s after launch. Not tested yet: from a menu a few taps deep.
 - The first launch of a day shows, after TOUCH TO START and before the lobby, a banner and then one login board after another (2026-11-16: live-stream banner, Daily Attendance, 5-Year Anniversary, Back to Work), then a dark fade into the idle lobby. Back on them only toasts "Unavailable right now." Both are common popups (banner, login-board below), so start_screen and lobby close them like news. They're popups, not lobby states, because they show before the lobby is drawn (common: First of the day or week). Not tested yet on a real new day: the images were cut from that day's captures, and the boards were passed by hand then.
+
+## tasks (`ba/templates/start-screen/lobby/tasks/`)
+
+The daily missions (common: Daily missions). Reached from the lobby's Tasks shortcut, no load. Tabs All, Daily, Weekly, Achievement, Challenges (red dots on the ones with rewards waiting); a list of task rows, each with a reward and a yellow Claim or a blue Shortcut; a bottom bar with the "Complete at least 8 Daily Task(s)" milestone (N/8, its own Claim) and Claim All. Home (`btn_tasks_lobby_1830-12-54-46.png`) goes to the lobby with no load; once it was ignored and a second tap took.
+
+- Identified by the "Tasks" title (`info_tasks_title_158-14-116-48.png`): at most 0.22 on every other capture. It scores 1.00 under the mailbox and reward popups, so popups are checked first (Rule 1).
+- Opens on the All tab, which lists the daily rows with the others, so no tab is picked.
+- Claim All (`btn_tasks_claim-all_1570-962-312-88.png`) claims the ready rows but not the milestone. Its claim can complete "Complete at least 5 Daily Task(s)", which lights Claim All again, so it was tapped twice. Grey Claim All scores 0.84 on the template, so colour decides (common: Lit or grey): mean red minus blue over it is +168 yellow, −2 grey.
+- First Claim All opened the mailbox popup, then the reward popup; the second went straight to the reward popup.
+- The milestone Claim (`btn_tasks_milestone-claim_1388-962-146-84.png`) paid 20 pyroxene at once, with no popup, and turned grey "Complete": +164 yellow, −8 grey.
+- Automated by `ba/routines/claim_dailies.py` (`python -m ba.bot claim_dailies`): Claim All while yellow, then the milestone while yellow, then Home. Written from the 2026-11-17 claim; not run yet.
 
 ## cafe (`ba/templates/start-screen/lobby/cafe/`)
 
@@ -286,6 +297,13 @@ Full-screen student art with a heart rank, "Relationship rank up!" and the stat 
 
 - Identified by "REWARD ACQUIRED!" (`info_reward_reward-acquired_556-200-590-78.png`, cropped short of the sparkle on its right end): at most 0.07 elsewhere.
 - Closed by tapping "TOUCH TO CONTINUE" (`btn_reward_close_740-925-440-46.png`, centre (960, 948)): at most 0.19 elsewhere. It went back to the dialog it was opened from.
+
+## mailbox popup (`ba/templates/common/popups/mailbox/`)
+
+"Notice" / "The acquired item will be sent to your mailbox as you have reached the ownership limit. Please check your mailbox." with Confirm and an X, over the reward popup. Seen after tasks' Claim All, the first one only; likely after any claim of an item at its limit.
+
+- Identified by its first line (`info_mailbox_message_624-404-668-50.png`): at most 0.25 elsewhere. Not by "Notice", which several dialogs share (common: Shared buttons).
+- Closed by Confirm (`btn_mailbox_close_780-706-358-102.png`): at most 0.25 elsewhere. The reward popup shows under it.
 
 ## news popup (`ba/templates/common/popups/news/`)
 

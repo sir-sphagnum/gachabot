@@ -15,10 +15,11 @@ starting the game, and core.nav loads ba/routines/lobby.py by name, so
 keep both names.
 """
 
-from ba.routines import (bounty, cafe, lesson, lobby, scrimmage, start_screen, sweep_hard,
-                         tactical_challenge)
+from ba.routines import (bounty, cafe, claim_dailies, lesson, lobby, scrimmage, start_screen,
+                         sweep_hard, tactical_challenge)
 
 ROUTINES = {"start_screen": start_screen.run, "lobby": lobby.run, "cafe": cafe.run,
+            "claim_dailies": claim_dailies.run,
             "lesson": lesson.run, "sweep_hard": sweep_hard.run,
             "bounty": bounty.run, "scrimmage": scrimmage.run,
             "tactical_challenge": tactical_challenge.run}

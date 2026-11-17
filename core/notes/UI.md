@@ -26,9 +26,9 @@ Seen on e7's Cultivate, secret-shop's Buy, arena's Challenge and lost rows, orbi
 
 ## Daily missions
 
-Every game is assumed to have a daily-missions menu, and each one gets a `claim_dailies` routine (`python -m <game>.bot claim_dailies`) that only claims and never works on the missions. So far: e7's orbis-guide (Three Sisters' Diary), re1999's tasks (Daily Activeness tab); ba's Tasks shortcut on the lobby isn't mapped yet.
+Every game is assumed to have a daily-missions menu, and each one gets a `claim_dailies` routine (`python -m <game>.bot claim_dailies`) that only claims and never works on the missions. So far: e7's orbis-guide (Three Sisters' Diary), re1999's tasks (Daily Activeness tab), ba's tasks (Claim All, then the milestone's own Claim).
 
-- **One tap claims everything.** e7's 100 chest claims every ready chest on the bar; re1999's Claim All claims every finished task and milestone. The routine taps that one control, not each row.
+- **One tap claims everything.** e7's 100 chest claims every ready chest on the bar; re1999's Claim All claims every finished task and milestone. The routine taps that one control, not each row, and taps it again while it's still lit: ba's Claim All can complete a "claim N tasks" task, which lights it again, and leaves the milestone on the bottom bar to its own Claim.
 - **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner is there only then. So "not there" or "not lit" means already claimed or not earned yet, and the routine counts it as success, not failure.
 - **A claim opens a reward dialog** listing the items (e7: the menu's own reward state, closed by its shared "Tap to close"; re1999: the common obtained popup). When it's one of the game's common popups, the claim tap runs with `popups=False`, or `tap_until` closes it as an obstruction and keeps tapping.
 - **The menu may open on another tab or section**, so the routine picks the daily one after every entry (re1999 opens on a tab with rewards waiting, Weekly once Daily is claimed).
