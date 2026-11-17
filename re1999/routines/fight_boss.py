@@ -2,7 +2,10 @@
 
 Usage: python -m re1999.routines.fight_boss [--debug]
 
-From in-our-time (show > In Our Time) the routine taps the Heaven Apostles
+show's Story tab opens either on the volume list or inside "The Living and
+the Rest" scrolled to its end, so the routine goes to show, taps the volume
+poster if it is there, and swipes the chapter row back until the In Our Time
+poster shows (notes/UI.md, show). From in-our-time the routine taps the Heaven Apostles
 label on the stage timeline, which opens the stage panel; Hard, then Start,
 opens battle-prep. The play icon left of Team 1 switches battle-prep to
 replay mode, whose green "Lv.1 Replay" runs the recorded fight at x1 for 14
@@ -16,7 +19,7 @@ each tap that lands spends 14 stamina.
 import sys
 import time
 
-from core.input import capture, tap
+from core.input import capture, swipe, tap
 from core.log import logger, setup
 from core.nav import goto, locate, tap_until
 from re1999.config import GAME, TEMPLATES_DIR
@@ -24,7 +27,13 @@ from re1999.routines import lobby
 
 log = logger(__file__)
 
-IN_OUR_TIME = TEMPLATES_DIR / "start-screen" / "lobby" / "show" / "in-our-time"
+SHOW = TEMPLATES_DIR / "start-screen" / "lobby" / "show"
+VOLUME = SHOW / "btn_show_living-and-rest-volume_148-818-400-58.png"
+POSTER = SHOW / "btn_show_in-our-time_767-316-160-452_anywhere.png"
+IN_OUR_TIME = SHOW / "in-our-time"
+TRAIL = IN_OUR_TIME / "info_in-our-time_trail-icon_478-40-66-66.png"
+ROW_SWIPE = (400, 550, 1500, 550)  # left to right across the chapter row: scrolls it back
+ROW_SWIPES = 6  # one swipe brought In Our Time in from the row's end
 PREP = IN_OUR_TIME / "battle-prep"
 BATTLE = PREP / "battle"
 STAGE = IN_OUR_TIME / "btn_in-our-time_heaven-apostles_558-864-336-50_anywhere.png"
@@ -43,9 +52,25 @@ FIGHT_TIMEOUT = 180  # seconds; a replay took ~50
 FIGHT_POLL = 3
 
 
+def _open_in_our_time():
+    """Go to show and open In Our Time from whichever Story level shows."""
+    if not goto(GAME, "show"):
+        return False
+    # The poster's spot is a chapter poster inside the volume, so it is retapped
+    # only while the volume list still shows.
+    if locate(VOLUME, capture()) and not tap_until(VOLUME, [lambda s: not locate(VOLUME, s)], delay=2):
+        return False
+    for _ in range(ROW_SWIPES):
+        if locate(POSTER, capture()):
+            return tap_until(POSTER, [TRAIL], delay=2)
+        swipe(*ROW_SWIPE, 600)
+        time.sleep(1.5)
+    return False
+
+
 def run():
     """Return True once the replay is won and the lobby is up."""
-    if not goto(GAME, "in-our-time"):
+    if not _open_in_our_time():
         log.error("in-our-time not reached")
         return False
     if not tap_until(STAGE, HARD):

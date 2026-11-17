@@ -11,6 +11,7 @@ The title screen ("Tap to Start"). Its one indicator is also its button: the cop
 - After a BlueStacks restart (`python -m core.device restart e7`) the start screen showed a **Login** button (bottom centre) instead of "Tap to Start". After the third restart within a few minutes, a Google Play dialog sat over it: "You already have a game running with your Google Play account. Continue playing?" with "Use another account" and "Continue with existing account". Neither is mapped yet, and `start_screen` doesn't handle them.
 - Automated by `e7/routines/start_screen.py` (`python -m e7.bot start_screen`).
 - E7 can end up in a window instead of fullscreen: after BlueStacks was restored, and after Android Back (not E7's Escape) dropped it to the home screen and it was reopened from the dock. Windowed, the layout is stretched or framed differently and nothing matches. `python -m core.device fullscreen` puts it back (`check_focus` names it when a routine starts windowed).
+- After a BlueStacks restart E7 can come up laid out for the wrong size (common: Wrong layout): the copyright line ~18% smaller (this template scores ~0.15), the lobby's left column and top-right icons cut off at the edges, so the main-menu tap lands on Mail. Seen twice in a row, right on the third restart.
 
 ## lobby (`e7/templates/start-screen/lobby/`)
 
@@ -259,3 +260,10 @@ Task `check-background-status` (`e7/routines/check_background_status.py`, `pytho
 - Identified by its message (`info_disconnected_message_590-460-740-50.png`): 1.0 on the popup, at most 0.39 elsewhere (the lobby's quit dialog).
 - Closed by tapping "Tap to close" (`btn_disconnected_close_860-643-200-90.png`, centre (960, 688)), higher up than date-changed's, so each popup has its own close button.
 - Closing it goes to the start screen.
+
+## web-notice popup (`e7/templates/common/popups/web-notice/`)
+
+An in-game web page (event or banner art, or a blank page with a spinner while it loads) in a frame with an X at the top right and a black footer bar: back/forward/refresh/home at the left, "Do not show this again for 1 days." with a tick at the right. Shown over the lobby after launch, sometimes a few seconds after the lobby routine has finished; Back doesn't close it, so the lobby's Back presses run out on it.
+
+- Identified by the footer's "Do not show this again for 1 days." (`info_web-notice_dont-show_1440-985-320-40.png`): 1.00 over the art and over the blank loading page, at most 0.45 elsewhere.
+- Closed by the X (`btn_web-notice_close_1846-47-50-50.png`, centre (1871, 72)): 1.00 / 0.96, at most 0.45 elsewhere. One tap closes it and leaves the lobby.

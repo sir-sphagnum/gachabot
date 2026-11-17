@@ -68,6 +68,14 @@ Every game shows screens only on the first launch of a day, or the first entry o
 - Their art changes with events, so they're identified by what stays: ba's login boards by the classroom behind every board, not by a board's title.
 - Back often does nothing on them (ba: "Unavailable right now."), so a lobby routine's Back presses don't get past them.
 
+## Wrong layout
+
+After a BlueStacks restart a game can come up fullscreen at the right resolution (`wm size` 1920x1080, density 240) but laid out for another size: everything a little scaled, the UI cut off at the screen edges, taps landing on the wrong control. Probably BlueStacks' display not being settled when the game starts rather than the game itself, since it came and went across restarts with no game update between; seen so far on e7 only. Nothing matches then, so it reads as if the game had changed.
+
+- Before taking a menu as changed, compare the capture with its saved `screen.png`: one element differing is a change; the whole screen scaled or shifted is this.
+- The fix is `python -m core.device restart <game>`, repeated until the layout is right (e7 needed three). `core.device fullscreen` doesn't help: the game isn't floating.
+- Nothing is cut from a capture taken in this state, and templates already cut from one are deleted.
+
 ## BlueStacks memory
 
 BlueStacks' memory grows with every capture and every cold start (e7: 9.6 → 22 GB in ~45 min of two processes capturing each second; ba: ~4–5 GB per cold start). Past ~22 GB screencaps came back empty; with 0.2 GB free on the PC, ba's load stalled into its network-unstable popup. `python -m core.device health` says when a restart is due. Each `<game>.bot` runs its routines through `core.device.with_room`, which restarts BlueStacks (and the game, to its lobby) before a routine once it's over 18 GB, and once more, rerunning the routine, if it stops on blank screenshots.
