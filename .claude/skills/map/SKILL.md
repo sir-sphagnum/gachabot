@@ -97,7 +97,7 @@ A button the user wants kept but not tapped yet (its menu isn't mapped) is logge
 
 Anything else worth keeping for the notes (a menu's states, a quirk, a timing), log with `python -m tools.map note <text>` and move on.
 
-Between clicks, only `click`, `shot`, `leads`, `info`, `popup`, `state` and `note`. Don't run `finish`, crop, score images or pick identifying elements before the user says to stop: every capture stays in `recon/map/` until the next `start`, and the next click can show that a choice was wrong (a title the next menu shares). A request that lists its clicks doesn't end the session either. After its last click, report and wait.
+Between clicks, only `click`, `shot`, `leads`, `info`, `popup`, `state`, `note` and `sheet` (a contact sheet of captures, gridded in device pixels, for reading boxes). Don't run `finish`, crop, score images or pick identifying elements before the user says to stop: every capture stays in `recon/map/` until the next `start`, and the next click can show that a choice was wrong (a title the next menu shares). A request that lists its clicks doesn't end the session either. After its last click, report and wait.
 
 ## Stop: "end path" / "stop mapping"
 

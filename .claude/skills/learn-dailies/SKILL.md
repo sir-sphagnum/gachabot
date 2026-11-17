@@ -13,25 +13,29 @@ Run all commands from the project root.
 
 - The game has a lobby and a `start_screen` routine (new-game skill). If not, run new-game first.
 - Read `<game>/CLAUDE.md` and the notes it imports, `core/notes/dailies.md`, and the map and task skills (`.claude/skills/map/SKILL.md`, `.claude/skills/task/SKILL.md`): this skill uses their tools and their Stop steps.
-- Open the log: `python -m core.log start learn-dailies` (on `(inside <skill>)` from another conversation: `python -m core.log end --all`, then start again). Check `python -m core.device health`, and again every ~30 taps: exploring captures a lot (common: BlueStacks memory).
+- Open the log: `python -m core.log start learn-dailies` (on `(inside <skill>)` from another conversation: `python -m core.log end --all`, then start again). Check `python -m core.device health`, and again every ~30 taps: exploring captures a lot (common: BlueStacks memory). Over 18 GB, stop and ask to restart BlueStacks before the next tap: past ~22 GB screenshots come back blank mid-session.
 
 ## Rules for the taps you choose
 
 - Every tap you choose yourself goes through `python -m tools.map click … --auto`. `--auto` refuses a button or menu named with a word that can spend (`core.tree.SPEND_WORDS`: buy, start, confirm, sweep, battle, refresh…), so **name each button after its label**, as the map skill says. Never rename one to get past the check.
 - Before tapping, read the button's label and what's around it. A price, a currency icon, a stamina cost, a count that would go down, or a confirm dialog: don't tap. Put it in the plan (below) and wait for the user.
 - Never tap anything under "Never automatic" in `core/notes/dailies.md`, even with `--auto` allowing it.
+- Read a fresh capture before each tap (`python -m tools.map shot` when anything may have moved since the last one): a tap chosen from an old capture lands on whatever opened since. Read boxes off the full 1920x1080 capture or off `python -m tools.map sheet [CAPTURE...] [--box X Y W H]` (a grid labelled in device pixels), never off a preview you scaled yourself.
+- Act on every warning `click` prints before the next tap: the screen didn't change (drop the line), it still shows HERE (the tap was a `--stay`, or a dialog to log as a state), HERE is no menu `finish` will know, or BlueStacks is over its memory limit.
 - Come back from a menu with `python -m tools.map back`, never Back on the lobby itself (it opens the quit dialog: common: Lobbies).
 - A dialog or popup you don't know: don't close it by guessing. Note it (`python -m tools.map note`) with your guess of its kind (map skill, popup or dialog), close it with its own close or Cancel if it has one, otherwise stop and ask.
+
+The missions list says what to do, so it's read first and the lobby is explored only for what its rows leave open: exploring every lobby control first spends taps on menus that hold no daily (achievements, career, notification panels).
 
 ## 1. Survey the lobby
 
 1. `python -m core.nav <game> goto lobby`, then `python -m tools.map start <game>`; Read the capture.
 2. List every control you can see, with its label and box, and give each a guess from `core/notes/dailies.md`: missions, idle claim, limited attempts, stamina sink, social check-in, one of "Seen in one game", or nothing daily (settings, events, summon, shop). Show the list to the user in one message; don't wait for an answer unless something is unclear.
-3. Find the missions menu (`core/notes/dailies.md`, Missions claim: the labels to look for). If the lobby has none, look one menu deep in the likeliest hub (a Menu or main-menu button).
+3. Find the missions menu (`core/notes/dailies.md`, Missions claim: the labels to look for). If the lobby has none, look one menu deep in the likeliest hub (a Menu or main-menu button). Then go to step 3 (read the missions list) before step 2.
 
 ## 2. Explore
 
-For each lobby control guessed as a daily or a hub, in that order, up to ~15:
+After step 3, for each lobby control the missions rows point to that their Go buttons didn't reach, and each hub on a route a row needs, up to ~15:
 
 1. `python -m tools.map click lobby <menu-name> X Y W H --auto`, the name taken from its label. Read the after-capture.
 2. A new menu: `python -m tools.map leads <menu-name>` (`--after` once a load has passed, as in the task skill). Note in one line what it holds and which daily type it looks like. Look for the type's controls and its done signal (claim lit or grey, a count, a timer), and note them; don't tap them yet.
@@ -43,8 +47,9 @@ Go a level deeper only toward a daily (a hub that holds Campaign or Resource sta
 
 1. Open the missions menu (map it the same way). Pick its daily tab or section (common: Daily missions: it may open on another).
 2. Read every row: its words, progress (n/m), reward, and whether it has a Go / Shortcut. Scroll the list if it continues (`python -m core.input swipe X1 Y1 X2 Y2`, then `python -m tools.map shot`); log each scroll position as a note.
-3. For a row whose menu you didn't find in step 2 and that has a Go button: tap it with `--auto` (`python -m tools.map click missions go-<row> X Y W H --auto`), `leads` the menu it opens, and `back`. The Go button is the same art on every row and its row moves as rows complete, so it only shows where a daily lives. The route the bot walks is mapped from the lobby, not through Go.
-4. Close the session the way the map skill's Stop does (its steps 1–5: `log`, an identifier for each new menu, `finish`, fixing what it flags, the notes; leave this skill's log open): the task flow below starts its own session, which wipes `recon/map/`. The identifiers are yours to pick; ask only where no element sets a menu apart.
+3. For each row with a Go button whose menu you haven't seen: tap it with `--auto` (`python -m tools.map click missions go-<row> X Y W H --auto`), `leads` the menu it opens, and `back`. The Go button is the same art on every row and its row moves as rows complete, so it only shows where a daily lives. The route the bot walks is mapped from the lobby, not through Go.
+4. Open the missions menu a second time later in the session (after a claim, or after leaving with a row finished): it may open on another tab or sub-tab once rewards are waiting or one was used last, and its identifiers and the routine's tab picks must cover each.
+5. Close the session the way the map skill's Stop does (its steps 1–5: `log`, an identifier for each new menu, `finish`, fixing what it flags, the notes; leave this skill's log open): the task flow below starts its own session, which wipes `recon/map/`. The identifiers are yours to pick; ask only where no element sets a menu apart.
 
 ## 4. The plan
 
@@ -61,7 +66,14 @@ The daily missions as the game lists them, the routine that does each, and what 
 | Clear 3 stages 0/3 | stamina sink | the-stage | 3 x 10 stamina | — (asked) | |
 ```
 
-Cost is "none" or what one run spends, read from the screen. Then ask the user, in one message: which of the paid rows to automate and how much each may spend, and whether any free row should be left alone. This is the only approval for free rows; each paid row needs its own yes, and its amount goes into the table. Wait for the answer.
+Cost is "none" or what one run spends, read from the screen.
+
+Then choose the rows to propose:
+
+1. Drop rows whose mode needs many decisions made by hand rather than an auto or sweep mode: building a team, picking a doll or upgrade, a fight with no way to finish it unplayed, a map whose route is chosen node by node. List them under "Left out" with the reason.
+2. If the missions menu has an activity bar (points per row, chests at thresholds), the goal is its top chest, not every row: of the rows left, pick the cheapest set that reaches it, free rows first, then the cheapest paid ones. Rows past the goal go under "Left out" too.
+
+Then ask the user, in one message: which of the paid rows to automate and how much each may spend, and whether any free row should be left alone. This is the only approval for free rows; each paid row needs its own yes, and its amount goes into the table. Wait for the answer.
 
 ## 5. Each free daily
 
@@ -76,7 +88,15 @@ A row that turns out to cost something after all (a confirm dialog with a price)
 
 ## 6. Paid dailies
 
-For each paid row the user approved: map the route with `--auto` up to the spending control, then tap that control **without** `--auto`, only as far as the user's amount allows, once, and wait on the result (doc_policy Rule 2's scope: a tap that spends is never retapped). The type's "Finishing a fight without playing it" table says what to look for near Start. Then Task Stop as above.
+Never spend by hand while exploring. A daily allowance can't be redone the same day, so a spend made by hand leaves the routine with nothing to test until tomorrow.
+
+For each paid row the user approved:
+
+1. Map the route with `--auto` up to the spending control: the count to set, the dialogs before the spend, and the control that spends. Look at its label and the cost it shows, and log it with `info` instead of tapping it. The type's "Finishing a fight without playing it" table says what to look for near Start.
+2. Task Stop as above (steps 1–6): `finish`, then write the routine. The spend is one tap, never retapped (doc_policy Rule 2's scope), and the routine sets the amount the user approved and checks it on screen before that tap.
+3. Run the routine (`python -m <game>.bot <routine> --debug`): its first run is the spend and the test. The screens after the spend (a fight, a result dialog) aren't mapped yet, so the routine stops on the first one it doesn't know and saves it as its error screen. Map it from there (`tools.map start`, then `state` / `info` / its close), close it, finish the routine with it, and check the rest on the next day's run.
+
+While a fight or load runs, write the next routine or the notes instead of waiting on it.
 
 ## 7. Check against the missions list
 

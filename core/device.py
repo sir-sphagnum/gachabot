@@ -40,7 +40,6 @@ GAMES = {
     "chaoszero": "com.smilegate.chaoszero.stove.google",
     "re1999": "com.bluepoch.m.en.reverse1999",
     "ba": "com.nexon.bluearchive",
-    "nc": "com.sunborn.neuralcloud.en",
 }
 
 

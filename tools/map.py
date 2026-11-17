@@ -11,7 +11,8 @@ Usage: python -m tools.map start GAME
        python -m tools.map note TEXT...
        python -m tools.map log
        python -m tools.map finish
-       python -m tools.map score [MENU|IMAGE...]
+       python -m tools.map score [MENU|IMAGE...] [--in FOLDER]
+       python -m tools.map sheet [CAPTURE...] [--box X Y W H]
        python -m tools.map rename OLD NEW
 
 While mapping, nothing is cropped or checked: each command only captures and
@@ -31,6 +32,12 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         (core.tree.SPEND_WORDS); such taps wait for the user's word and run
         without --auto. The log line keeps "auto", so the steps Claude chose
         can be told from the user's.
+        After the tap it warns (printed and logged) when HERE is no menu finish
+        will know (not in the tree, not logged as a popup or opened by an
+        earlier click), when the screen didn't change, when it still shows
+        HERE's identifier though the click isn't --stay (a tab, claim or
+        dialog: log it --stay, and a dialog also as a state), and when
+        BlueStacks is over its memory limit (core.device.health).
 back    press the game's BACK_KEY (<game>/config.py), wait for the screen to
         settle and capture it; it becomes the current one. For coming back
         from a menu opened while exploring.
@@ -53,7 +60,14 @@ finish  crop every logged box into its menu folder, create new menus, check
         same box is cropped once, from its first tap.
 score   score images on every capture of this session and every saved screen:
         the images of the menus the log touches, or of the MENUs or IMAGE
-        paths given.
+        paths given. --in: score them on the PNGs in FOLDER instead of this
+        session's captures (a tools.recon recording, a probe's frames); with
+        IMAGE paths only it needs no mapping session.
+sheet   save recon/sheet.png: the CAPTUREs (default: the session's last 8),
+        4 to a row, each with its file name and a grid labelled in device
+        pixels (1920x1080), so a box can be read off a preview without
+        scaling by hand. --box: show only that part of each capture, larger.
+        CAPTURE is a file name in recon/map/ or any PNG path.
 rename  rename menu OLD to NEW in the session's game: its folder, the images
         named after it (its own and the buttons that open it) and the log.
 CAPTURE is a file name in recon/map/ (e.g. 04-shot.png).
@@ -74,7 +88,8 @@ from core.input import back as press_back, capture, tap
 from core.log import logger, setup
 from core.vision import crop, difference, find, fingerprint, is_black, save
 from core import tree
-from core.nav import locate
+from core.device import health as device_health
+from core.nav import identity as nav_identity, locate
 
 log = logger(__file__)
 
@@ -186,6 +201,35 @@ def click(here, target, box, fresh=False, stay=False, auto=False):
     still = "" if settled else " (still changing)"
     log.info(f"{here} {'/' if stay else '>'} {target} at ({tx}, {ty}), {after}{still}")
     print(f"Tapped ({tx}, {ty}); {after}{still}")
+    _warn_click(entries, here, stay, ROOT / before, img)
+
+
+def _warn(text):
+    print(f"  warning: {text}")
+    log.warning(text)
+
+
+def _warn_click(entries, here, stay, before, after):
+    """Print the warnings click() promises (see the module docstring)."""
+    menus, _ = tree.load(entries[0]["game"])
+    if not _known(entries, menus, here):
+        _warn(f"no menu '{here}' in the tree or opened earlier in the log: finish will skip this line")
+    elif before.exists() and difference(_fp(cv2.imread(str(before))), _fp(after)) <= SETTLED:
+        _warn("the screen didn't change: remove this line from the log, or tap again")
+    elif not stay and here in menus and any(locate(t, after) for t in nav_identity(menus, here)):
+        _warn(f"the screen still shows {here} (its identifier matches): if the tap kept the game there "
+              "(a tab, a claim, a dialog), log it --stay (a dialog also as a state)")
+    ok, message = device_health()
+    if not ok:
+        _warn(message)
+
+
+def _known(entries, menus, name):
+    """True when finish will have a folder for menu or popup `name`."""
+    if name in menus or name in tree.load_popups(entries[0]["game"])[0]:
+        return True
+    return any(e.get("popup") == name or (e.get("kind") == "btn" and not e.get("stay")
+                                         and e["name"] == name) for e in entries)
 
 
 def back():
@@ -208,6 +252,8 @@ def info(here, element, box, on=None):
     _append({"kind": "info", "here": here, "name": element, "box": box, "source": source})
     log.info(f"info {here}/{element} {box} on {source}")
     print(f"Logged info {element} on {here} from {source}")
+    if not _known(entries, tree.load(entries[0]["game"])[0], here):
+        _warn(f"no menu '{here}' in the tree or opened earlier in the log: finish will skip this line")
 
 
 def leads(menu, after=None):
@@ -450,16 +496,22 @@ def _score(match):
     return match[2] if match else 0.0
 
 
-def score(targets):
-    """Score images on every capture in recon/map/ and every saved screen*.png.
+def score(targets, folder=None):
+    """Score images on every capture in recon/map/ (or `folder`) and every
+    saved screen*.png.
 
     targets: menu names or image paths; none means every menu the log touches.
+    folder: score on the PNGs there instead of the session's captures; given
+    image paths only, no mapping session is needed.
     For each image prints the captures it matches (THRESHOLD or more) with
     their scores, the best score among the rest, and the best score on a saved
     screen outside its own menu folder, flagging a match there.
     """
-    entries = _entries()
-    game = entries[0]["game"]
+    if folder and targets and all((ROOT / t).is_file() for t in targets) and not LOG.exists():
+        entries, game = [], Path(targets[0]).parts[0]
+    else:
+        entries = _entries()
+        game = entries[0]["game"]
     menus, _ = tree.load(game)
     if not targets:
         targets = list(dict.fromkeys(n for e in entries if "kind" in e
@@ -472,7 +524,10 @@ def score(targets):
             images.append(ROOT / t)
         else:
             sys.exit(f"'{t}' is neither a menu of {game} nor an image")
-    captures = {p.stem: cv2.imread(str(p)) for p in sorted(DIR.glob("*.png"))}
+    source = ROOT / folder if folder else DIR
+    if not source.is_dir():
+        sys.exit(f"No folder {folder}")
+    captures = {p.stem: cv2.imread(str(p)) for p in sorted(source.glob("*.png"))}
     screens = {p: cv2.imread(str(p)) for p in sorted(templates_dir(game).rglob("screen*.png"))}
     for image in images:
         if not tree.ELEMENT.match(image.name):
@@ -492,6 +547,49 @@ def score(targets):
             flag = "  <-- matches" if s >= THRESHOLD else ""
             print(f"  saved screens elsewhere at most {s:.2f} ({_rel(p)}){flag}")
     log.info(f"scored {len(images)} images on {len(captures)} captures and {len(screens)} screens")
+
+
+SHEET = ROOT / "recon" / "sheet.png"  # outside recon/map/, whose PNGs are the captures
+TILE_W = 480  # pixels per preview on the sheet
+
+
+def sheet(names, box=None):
+    """Save SHEET: the captures `names` (default: the session's last 8), 4 to a
+    row, each labelled with its file name and a grid in device pixels."""
+    if names:
+        paths = [ROOT / n if (ROOT / n).is_file() else DIR / Path(n).name for n in names]
+    else:
+        paths = sorted(DIR.glob("*.png"))[-8:]
+    missing = [p for p in paths if not p.is_file()]
+    if missing or not paths:
+        sys.exit(f"No capture {missing[0].name}" if missing else f"No captures in {_rel(DIR)}/")
+    x0, y0, w, h = box or (0, 0, 1920, 1080)
+    scale = TILE_W / w
+    step = next((s for s in (20, 40, 80, 120, 240, 480) if s * scale >= 60), 480)
+    tiles = [_tile(p, x0, y0, w, h, scale, step) for p in paths]
+    while len(tiles) > 4 and len(tiles) % 4:
+        tiles.append(tiles[0] * 0)
+    rows = [cv2.hconcat(tiles[i:i + 4]) for i in range(0, len(tiles), 4)]
+    SHEET.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(SHEET), cv2.vconcat(rows))
+    log.debug(f"sheet of {len(paths)} captures, {_rel(SHEET)}")
+    print(_rel(SHEET))
+
+
+def _tile(path, x0, y0, w, h, scale, step):
+    """One preview: the box of `path`, scaled, with a grid every `step` device pixels."""
+    yellow, red, font = (0, 255, 255), (0, 0, 255), cv2.FONT_HERSHEY_SIMPLEX
+    tile = cv2.resize(cv2.imread(str(path))[y0:y0 + h, x0:x0 + w], (TILE_W, round(h * scale)))
+    for gx in range((x0 // step + 1) * step, x0 + w, step):
+        px = round((gx - x0) * scale)
+        cv2.line(tile, (px, 0), (px, tile.shape[0]), yellow, 1)
+        cv2.putText(tile, str(gx), (px + 2, tile.shape[0] - 4), font, 0.35, yellow, 1)
+    for gy in range((y0 // step + 1) * step, y0 + h, step):
+        py = round((gy - y0) * scale)
+        cv2.line(tile, (0, py), (TILE_W, py), yellow, 1)
+        cv2.putText(tile, str(gy), (2, py - 2), font, 0.35, yellow, 1)
+    cv2.putText(tile, path.name, (4, 18), font, 0.55, red, 2)
+    return tile
 
 
 def _scores_elsewhere(game, image, own):
@@ -536,7 +634,11 @@ if __name__ == "__main__":
     fresh, stay, auto = "--fresh" in args, "--stay" in args, "--auto" in args
     args = [a for a in args if a not in ("--fresh", "--stay", "--auto")]
     opts = {}
-    for flag in ("--on", "--after"):
+    if "--box" in args:
+        i = args.index("--box")
+        opts["--box"] = _box(args[i + 1:i + 5])
+        del args[i:i + 5]
+    for flag in ("--on", "--after", "--in"):
         if flag in args:
             i = args.index(flag)
             if i + 1 >= len(args):
@@ -573,6 +675,8 @@ if __name__ == "__main__":
     elif cmd == "finish" and not args:
         finish()
     elif cmd == "score":
-        score(args)
+        score(args, opts.get("--in"))
+    elif cmd == "sheet":
+        sheet(args, opts.get("--box"))
     else:
         sys.exit(__doc__)
