@@ -51,5 +51,5 @@ Part 1 creates the files with a script. Part 2 maps the screens from launch to t
    - `python -m core.tree <game>` prints no problems.
    On a failure, read the run's log and its error screen, fix, and test again.
 7. **Notes.** Write a section in `<game>/notes/UI.md` for `start-screen`, `lobby` (its states and how to tell them apart) and each popup, with the scores `finish` printed and the timings seen (load times, how long the HUD stays up). Keep to what passes the delete test (`.claude/doc_policy.md` §1).
-8. Close the log with `python -m core.log end`, and tell the user the game is set up: menus beyond the lobby with the map skill, routines with the task skill.
+8. Close the log with `python -m core.log end`, and tell the user the game is set up. Its dailies come next, with the learn-dailies skill (Claude explores and proposes a plan for the user to approve); single menus can still be added with the map skill and routines with the task skill.
 9. Commit and push. Templates stay local; check the diff for anything personal (player names, account IDs, absolute paths) before committing, since the repo is public.

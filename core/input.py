@@ -2,6 +2,7 @@
 
 Usage: python -m core.input tap X Y
        python -m core.input back [escape]
+       python -m core.input swipe X1 Y1 X2 Y2 [MS]
        python -m core.input screenshot [file.png]
 """
 
@@ -127,6 +128,10 @@ if __name__ == "__main__":
         x, y = tap(*map(int, args))
         log.debug(f"tap at ({x}, {y})")
         print(f"Tapped ({x}, {y})")
+    elif cmd == "swipe" and len(args) in (4, 5):
+        swipe(*map(int, args))
+        log.debug(f"swipe {' '.join(args)}")
+        print(f"Swiped ({args[0]}, {args[1]}) to ({args[2]}, {args[3]})")
     elif cmd == "back" and len(args) <= 1:
         key = args[0] if args else "back"
         back(key)

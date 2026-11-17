@@ -64,6 +64,10 @@ Only tap what the user asked for. If a step would spend premium currency, make a
 8. Write what you learned about the menu's controls into its section of `<game>/notes/UI.md` (which state each shows in, what each tap leads to, scores), and how to run the task.
 9. Close the log with `python -m core.log end`. Tell the user the routine's command, the notes that changed and the log file `end` printed.
 
+## Steps Claude chooses
+
+The learn-dailies skill runs this flow with Claude in the user's place: it picks each step from the daily's type (`core/notes/dailies.md`) and taps it with `python -m tools.map click … --auto`, which refuses names with a spending word (`core.tree.SPEND_WORDS`). The rules above still hold: a step that would spend waits for the user, and is tapped without `--auto` once they agree.
+
 ## Running an existing task
 
 When the user asks for a task that already has a routine (`ROUTINES` in `<game>/routines/__init__.py`), open the log (`python -m core.log start task`), check `python -m core.device health` (on a failure, handle it as in step 3), run `python -m <game>.bot <task>`, report the outcome, and close the log. On a failure, Read the error screen and run log the run printed (`.claude/logging.md` §6, §7), run `python -m core.nav <game> where` on the error screen, and tell the user where it stopped.

@@ -48,6 +48,23 @@ ELEMENT = re.compile(
     r"^(?P<kind>btn|info)_(?P<menu>[a-z0-9-]+)_(?P<name>[a-z0-9-]+)"
     r"_(?P<x>\d+)-(?P<y>\d+)-(?P<w>\d+)-(?P<h>\d+)(?P<anywhere>_anywhere)?(?P<white>_white)?\.png$")
 STATE = re.compile(r"^screen-(?P<state>[a-z0-9-]+)\.png$")
+# Words in a button's or menu's name that mean a tap on it can spend
+# something (currency, stamina, a ticket) or can't be undone. Taps Claude
+# chooses itself (tools.map click --auto, tools.probe) refuse any name with
+# one of them as a hyphen-separated word: those wait for the user. Buttons are
+# named after their label (map skill), so the label's word lands here.
+SPEND_WORDS = {
+    "buy", "purchase", "pay", "confirm", "ok", "yes", "start", "summon", "recruit",
+    "pull", "refresh", "reset", "sweep", "battle", "fight", "challenge", "attack",
+    "mobilize", "replay", "cultivate", "invite", "use", "upgrade", "enhance",
+    "exchange", "sell", "delete", "quit", "skip", "refill", "max",
+}
+
+
+def spends(name):
+    """True when `name` (a button or menu name, e.g. "start-sweep") has a
+    SPEND_WORDS word in it."""
+    return any(word in SPEND_WORDS for word in name.split("-"))
 COMMON = "common"
 POPUPS = "popups"
 

@@ -2,7 +2,8 @@
 
 Usage: python -m tools.map start GAME
        python -m tools.map shot
-       python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay]
+       python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay] [--auto]
+       python -m tools.map back
        python -m tools.map info HERE ELEMENT X Y W H [--on CAPTURE]
        python -m tools.map leads MENU [--after CAPTURE]
        python -m tools.map popup NAME [--on CAPTURE]
@@ -25,6 +26,14 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         --fresh to capture just before tapping (e.g. right after a routine).
         --stay: the button keeps the game on HERE (claim, tab, close a dialog);
         TARGET names the button itself and finish makes no menu for it.
+        --auto: Claude chose this tap itself (learn-dailies), not the user.
+        Refused when TARGET or HERE has a word that can spend
+        (core.tree.SPEND_WORDS); such taps wait for the user's word and run
+        without --auto. The log line keeps "auto", so the steps Claude chose
+        can be told from the user's.
+back    press the game's BACK_KEY (<game>/config.py), wait for the screen to
+        settle and capture it; it becomes the current one. For coming back
+        from a menu opened while exploring.
 info    log box X Y W H of the current screen as element ELEMENT of menu HERE.
         --on: cut it from that capture in recon/map/ instead (e.g. the one a
         menu was reached on, when it isn't the last).
@@ -50,6 +59,7 @@ rename  rename menu OLD to NEW in the session's game: its folder, the images
 CAPTURE is a file name in recon/map/ (e.g. 04-shot.png).
 """
 
+import importlib
 import json
 import re
 import shutil
@@ -60,7 +70,7 @@ from pathlib import Path
 import cv2
 
 from core import ROOT, templates_dir
-from core.input import capture, tap
+from core.input import back as press_back, capture, tap
 from core.log import logger, setup
 from core.vision import crop, difference, find, fingerprint, is_black, save
 from core import tree
@@ -151,9 +161,12 @@ def shot():
     print(path)
 
 
-def click(here, target, box, fresh=False, stay=False):
+def click(here, target, box, fresh=False, stay=False, auto=False):
     entries = _entries()
     _check_names(here, target)
+    if auto and (tree.spends(target) or tree.spends(here)):
+        sys.exit(f"'{here} > {target}' may spend something (core.tree.SPEND_WORDS): "
+                 "ask the user, then click without --auto")
     if fresh:
         before = _save(capture(), f"before-{target}")
     else:
@@ -167,10 +180,25 @@ def click(here, target, box, fresh=False, stay=False):
              "source": before, "after": after}
     if stay:
         entry["stay"] = True
+    if auto:
+        entry["auto"] = True
     _append(entry)
     still = "" if settled else " (still changing)"
     log.info(f"{here} {'/' if stay else '>'} {target} at ({tx}, {ty}), {after}{still}")
     print(f"Tapped ({tx}, {ty}); {after}{still}")
+
+
+def back():
+    entries = _entries()
+    game = entries[0]["game"]
+    key = importlib.import_module(f"{game}.config").BACK_KEY
+    press_back(key)
+    img, settled = settle()
+    path = _save(img, "back")
+    _append({"shot": path, "back": key})
+    still = "" if settled else " (still changing)"
+    log.info(f"back ({key}), {path}{still}")
+    print(f"Pressed {key}; {path}{still}")
 
 
 def info(here, element, box, on=None):
@@ -505,8 +533,8 @@ def _box(args):
 if __name__ == "__main__":
     setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
-    fresh, stay = "--fresh" in args, "--stay" in args
-    args = [a for a in args if a not in ("--fresh", "--stay")]
+    fresh, stay, auto = "--fresh" in args, "--stay" in args, "--auto" in args
+    args = [a for a in args if a not in ("--fresh", "--stay", "--auto")]
     opts = {}
     for flag in ("--on", "--after"):
         if flag in args:
@@ -520,7 +548,9 @@ if __name__ == "__main__":
     elif cmd == "shot" and not args:
         shot()
     elif cmd == "click" and len(args) == 6:
-        click(args[0], args[1], _box(args[2:]), fresh, stay)
+        click(args[0], args[1], _box(args[2:]), fresh, stay, auto)
+    elif cmd == "back" and not args:
+        back()
     elif cmd == "info" and len(args) == 6:
         info(args[0], args[1], _box(args[2:]), opts.get("--on"))
     elif cmd == "leads" and len(args) == 1:
