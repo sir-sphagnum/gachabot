@@ -32,7 +32,7 @@ log = logger(__file__)
 MENU = "tactical-challenge"
 TC = TEMPLATES_DIR / "start-screen" / "lobby" / "campaign" / MENU
 AF = TC / "attack-formation"
-TITLE = TC / "info_tactical-challenge_title_158-12-372-50.png"
+TITLE = TC / "info_tactical-challenge_title_158-12-312-50.png"
 HOME = TC / "btn_tactical-challenge_lobby_1830-12-54-46.png"
 
 # First digit of "Tickets Owned N/5": 1.00 on 0, at most 0.73 on 5-1

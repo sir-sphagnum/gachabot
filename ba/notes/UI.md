@@ -37,6 +37,14 @@ The daily missions (common: Daily missions). Reached from the lobby's Tasks shor
 - The milestone Claim (`btn_tasks_milestone-claim_1388-962-146-84.png`) paid 20 pyroxene at once, with no popup, and turned grey "Complete": +164 yellow, −8 grey.
 - Automated by `ba/routines/claim_dailies.py` (`python -m ba.bot claim_dailies`): Claim All while yellow, then the milestone while yellow, then Home. Written from the 2026-11-17 claim; not run yet.
 
+## mail (`ba/templates/start-screen/lobby/mail/`)
+
+The Mailbox, opened by the envelope in the lobby's top-right bar (`btn_lobby_mail_1700-28-64-52.png`, cut without its red dot: 1.00 on the lobby, 0.99 on the news popup's capture, which has the lobby under it). Tabs Unclaimed, Product, Receipt History on the left (opens on Unclaimed); the mails on the right, each with its own Claim; a "N/200" count; Claim All bottom right ("Up to 100 items can be claimed at once"). Home (`btn_mail_lobby_1830-12-54-46.png`) goes to the lobby with no load.
+
+- Identified by the "Mailbox" title (`info_mail_title_160-12-160-50.png`): at most 0.54 elsewhere. It still matches under the reward popup.
+- Claim All (`btn_mail_claim-all_1550-965-305-80.png`) is yellow while anything is unclaimed and grey once the mailbox is empty; grey still scores 0.89 on it, so colour decides (common: Lit or grey): mean red minus blue over it is +164 yellow, −1 to −3 grey. With 6 mails, one tap claimed all of them and opened the reward popup; closing it left "No more mail." (`info_mail_empty_1010-715-280-50.png`), 0/200 and a grey Claim All.
+- Automated by `ba/routines/claim_mail.py` (`python -m ba.bot claim_mail`): Claim All while yellow (popups closed between taps), then Home. Run with nothing to claim (lobby to lobby in 5 s); the claim path was done by hand while mapping, on 2026-11-18.
+
 ## cafe (`ba/templates/start-screen/lobby/cafe/`)
 
 Reached from the lobby's Cafe button. A "Tip!" loading screen (black with a gameplay tip) shows for 1–2 s on the way in. The room with visiting students; top: Back, "Cafe", AP/credits/pyroxene, settings, Home; Move to Cafe No. 2 and "Until Next Visit" timer under it; left: Planned Visit, Unannounced Visit; bottom: Edit, Gifts, Furniture, Presets, Store All, Bonus Invitation, Invitation, Comfort, Cafe Earnings.
@@ -244,7 +252,7 @@ Panel on the left: "Gehenna", Tickets Owned N/6, the event line, art. Right: Sta
 
 ### tactical-challenge (`campaign/tactical-challenge/`)
 
-Header "Tactical Challenge" (`info_tactical-challenge_title_158-12-372-50.png`). The PvP screen. Left: player card, rank, Time Reward (+N/minute, Total N/1,000K) and Daily Reward with Claim buttons, Tickets Owned N/5, Standby Time, Battle History, Defense Formation. Right: the season's three opponents (rank, team, level, name), Time Left and Refresh List. Home (`btn_tactical-challenge_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
+Header "Tactical Challenge", cut to "Tactical Challen" (`info_tactical-challenge_title_158-12-312-50.png`): mission toasts start at x ≈ 478 and covered the full word ("Complete at least 8 Daily Task(s)": 0.84 on the full crop, 1.00 on this one; at most 0.42 elsewhere) (common: Toasts). The PvP screen. Left: player card, rank, Time Reward (+N/minute, Total N/1,000K) and Daily Reward with Claim buttons, Tickets Owned N/5, Standby Time, Battle History, Defense Formation. Right: the season's three opponents (rank, team, level, name), Time Left and Refresh List. Home (`btn_tactical-challenge_lobby_1830-12-54-46.png`) goes to the lobby after a short load.
 
 - The opponent rows are sorted by rank, best at the top. The list refreshes after every fight, won or lost, so the top row is a new opponent each time. Its strength varies a lot: in one list the top row was a Lv.89 player with a Lv.82 team (a loss), in the others Lv.23–27 players with Lv.17–26 teams (wins). The top row is tapped as a point, (1268, 375): its crop holds the portrait, rank and team, and matched only its source (at most 0.76 elsewhere).
 - Ticket count: just the first digit (`info_tactical-challenge_tickets-zero_326-716-20-36.png`) scores 1.00 on 0 and 0.51–0.73 on 5, 4, 3 and 1 (common: Reading a zero).

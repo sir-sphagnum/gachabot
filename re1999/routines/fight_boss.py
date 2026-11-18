@@ -4,7 +4,7 @@ Usage: python -m re1999.routines.fight_boss [--debug]
 
 show's Story tab opens either on the volume list or inside "The Living and
 the Rest" scrolled to its end, so the routine goes to show, taps the volume
-poster if it is there, and swipes the chapter row back until the In Our Time
+poster while its label shows, and swipes the chapter row back until the In Our Time
 poster shows (notes/UI.md, show). From in-our-time the routine taps the Heaven Apostles
 label on the stage timeline, which opens the stage panel; Hard, then Start,
 opens battle-prep. The play icon left of Team 1 switches battle-prep to
@@ -29,6 +29,8 @@ log = logger(__file__)
 
 SHOW = TEMPLATES_DIR / "start-screen" / "lobby" / "show"
 VOLUME = SHOW / "btn_show_living-and-rest-volume_148-818-400-58.png"
+# The volume's label ignores taps; its poster art above it opens the volume.
+VOLUME_POSTER = (345, 450)
 POSTER = SHOW / "btn_show_in-our-time_767-316-160-452_anywhere.png"
 IN_OUR_TIME = SHOW / "in-our-time"
 TRAIL = IN_OUR_TIME / "info_in-our-time_trail-icon_478-40-66-66.png"
@@ -57,8 +59,8 @@ def _open_in_our_time():
     if not goto(GAME, "show"):
         return False
     # The poster's spot is a chapter poster inside the volume, so it is retapped
-    # only while the volume list still shows.
-    if locate(VOLUME, capture()) and not tap_until(VOLUME, [lambda s: not locate(VOLUME, s)], delay=2):
+    # only while the volume list (its label) still shows.
+    if locate(VOLUME, capture()) and not tap_until(VOLUME_POSTER, [lambda s: not locate(VOLUME, s)], delay=2):
         return False
     for _ in range(ROW_SWIPES):
         if locate(POSTER, capture()):

@@ -32,6 +32,7 @@ The missions list says what to do, so it's read first and the lobby is explored 
 1. `python -m core.nav <game> goto lobby`, then `python -m tools.map start <game>`; Read the capture.
 2. List every control you can see, with its label and box, and give each a guess from `core/notes/dailies.md`: missions, idle claim, limited attempts, stamina sink, social check-in, one of "Seen in one game", or nothing daily (settings, events, summon, shop). Show the list to the user in one message; don't wait for an answer unless something is unclear.
 3. Find the missions menu (`core/notes/dailies.md`, Missions claim: the labels to look for). If the lobby has none, look one menu deep in the likeliest hub (a Menu or main-menu button). Then go to step 3 (read the missions list) before step 2.
+4. Find the mailbox (`core/notes/dailies.md`, Mail: an envelope or Mail label). new-game maps it; if `<game>/templates/` has no `mail` menu, map it now as new-game's Mailbox bullet says. Every game gets a `claim_mail` routine, whether or not a missions row asks for mail.
 
 ## 2. Explore
 
@@ -67,6 +68,8 @@ The daily missions as the game lists them, the routine that does each, and what 
 ```
 
 Cost is "none" or what one run spends, read from the screen.
+
+If no missions row names mail, add a row for it anyway ("(no row): mail"): the mailbox is claimed every day either way.
 
 Then choose the rows to propose:
 
@@ -106,7 +109,7 @@ After each routine's first successful run (`python -m <game>.bot <routine>`), op
 - it didn't move: the routine returned True without doing the daily. Read its run with `--debug`, fix, run again;
 - the row was already complete before the run: Checked stays empty, and the check is owed to the next day's run. Say so.
 
-Then write `<game>/routines/claim_dailies.py` (the missions claim, from the file `core/notes/dailies.md` names) and a "daily routine" in `<game>/notes/routines.md`: every approved routine, then `claim_dailies` last, as one `python -m <game>.bot start lobby … claim_dailies` command.
+Then write `<game>/routines/claim_dailies.py` (the missions claim, from the file `core/notes/dailies.md` names) and a "daily routine" in `<game>/notes/routines.md`: `claim_mail` first (what mail gives, such as stamina or tickets, feeds the rest), every other approved routine, then `claim_dailies` last, as one `python -m <game>.bot start lobby claim_mail … claim_dailies` command.
 
 ## 8. Next day
 
@@ -121,4 +124,4 @@ First-of-the-day screens can only be met on the next day's first launch (common:
 
 ## 9. Finish
 
-Write each menu's section in `<game>/notes/UI.md` as the map and task skills say. Close the log (`python -m core.log end`), then commit and push (templates stay local; check the diff for anything personal). Tell the user which rows are automated and checked, which are owed a check, which wait on them, and the daily routine's command.
+Write each menu's section in `<game>/notes/UI.md` as the map and task skills say. Close the log (`python -m core.log end`). Don't commit: check the diff for anything personal (templates stay local), then offer the commit and push, and commit only on the user's yes. Tell the user which rows are automated and checked, which are owed a check, which wait on them, and the daily routine's command.

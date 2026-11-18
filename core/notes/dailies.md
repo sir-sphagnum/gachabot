@@ -66,12 +66,22 @@ A daily the game counts for visiting or touching something, with nothing to win 
 - **Cost:** none, except an invite's cooldown (ba).
 - **Start from:** `re1999/routines/lobby_interact.py`, the invite step of `ba/routines/cafe.py`.
 
+## Mail
+
+A mailbox of gifts with attachments (login rewards, compensation, items sent on at an ownership limit). Every game has one, whether or not a missions row asks for it, so learn-dailies always looks for it. Look for an **envelope** icon or **Mail / Mailbox** label on the lobby, often in the top bar with a count badge (e7: in the HUD row; ba: top-right bar; re1999: left column).
+
+- **Control:** one Claim All / Receive All (re1999, ba, e7), never each mail's own Claim. It's there whether or not anything is left, and a mail Claim All can't take stays in the list.
+- **Done:** read per game, from what the tap answers: Claim All grey (ba); a "nothing to claim" toast (re1999 "No mail with attachment", e7 "Receive All cannot be used with this mail."). Mail left in the list is not a failure.
+- **Cost:** none. e7 asks to confirm first ("Would you like to receive all mail…"): a confirm word that spends nothing, tapped without `--auto` once the question is read.
+- **Mail Claim All skips:** e7's GM mail unlocks only after "Move to Link" opens an outside link, so it stays (Never automatic, below).
+- **Start from:** `ba/routines/claim_mail.py` (a button lit or grey), `re1999/routines/claim_mail.py` (a reward popup or a toast), `e7/routines/claim_mail.py` (a confirm dialog, then a reward dialog or a toast).
+- Runs first in the day's group: what it gives (stamina, tickets) feeds the routines after it.
+
 ## Seen in one game
 
-- **Mail** (re1999's `claim_mail`): a Claim All that shows whether or not anything is left; a "nothing to claim" toast says done.
 - **Free shop item** (e7's `claim_daily_shop`): a product priced Free in a daily shop tab, next to products that cost currency on the same grid.
 - **Shop restock** (e7's `refresh_secret_shop`): buying given items from a list that changes; refreshing it costs premium currency.
 
 ## Never automatic
 
-Whatever the type, these stay with the user and are never in a plan without their word for each: summons or recruits, anything paid in premium currency (gems, skystones, pyroxene) including stamina refills and shop refreshes, team building, and a fight with no way to finish it unplayed.
+Whatever the type, these stay with the user and are never in a plan without their word for each: summons or recruits, anything paid in premium currency (gems, skystones, pyroxene) including stamina refills and shop refreshes, team building, a fight with no way to finish it unplayed, and a mail's or notice's outside link ("Move to Link", a questionnaire), even when it gates a reward.
