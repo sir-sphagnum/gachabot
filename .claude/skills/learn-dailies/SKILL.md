@@ -5,7 +5,7 @@ description: Learn a game's dailies with Claude choosing the taps - survey its l
 
 # Learn dailies
 
-In map and task the user decides every tap. Here Claude decides, from three sources: the game's own daily-missions list (what to do), `core/notes/dailies.md` (what each kind of daily looks like and which routine to start from) and the screen. Stamina (the game's refilling energy: Keys, AP, Activity) is spent where a daily needs it without asking; anything else that spends waits for the user's word. Everything is recorded with the map and task skills' tools, so the result is the same tree, notes and routines they make.
+In map and task the user decides every tap. Here Claude decides, from three sources: the game's own daily-missions list (what to do), `core/notes/dailies.md` (what each kind of daily looks like and which routine to start from) and the screen. Stamina (the game's refilling energy, under whatever name the lobby's notes give it) is spent where a daily needs it without asking; anything else that spends waits for the user's word. Everything is recorded with the map and task skills' tools, so the result is the same tree, notes and routines they make.
 
 Run all commands from the project root.
 
