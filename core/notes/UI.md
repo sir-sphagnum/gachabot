@@ -14,9 +14,20 @@ Games reuse one button's art across dialogs: e7's "Tap to close" sits on five di
 
 - a shared `btn_` closes or confirms a dialog but never identifies it;
 - it's tapped only right after the action that opens its dialog, or while that dialog's own `info_` (its question or a title no other dialog has) shows;
-- the same goes for the back arrow and Home at the top of every ba menu.
+- the same goes for the back arrow and Home that sit in one spot on every menu (ba's top bar, re1999's Home at (186, 42), e7's back arrow): tapped only once the menu is known.
 
 A dialog's identifier is its unique text: the question line, or a title nothing else shares.
+
+## Shared screens
+
+A menu can show another menu's screens unchanged: e7's secret-shop buy dialog is daily-shop's (title, Cancel and Buy all 1.00 there); ba's gehenna opens overpass's Mission Info, Notice and Sweep Complete in the same places, and mission's Sweep Complete is that dialog too; re1999's battle-prep-pneuma and battle-prep-poussiere are In Our Time's battle-prep, and all three fight on its battle screen.
+
+- No copies are cut: the second menu's routine uses the first menu's images, and its notes say where they live. A copy would be a second image to keep in step for no new information.
+- No `info_` is cut from a shared screen, since it would identify the other menu too. The screen is told open by its control (e7's green Buy), and the menu by what differs (re1999's Pneuma chances line) or, where nothing does, by the path that reached it (re1999's poussiere).
+
+## Shared titles
+
+A menu one level down often keeps the title or header of the one above: e7's arena-landing and arena both read "Arena", battle and hunt both "Battle"; ba's "Bounty" header stays on overpass and "Scrimmage" on gehenna. So the title identifies neither, and each is identified by an element only it has (e7's Arena card and Defense Team; ba's panel titles "Bounty - Overpass" and "Gehenna").
 
 ## Lit or grey
 
@@ -24,14 +35,29 @@ Matching ignores brightness, so a lit button and its greyed, claimed or used-up 
 
 Seen on e7's Cultivate, secret-shop's Buy, arena's Challenge and lost rows, orbis-guide's chest badge and the HUD badge; ba's cafe Claim, Multi-Sweep and bounty's stars; re1999's chosen Tasks tab (orange fill).
 
+## Settings that stick
+
+Menus remember a choice between visits and after fights: e7's Use Owned Energy First stays ticked; re1999's replay mode and its x4 count stay on, and battle-prep reopens in replay mode with the play icon gone. And a toggle often scores the same either way (re1999's Hard 1.00 / 0.99, its Daily tab label 1.00 / 0.90). So:
+
+- the routine reads the setting from its own indicator (e7's ticked box, re1999's replay line and "x4" in the count box) before touching it, and taps the toggle only while the indicator says it's off: a blind tap can turn it off again;
+- a control that turns a setting on can be gone because the setting is already on (re1999's play icon), so its absence isn't a failure until the indicator has been read.
+
 ## Daily missions
 
 Every game is assumed to have a daily-missions menu, and each one gets a `claim_dailies` routine (`python -m <game>.bot claim_dailies`) that only claims and never works on the missions. So far: e7's orbis-guide (Three Sisters' Diary), re1999's tasks (Daily Activeness tab), ba's tasks (Claim All, then the milestone's own Claim).
 
 - **One tap claims everything.** e7's 100 chest claims every ready chest on the bar; re1999's Claim All claims every finished task and milestone. The routine taps that one control, not each row, and taps it again while it's still lit: ba's Claim All can complete a "claim N tasks" task, which lights it again, and leaves the milestone on the bottom bar to its own Claim.
 - **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner is there only then. So "not there" or "not lit" means already claimed or not earned yet, and the routine counts it as success, not failure.
-- **A claim opens a reward dialog** listing the items (e7: the menu's own reward state, closed by its shared "Tap to close"; re1999: the common obtained popup). When it's one of the game's common popups, the claim tap runs with `popups=False`, or `tap_until` closes it as an obstruction and keeps tapping.
+- **A claim opens a reward dialog** (common: Reward dialogs): e7's is the menu's own state; re1999's and ba's are common popups.
 - **The menu may open on another tab or section**, so the routine picks the daily one after every entry (re1999 opens on a tab with rewards waiting, Weekly once Daily is claimed).
+
+## Reward dialogs
+
+A claim (missions, mail, earnings, a fight's reward) usually opens a dialog listing what it gave, which waits for a tap. e7's are each menu's own state, closed by the shared "Tap to close" (common: Shared buttons); ba's "REWARD ACQUIRED!" and re1999's "Obtained" are common popups that can show over any menu.
+
+- When it's one of the game's common popups, the claim tap runs with `popups=False`, or `tap_until` closes it as an obstruction and keeps tapping (re1999's claim_mail and claim_dailies).
+- Some claims open none (e7's MolaGora Farm, ba's 8/8 milestone Claim), so a claim is judged by its control changing (gone, grey, a timer), not by a dialog showing.
+- Another popup can sit on top of it (ba's mailbox notice at an ownership limit) and is closed first.
 
 ## Reading a zero
 
@@ -46,13 +72,32 @@ Seen on e7's arena flags and leif cost, ba's lesson and bounty tickets.
 - Animated scenes never give two identical captures, so `tools.map` flags them "still changing" and settling is judged by a still element (a title, a list): e7's sanctuary and secret-shop.
 - Crops keep the text and leave out what comes and goes: badges, orange dots, counts, sparkles, EVENT and "In Progress" tags, subtitles.
 
+## Tap anywhere
+
+Some screens have no close button and move on at a tap anywhere: re1999's obtained, level-up and VICTORY, ba's relationship-rank-up and login boards, e7's start screen. The routine taps the screen's identifier: the `btn_` is cut on the same box as its `info_` (re1999's obtained and level-up titles, ba's rank-up title, ba's login-board sky), so the tap lands only while the screen it closes shows. A spot on blurred background (re1999's checkin-close) marks a tap point only, never a state.
+
 ## Toasts
 
 Chat and mission toasts slide over the top of the screen for a few seconds (e7's "entered channel" toast, ba's mission toasts over dialog titles). Identifiers are taken where toasts don't reach.
 
+A toast can also be a tap's only answer: e7's "Receive All cannot be used with this mail." and re1999's "No mail with attachment" (nothing to claim), ba's "Unavailable right now." (Back refused), re1999's "Dust +7125" (collected). It's gone within seconds, so the routine looks for it in the tap's own wait (a `tap_until` check), not after.
+
 ## Lists that move
 
-Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and the daily-shop grid moves bought products to the end; ba's lesson area list and bounty stage list scroll on entry. Entries are found with `_anywhere` images or tapped by position once the list has settled (`core.nav.settled`), never while it scrolls. A list that reorders can push an entry off screen: e7's daily-shop grid, with three products bought, puts 5 Flags past the right edge.
+Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and the daily-shop grid moves bought products to the end; ba's lesson area list and bounty stage list scroll on entry; re1999's resource row moves Pneuma Analysis to the end once its chances are spent. Entries are found with `_anywhere` images or tapped by position once the list has settled (`core.nav.settled`), never while it scrolls. A list that reorders can push an entry off screen: e7's daily-shop grid, with three products bought, puts 5 Flags past the right edge.
+
+Stage lists and timelines open on the newest or last stage (re1999's In Our Time and resource timelines, ba's overpass), which moves as the account progresses. So a stage is found by its label `_anywhere` (re1999) or picked by reading the rows (ba's stars), never at a fixed spot.
+
+## Loading screens
+
+Loads come between screens: e7's are black (`core.nav.past_black` waits them out); ba's "Now Loading" and re1999's launch loading screen show art that changes, so they're identified by their text masked to its letters (common: Moving parts) and kept in `<game>/templates/common/loading/`. ba's image also matches the launch loads.
+
+- Nothing on a load answers Back, and a Back that lands as the load ends acts on what follows (re1999: Backs on the splash and the start screen's fade-in opened the quit dialog). So lobby routines wait while a load shows, and, for the first seconds after launch (`core.device.uptime`), on any screen they don't know.
+- A load not mapped yet (re1999's story and wilderness loads, ba's cafe "Tip!") reads as an unknown screen, where the lobby routine presses Back once the launch wait is over. Map it when a routine trips on it.
+
+## Back
+
+Android Back doesn't close every screen. ba's idle lobby ignores it, ba's login boards and best-record only toast "Unavailable right now.", and e7's web-notice ignores it too. A lobby routine walking home by Back runs out of presses on them, and `core.nav.goto`'s walk to the lobby stops there. So each such screen is a common popup or a menu dialog with its own close (ba's best-record is closed by its routine after each fight, the idle lobby woken by a tap). On the lobby itself Back opens the quit dialog (Lobbies, below); on loads see Loading screens.
 
 ## Lobbies
 
@@ -66,15 +111,7 @@ Every game shows screens only on the first launch of a day, or the first entry o
 
 - Where they're handled depends on what can be read underneath. A dialog over a lobby that is already identifiable is a lobby state (e7's check-in, re1999's checkin card). One that shows before the lobby is drawn, or over any menu, is a common popup, so start_screen and lobby close it (ba's boards, re1999's event-login). One that a single menu shows on entry is that menu's dialog, waited for on entry (e7's arena reward).
 - Their art changes with events, so they're identified by what stays: ba's login boards by the classroom behind every board, not by a board's title.
-- Back often does nothing on them (ba: "Unavailable right now."), so a lobby routine's Back presses don't get past them.
-
-## Wrong layout
-
-After a BlueStacks restart a game can come up fullscreen at the right resolution (`wm size` 1920x1080, density 240) but laid out for another size: everything a little scaled, the UI cut off at the screen edges, taps landing on the wrong control. Probably BlueStacks' display not being settled when the game starts rather than the game itself, since it came and went across restarts with no game update between; seen so far on e7 only. Nothing matches then, so it reads as if the game had changed.
-
-- Before taking a menu as changed, compare the capture with its saved `screen.png`: one element differing is a change; the whole screen scaled or shifted is this.
-- The fix is `python -m core.device restart <game>`, repeated until the layout is right (e7 needed three). `core.device fullscreen` doesn't help: the game isn't floating.
-- Nothing is cut from a capture taken in this state, and templates already cut from one are deleted.
+- Back often does nothing on them (common: Back), so a lobby routine's Back presses don't get past them.
 
 ## BlueStacks memory
 
