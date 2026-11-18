@@ -52,7 +52,7 @@ from pathlib import Path
 
 import cv2
 
-from core import ROOT, steps, tree
+from core import ROOT, steps, templates_dir, tree
 from core.device import floating_window, focused_app, is_running, package, wait_until
 from core.input import capture, tap
 from core.log import logger, setup
@@ -191,6 +191,46 @@ def past_black(screen=None, timeout=BLACK_WAIT):
 
 def _unless_black(screen):
     return None if is_black(screen) else screen
+
+
+LOAD_WAIT = 60  # seconds; the longest load seen took ~23 s (ba, after TOUCH TO START)
+
+
+@cache
+def game_loads(game):
+    """The info_ images of `game`'s loading screens (<game>/templates/common/loading/),
+    any one being enough. Empty for a game whose loads are all black (e7)."""
+    base = templates_dir(game) / tree.COMMON / "loading"
+    return tuple(sorted(base.rglob("info_*.png"))) if base.is_dir() else ()
+
+
+def loading(game, screen):
+    """True when one of `game`'s loading screens shows on `screen`."""
+    return any(locate(t, screen) for t in game_loads(game))
+
+
+def past_loading(game, screen=None, timeout=LOAD_WAIT):
+    """The current screen once it is neither black nor one of `game`'s
+    loading screens, or None (logged as a WARNING) if a loading screen still
+    shows after `timeout` seconds.
+
+    Nothing on a load answers Back, and a Back that lands as it ends acts on
+    the screen after (core/notes/UI.md, "Loading screens"), so a routine that
+    presses Back looks only at what this returns.
+    screen: a capture to start from; a fresh one is taken when None.
+    """
+    screen = past_black(screen)
+    if not loading(game, screen):
+        return screen
+    log.debug("loading screen, waiting")
+    screen = wait_until(lambda: _unless_loading(game, past_black()), timeout)
+    if screen is None:
+        log.warning(f"still loading after {timeout}s")
+    return screen
+
+
+def _unless_loading(game, screen):
+    return None if loading(game, screen) else screen
 
 
 def _truthy(result):

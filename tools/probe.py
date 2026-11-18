@@ -39,10 +39,10 @@ from datetime import datetime
 
 import cv2
 
-from core import ROOT, device, templates_dir, tree
+from core import ROOT, device, tree
 from core.input import back, capture
 from core.log import logger, setup
-from core.nav import HOME, check_focus, goto, locate, route, where
+from core.nav import HOME, check_focus, goto, loading, route, where
 from core.vision import difference, fingerprint, is_black, save
 
 log = logger(__file__)
@@ -204,11 +204,6 @@ def _record(folder, stop):
         stop.wait(max(0.0, INTERVAL - (time.monotonic() - t)))
 
 
-def _loading_images(game):
-    base = templates_dir(game) / tree.COMMON / "loading"
-    return sorted(base.rglob("info_*.png")) if base.is_dir() else []
-
-
 def cold(game):
     frames = DIR / "cold"
     stop = threading.Event()
@@ -223,7 +218,6 @@ def cold(game):
         stop.set()
         recorder.join()
     took = time.monotonic() - started
-    loading = _loading_images(game)
     lines = [f"# Probe cold start: {game}", "", f"{datetime.now():%Y-%m-%d %H:%M}", "",
              f"Launch to lobby: {'reached' if ok else '**not reached**'} in {took:.0f}s.", "",
              "## Screens nothing identifies (first and last capture of each stretch)", ""]
@@ -234,7 +228,7 @@ def cold(game):
         screen = cv2.imread(str(f))
         if is_black(screen):
             continue
-        said = "loading" if any(locate(i, screen) for i in loading) else _describe(game, screen)[2]
+        said = "loading" if loading(game, screen) else _describe(game, screen)[2]
         timeline.append(f"- {f.stem}: {said}")
         if said == "nothing known":
             run.append(f)

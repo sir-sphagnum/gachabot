@@ -6,9 +6,9 @@ core.nav loads this module by name as the game's lobby routine, the start of
 every menu walk, so keep its path and run() returning True on success.
 
 Until Campaign shows with no popup over it:
-- while the screen is black or a "Now Loading" screen (LOADING) shows, or
-  the game started under LAUNCH seconds ago, wait; Back pressed then would
-  be a guess;
+- while the screen is black or a "Now Loading" screen
+  (ba/templates/common/loading/) shows, or the game started under LAUNCH
+  seconds ago, wait; Back pressed then would be a guess;
 - if one of the game's common popups (ba/templates/common/popups/) is open,
   close it and look again;
 - if the start screen is up, hand over to the start_screen routine (and
@@ -32,7 +32,7 @@ import sys
 from core.device import uptime, wait_until
 from core.input import back, capture, tap
 from core.log import logger, setup
-from core.nav import close_popup, game_popups, locate, open_popup, past_black
+from core.nav import close_popup, game_popups, loading, locate, open_popup, past_black, past_loading
 from ba.config import BACK_KEY, GAME, TEMPLATES_DIR
 from ba.routines import start_screen
 
@@ -45,10 +45,6 @@ CAMPAIGN = LOBBY / "info_lobby_campaign_1728-996-156-46.png"
 # there; a tap on the art brings the HUD back.
 REST = LOBBY / "info_lobby_rest-sign_1530-90-320-370.png"
 WAKE = (1500, 600)  # a spot of the art with no HUD button under it
-# Loading screens: nothing on them answers Back, so the routine waits them out.
-# Masked to the letters of "Now Loading": the art behind changes every load.
-LOADING = [TEMPLATES_DIR / "common" / "loading" / "info_loading_now-loading_1388-968-292-52.png"]
-LOAD_WAIT = 60  # seconds; the loads after TOUCH TO START took 8-23 s
 # For this long after the game's process starts, an unknown screen is a
 # launch screen (publisher logos, fades) and the routine waits instead of
 # pressing Back.
@@ -68,11 +64,10 @@ def run(backs=10, delay=1.5):
     changed = False  # a load or a popup close since the last look
     while True:
         screen = past_black(screen)
-        if loading(screen):
-            log.debug("loading screen, waiting")
-            screen = wait_until(lambda: _unless(loading, capture()), LOAD_WAIT)
+        if loading(GAME, screen):
+            screen = past_loading(GAME, screen)
             if screen is None:
-                log.error(f"still loading after {LOAD_WAIT}s")
+                log.error("not reached, stuck on a loading screen")
                 return False
             changed = True
             continue
@@ -141,23 +136,13 @@ def wake(delay=1.5):
     return capture() if screen is None else screen
 
 
-def loading(screen):
-    """True when one of the game's loading screens shows."""
-    return any(locate(t, screen) for t in LOADING)
-
-
 def _known(screen, known):
     """`screen` if the routine knows what to do on it, else None."""
-    if (loading(screen) or open_popup(known, screen) or locate(CAMPAIGN, screen)
+    if (loading(GAME, screen) or open_popup(known, screen) or locate(CAMPAIGN, screen)
             or locate(REST, screen)
             or start_screen.at_start_screen(screen)):
         return screen
     return None
-
-
-def _unless(check, screen):
-    """`screen` unless check(screen) is true, else None (for wait_until)."""
-    return None if check(screen) else screen
 
 
 def _popup(known):

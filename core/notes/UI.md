@@ -92,7 +92,7 @@ Stage lists and timelines open on the newest or last stage (re1999's In Our Time
 
 Loads come between screens: e7's are black (`core.nav.past_black` waits them out); ba's "Now Loading" and re1999's launch loading screen show art that changes, so they're identified by their text masked to its letters (common: Moving parts) and kept in `<game>/templates/common/loading/`. ba's image also matches the launch loads.
 
-- Nothing on a load answers Back, and a Back that lands as the load ends acts on what follows (re1999: Backs on the splash and the start screen's fade-in opened the quit dialog). So lobby routines wait while a load shows, and, for the first seconds after launch (`core.device.uptime`), on any screen they don't know.
+- Nothing on a load answers Back, and a Back that lands as the load ends acts on what follows (re1999: Backs on the splash and the start screen's fade-in opened the quit dialog). So lobby routines wait while a load shows (`core.nav.loading` tells one, `core.nav.past_loading` waits past it and past black), and, for the first seconds after launch (`core.device.uptime`), on any screen they don't know.
 - A load not mapped yet (re1999's story and wilderness loads, ba's cafe "Tip!") reads as an unknown screen, where the lobby routine presses Back once the launch wait is over. Map it when a routine trips on it.
 
 ## Back

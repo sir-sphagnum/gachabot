@@ -6,9 +6,9 @@ core.nav loads this module by name as the game's lobby routine, the start of
 every menu walk, so keep its path and run() returning True on success.
 
 Until the Crew button shows with no popup or lobby dialog over it:
-- while the screen is black or a known loading screen (LOADING) shows, or
-  the game started under LAUNCH seconds ago, wait; Back pressed then would
-  be a guess;
+- while the screen is black or a known loading screen
+  (re1999/templates/common/loading/) shows, or the game started under LAUNCH
+  seconds ago, wait; Back pressed then would be a guess;
 - if one of the game's common popups (re1999/templates/common/popups/) or a
   lobby dialog (DIALOGS) is open, close it and look again;
 - if the start screen is up, hand over to the start_screen routine (and
@@ -28,7 +28,8 @@ import sys
 from core.device import uptime, wait_until
 from core.input import back, capture
 from core.log import logger, setup
-from core.nav import close_popup, dialog, game_popups, locate, open_popup, past_black
+from core.nav import (close_popup, dialog, game_popups, loading, locate, open_popup, past_black,
+                      past_loading)
 from re1999.config import BACK_KEY, GAME, TEMPLATES_DIR
 from re1999.routines import start_screen
 
@@ -37,9 +38,6 @@ log = logger(__file__)
 LOBBY = TEMPLATES_DIR / "start-screen" / "lobby"
 CREW = LOBBY / "info_lobby_crew_1646-591-138-124.png"
 CORNER = (1870, 40)  # top-right corner of the screen, outside the check-in calendar
-# Loading screens: nothing on them answers Back, so the routine waits them out.
-LOADING = [TEMPLATES_DIR / "common" / "loading" / "info_loading_launch-text_616-972-688-44.png"]
-LOAD_WAIT = 60  # seconds; the launch load took ~20 s
 # For this long after the game's process starts, an unknown screen is a
 # launch screen (splash art, fades, the start screen fading in) and the
 # routine waits instead of pressing Back: Backs there opened the quit dialog.
@@ -77,11 +75,10 @@ def run(backs=10, delay=1.5):
     presses = closed = 0
     while True:
         screen = past_black(screen)
-        if loading(screen):
-            log.debug("loading screen, waiting")
-            screen = wait_until(lambda: _unless(loading, capture()), LOAD_WAIT)
+        if loading(GAME, screen):
+            screen = past_loading(GAME, screen)
             if screen is None:
-                log.error(f"still loading after {LOAD_WAIT}s")
+                log.error("not reached, stuck on a loading screen")
                 return False
             continue
         popup = open_popup(known, screen)
@@ -123,22 +120,12 @@ def run(backs=10, delay=1.5):
             screen = capture()
 
 
-def loading(screen):
-    """True when one of the game's loading screens shows."""
-    return any(locate(t, screen) for t in LOADING)
-
-
 def _known(screen, known):
     """`screen` if the routine knows what to do on it, else None."""
-    if (loading(screen) or open_popup(known, screen) or locate(CREW, screen)
+    if (loading(GAME, screen) or open_popup(known, screen) or locate(CREW, screen)
             or start_screen.at_start_screen(screen)):
         return screen
     return None
-
-
-def _unless(check, screen):
-    """`screen` unless check(screen) is true, else None (for wait_until)."""
-    return None if check(screen) else screen
 
 
 def _crew():

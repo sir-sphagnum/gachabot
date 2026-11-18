@@ -66,7 +66,7 @@ A game answers a tap late, for a moment, or not at all: the result can show a se
 
 ### Rule 3. A check the core notes describe is written once, in core
 
-When `core/notes/UI.md` describes how to read the screen, the code for it lives once in `core/` and routines call it: `core.nav.clear` (popups closed before reading a menu, Rule 1), `core.vision.tint` (lit or grey), `core.vision.diff` (a counter or icon that changed between frames), `core.nav.settled` (a list that stopped moving), `core.nav.held` and `tap_until` (Rule 2). A routine that needs a check core lacks adds it to core.
+When `core/notes/UI.md` describes how to read the screen, the code for it lives once in `core/` and routines call it: `core.nav.clear` (popups closed before reading a menu, Rule 1), `core.vision.tint` (lit or grey), `core.vision.diff` (a counter or icon that changed between frames), `core.nav.settled` (a list that stopped moving), `core.nav.past_loading` (black and loading screens waited out), `core.nav.held` and `tap_until` (Rule 2). A routine that needs a check core lacks adds it to core.
 
 - `7c56885`, `7670c5f`, `8ead727`, `e557780`: each routine that read a lit button wrote its own `_lit`, with a different slice order, channel unpacking and comparison, though the notes describe one rule.
 - `7c56885`, `5efc4e3`, `7670c5f`, `8ead727`, `e557780`, `b94626e`, `9669062`: seven routines carried their own `_clear` for Rule 1, some closing one popup, some looping, some checking the title.
