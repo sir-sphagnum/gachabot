@@ -137,7 +137,7 @@ ROUTINES = {{}}
     "notes/UI.md": '''\
 # {title} UI notes
 
-How {title} menus behave, one section per menu: how to tell a menu's states apart and switch between them, and anything else learned while automating it. Templates live in `{game}/templates/` (see the map skill for the scheme). `{game}/CLAUDE.md` imports this file, so Claude Code loads it only in sessions that read files under `{game}/`.
+How {title} menus behave, one section per menu: how to tell a menu's states apart and switch between them, and anything else learned while automating it. Templates live in `{game}/templates/` (see the map skill for the scheme). `{game}/CLAUDE.md` imports this file, so Claude Code loads it only in sessions that read files under `{game}/`. Patterns {title} shares with other games are in `core/notes/UI.md`, cited here as "(common: <section>)".
 ''',
     "notes/routines.md": '''\
 # {title} routines

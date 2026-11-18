@@ -40,7 +40,7 @@ After step 3, for each lobby control the missions rows point to that their Go bu
 
 1. `python -m tools.map click lobby <menu-name> X Y W H --auto`, the name taken from its label. Read the after-capture.
 2. A new menu: `python -m tools.map leads <menu-name>` (`--after` once a load has passed, as in the task skill). Note in one line what it holds and which daily type it looks like. Look for the type's controls and its done signal (claim lit or grey, a count, a timer), and note them; don't tap them yet.
-3. `python -m tools.map back`, and check the capture is the lobby again. If it isn't, try `back` once more, then note where it got stuck and `python -m core.nav <game> goto lobby`.
+3. `python -m tools.map back`, and check the capture is the lobby again. If it isn't, try `back` once more (some screens ignore Back: common: Back), then note where it got stuck and `python -m core.nav <game> goto lobby`.
 
 Go a level deeper only toward a daily (a hub that holds Campaign or Resource stages, a shop's tabs), never into a mode's Start.
 
@@ -83,9 +83,9 @@ Then ask the user, in one message: which of the paid rows to automate and how mu
 For each approved row with cost "none", one at a time, run the task skill's flow with yourself as the user:
 
 1. Task Start (its steps 2–6) with the task named after the routine (`claim-mail` → `claim_mail`). Navigate there with `python -m core.nav <game> goto <menu>` (map the route first if goto can't reach it).
-2. Choose the steps from the type in `core/notes/dailies.md` and from what step 2 noted: the claim control while lit, its reward dialog's close, a tab to pick first. Tap each with `python -m tools.map click <menu> <button> X Y W H --stay --auto`, and say in one line what you tapped and what changed, as the task skill does.
+2. Choose the steps from the type in `core/notes/dailies.md` and from what step 2 noted: the claim control while lit, its reward dialog's close (common: Reward dialogs), a tab to pick first. Tap each with `python -m tools.map click <menu> <button> X Y W H --stay --auto`, and say in one line what you tapped and what changed, as the task skill does.
 3. The type says what a done screen looks like; capture one (it's usually the state right after the claim) and log the `info_` that tells it (`python -m tools.map info …`).
-4. Task Stop (its steps 1–9), answering the questions it would ask the user yourself where the type's entry answers them ("not there means done" for a claim), and asking the user only what it doesn't. Start the routine from the file the type names. The approved plan answers Task Stop's step 7 for a free row: run it without asking.
+4. Task Stop (its steps 1–9), answering the questions it would ask the user yourself where the type's entry answers them ("not there means done" for a claim), and asking the user only what it doesn't. Start the routine from the file the type names. A claim whose reward shows as one of the game's common popups is tapped with `popups=False`, or `tap_until` closes the reward and taps the claim again (common: Reward dialogs). The approved plan answers Task Stop's step 7 for a free row: run it without asking.
 
 A row that turns out to cost something after all (a confirm dialog with a price): stop that row, close the dialog with its Cancel, update its Cost in the table and ask.
 
