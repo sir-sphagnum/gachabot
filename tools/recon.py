@@ -1,12 +1,15 @@
 """Save a BlueStacks screenshot to recon/ every second, skipping ones that look
 the same as the last one saved.
 
-Usage: python -m tools.recon [folder] [--interval S]   (Ctrl+C to stop)
+Usage: python -m tools.recon [folder] [--interval S] [--for S]   (Ctrl+C to stop)
        python -m tools.recon --summary [folder]
 
 --interval: seconds between captures (default 1). Every capture adds to
 BlueStacks' load: with a routine capturing too, its memory grew fast (see
 core.device.health), so slow it down for long runs.
+--for: stop by itself after this many seconds. Give it to every recording
+that serves one step (a start tap, a fight): a recording nobody stops keeps
+capturing, and on Windows a background shell's exit doesn't end it.
 --summary: print how many screenshots the folder holds and their size.
 
 A capture that fails (BlueStacks returning only empty frames, adb not
@@ -38,13 +41,17 @@ def summary(folder):
     print(f"{len(files)} screenshots in {folder}/, {size:.0f} MB")
 
 
-def record(folder, interval):
+def record(folder, interval, duration=None):
     os.makedirs(folder, exist_ok=True)
-    log.info(f"recording to {folder}/ every {interval:g}s")
+    log.info(f"recording to {folder}/ every {interval:g}s" + (f" for {duration:g}s" if duration else ""))
+    end = time.time() + duration if duration else None
     last_saved = None
     backoff = 0
     while True:
         start = time.time()
+        if end is not None and start >= end:
+            log.info(f"recording to {folder}/ ended after {duration:g}s")
+            return
         try:
             img = capture()
         except RuntimeError as e:  # empty frames, AdbTimeout
@@ -75,9 +82,14 @@ if __name__ == "__main__":
         i = args.index("--interval")
         interval = float(args[i + 1])
         del args[i:i + 2]
+    duration = None
+    if "--for" in args:
+        i = args.index("--for")
+        duration = float(args[i + 1])
+        del args[i:i + 2]
     if "--summary" in args:
         args.remove("--summary")
         summary(args[0] if args else "recon")
     else:
         setup(console=False)
-        record(args[0] if args else "recon", interval)
+        record(args[0] if args else "recon", interval, duration)
