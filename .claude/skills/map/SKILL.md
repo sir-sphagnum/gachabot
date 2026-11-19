@@ -85,7 +85,7 @@ The folders and file names are the whole map: there is no separate index file to
      - a menu of its own: carry on; `finish` makes it a folder.
      - a state of the old menu: a dialog that this menu always opens on a known action (e.g. a quit prompt on Back). Log it with `python -m tools.map state <here> <state>` while it shows: at finish its capture becomes `screen-<state>.png` in the old menu's folder. Then log an `info <here> <element> ...` that identifies it and the tap that closes it as `click <here> <button> ... --stay`.
      - a popup: shows up over any menu, unpredictably and in the way (e.g. a reward notice, a server disconnect). Log it with `python -m tools.map popup <popup>` while it shows: at finish it becomes `<game>/templates/common/popups/<popup>/`, not part of the menu tree, with this capture as `screen.png`. Then log one or more `info <popup> <element> ...` that identify it (the popup counts as open only when **all** of them match) and its close as `click <popup> close ... --stay` (a popup's buttons are all named `close`). `core.nav.tap_until` closes popups automatically before each tap.
-   - **a tap that closes something by landing on empty space** (outside a panel, "tap anywhere"): log the click as usual, but the crop is only background, which changes with what's behind it. Note the point instead (`tools.map note`): a routine taps it as a point, which `core.nav.dialog` takes as its close, and the crop never identifies anything.
+   - **a tap that closes something by landing on empty space** (outside a panel, "tap anywhere"): log the click as usual, then note the point (`tools.map note`): a routine taps it as a point, which `core.nav.dialog` takes as its close (common: Tap anywhere).
 
 ## "Identify this screen by <element>"
 

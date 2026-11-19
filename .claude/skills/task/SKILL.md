@@ -17,7 +17,7 @@ A task's controls are buttons, saved like any other in the folder of the menu th
 
 1. If you haven't read anything under the game's folder this session, read `<game>/CLAUDE.md` and the notes it imports first.
 2. Name the task: short, lowercase, hyphenated (`claim-forest`). Its routine module uses underscores (`claim_forest`), since Python names can't hold hyphens.
-3. Open this run's log: `python -m core.log start task`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then run `python -m core.device health`. If it fails, tell the user what it says and wait: an overgrown BlueStacks returns blank screenshots partway through navigation. When it says to restart BlueStacks, offer to run `python -m core.device restart <game>` and run it on their yes; it closes the game, which comes back on its start screen.
+3. Open this run's log: `python -m core.log start task`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then check `python -m core.device health` (common: BlueStacks memory). On any other failure, tell the user what it says and wait.
 4. Get to the task's menu:
    - **The user says to go there first**: follow the navigate skill (its log nests inside this one). Not in the tree: offer to map it (map skill).
    - **Navigation fails** (a button didn't match, the route broke): don't fix the route now. Read the capture navigate took, tap the rest of the way by hand (`python -m core.input tap X Y`, then `python -m core.input screenshot recon/task.png` to check), and carry on. Once the step log has started (step 5), log what failed with `python -m tools.map note <text>`; the route gets fixed at Stop.
@@ -52,7 +52,7 @@ Only tap what the user asked for. If a step would spend premium currency, make a
    - which images should be `_anywhere` (map skill's naming rules): any control or element that moved between captures, e.g. in a list that reorders.
    Log the answers with `python -m tools.map note <text>`.
 3. Run `python -m tools.map finish`. It crops each `btn_` and `info_` image into its menu's folder and checks it, as in the map skill. Fix any crop it flags, place the dialogs as answered in step 2, and rename the `_anywhere` images. A menu that needs another name (the user asked during the task, or one turned out wrong): `python -m tools.map rename <old> <new>`, after `finish` so the new menus exist; then search the game's routines and notes for the old name.
-4. `finish` only checks images against other menus. Also score each one on every capture of this session with `python -m tools.map score` (the menus the log touches; pass menu names or image paths to narrow it, e.g. after recropping one). It prints the captures each image matches, the best score on the rest, and the best on other menus' saved screens. A control must match where the routine should tap it and not where it shouldn't (claimed, grey, under a dialog). Matching is blind to brightness, so a lit and a greyed-out button can score alike; tell those apart by colour in the routine instead. One image can serve several rows of a list when they share a layout: search it at each row's offset.
+4. `finish` only checks images against other menus. Also score each one on every capture of this session with `python -m tools.map score` (the menus the log touches; pass menu names or image paths to narrow it, e.g. after recropping one). It prints the captures each image matches, the best score on the rest, and the best on other menus' saved screens. A control must match where the routine should tap it and not where it shouldn't (claimed, grey, under a dialog). A lit and a greyed-out button score alike (common: Lit or grey). One image can serve several rows of a list when they share a layout: search it at each row's offset.
 5. If Start had to go part of the way by hand, fix the route now (navigate skill, step 5) and check `python -m core.nav <game> goto <menu>` reaches the menu.
 6. Write `<game>/routines/<task>.py` with `run()`, following `e7/routines/start_screen.py` and `.claude/logging.md`:
    - first `core.nav.goto(GAME, <menu>)`; return False if it fails;
@@ -66,7 +66,7 @@ Only tap what the user asked for. If a step would spend premium currency, make a
 
 ## Steps Claude chooses
 
-The learn-dailies skill runs this flow with Claude in the user's place: it picks each step from the daily's type (`core/notes/dailies.md`) and taps it with `python -m tools.map click … --auto`, which refuses names with a spending word (`core.tree.SPEND_WORDS`). The rules above still hold: a step that would spend waits for the user, and is tapped without `--auto` once they agree.
+The learn-dailies skill runs this flow with Claude in the user's place: it picks each step from the daily's type (`core/notes/dailies.md`) and taps it with `python -m tools.map click … --auto`, which refuses names with a spending word (`core.tree.SPEND_WORDS`). A step that spends stamina for a row in the approved plan runs; any other spend waits for the user, and is tapped without `--auto` once they agree.
 
 ## Running an existing task
 

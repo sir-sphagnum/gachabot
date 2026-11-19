@@ -8,11 +8,11 @@ A type is listed once two games show it, like everything in `core/notes/`. "Seen
 
 The daily-missions menu (common: Daily missions). Look for **Missions, Tasks, Quests, Daily, Guide, Journal**, or a checklist or calendar icon with a red badge, on the lobby or one menu in.
 
-- **Control:** one Claim All (re1999, ba) or the top chest on a points bar (e7), tapped while lit; a separate milestone Claim where Claim All leaves it (ba).
-- **Done:** the control gone or grey.
+- **Control:** the one claim control, tapped while lit (common: Daily missions): Claim All (re1999, ba), the points bar's top chest (e7).
+- **Done:** the control gone or grey (common: Daily missions).
 - **Cost:** none.
 - **Start from:** `re1999/routines/claim_dailies.py` (Claim All that disappears), `ba/routines/claim_dailies.py` (Claim All that greys, plus a milestone), `e7/routines/claim_dailies.py` (a points bar).
-- **Also the checker.** Each row names a daily the game counts ("Claim mail 1/1", "Clear 3 stages 0/3"), so the menu is the list of what the game expects done, and a row's progress is how learn-dailies tells a routine worked. ba's rows have a blue Shortcut that opens the row's menu: a free route to discover.
+- **Also the checker.** Each row names a daily the game counts ("Claim mail 1/1", "Clear 3 stages 0/3"), so the menu is the list of what the game expects done. ba's rows have a blue Shortcut that opens the row's menu: a free route to discover.
 - Runs last in the day's group, after the routines whose rows it claims (`e7/notes/routines.md`, `re1999/notes/routines.md`, `ba/notes/routines.md`).
 
 ## Idle claim
@@ -20,10 +20,9 @@ The daily-missions menu (common: Daily missions). Look for **Missions, Tasks, Qu
 A resource that builds up over time and is collected: e7's Forest of Souls (Penguin Nest, Spirit Well, MolaGora Farm), re1999's Wilderness buildings, ba's Cafe Earnings. Look for a building, farm, cafe or base with a % badge, a full bar or a timer.
 
 - **Control:** a Receive or Claim per source (e7's rows), one Claim on an earnings dialog (ba), or a pan-to-next icon and a tap on the resource (re1999).
-- **Done:** the control grey, a timer in its place (e7), or the pan icon gone (re1999).
+- **Done:** the control grey, a timer in its place (e7), or the pan icon gone (re1999): judged by the control, not a dialog (common: Reward dialogs).
 - **Cost:** none to collect. A second control next to the claim can spend a daily use (e7's Cultivate), so it's a step of its own.
 - **Start from:** `e7/routines/claim_forest.py` (rows), `re1999/routines/claim_wilderness.py` (a 3D map, tapped as points), the earnings step of `ba/routines/cafe.py`.
-- Often answered by a "Received" dialog per claim, or none (e7's MolaGora Farm), so the routine checks the control changed rather than waiting for a dialog.
 
 ## Limited attempts
 
@@ -43,7 +42,7 @@ Each game names it its own way: re1999's Activity, ba's AP, e7's stamina (sold a
 
 - **Control:** a fixed stage, then the fight-finishing way below. Each call spends a fixed amount.
 - **Done:** one run, or a count of runs the routine was asked for. Running out shows as a refill offer, which costs premium currency, so the routine stops at it and never confirms it.
-- **Cost:** stamina; a spend the user agrees to per routine and amount.
+- **Cost:** stamina.
 - **Start from:** `re1999/routines/poussiere.py` (replay at x4), `e7/routines/hunt.py` (background battling), `ba/routines/sweep_hard.py`.
 
 ## Finishing a fight without playing it
@@ -70,10 +69,10 @@ A daily the game counts for visiting or touching something, with nothing to win 
 
 ## Mail
 
-A mailbox of gifts with attachments (login rewards, compensation, items sent on at an ownership limit). Every game has one, whether or not a missions row asks for it, so learn-dailies always looks for it. Look for an **envelope / present** icon or **Mail / Mailbox** label on the lobby, with count badge (e7: in the HUD row; ba: top-right bar; re1999: left column).
+A mailbox of gifts with attachments (login rewards, compensation, items sent on at an ownership limit). Every game has one, whether or not a missions row asks for it. Look for an **envelope / present** icon or **Mail / Mailbox** label on the lobby, with count badge (e7: in the HUD row; ba: top-right bar; re1999: left column).
 
 - **Control:** one Claim All / Receive All (re1999, ba, e7), never each mail's own Claim. It's there whether or not anything is left, and a mail Claim All can't take stays in the list.
-- **Done:** read per game, from what the tap answers: Claim All grey (ba); a "nothing to claim" toast (re1999 "No mail with attachment", e7 "Receive All cannot be used with this mail."). Mail left in the list is not a failure.
+- **Done:** read per game, from what the tap answers: Claim All grey (ba), or a "nothing to claim" toast (re1999, e7; common: Toasts). Mail left in the list is not a failure.
 - **Cost:** none. e7 asks to confirm first ("Would you like to receive all mail…"): a confirm word that spends nothing, tapped without `--auto` once the question is read.
 - **Mail Claim All skips:** e7's GM mail unlocks only after "Move to Link" opens an outside link, so it stays (Never automatic, below).
 - **Start from:** `ba/routines/claim_mail.py` (a button lit or grey), `re1999/routines/claim_mail.py` (a reward popup or a toast), `e7/routines/claim_mail.py` (a confirm dialog, then a reward dialog or a toast).

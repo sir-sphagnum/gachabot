@@ -13,7 +13,7 @@ Run all commands from the project root.
 
 - The game has a lobby and a `start_screen` routine (new-game skill). If not, run new-game first.
 - Read `<game>/CLAUDE.md` and the notes it imports, `core/notes/dailies.md`, and the map and task skills (`.claude/skills/map/SKILL.md`, `.claude/skills/task/SKILL.md`): this skill uses their tools and their Stop steps.
-- Open the log: `python -m core.log start learn-dailies` (on `(inside <skill>)` from another conversation: `python -m core.log end --all`, then start again). Check `python -m core.device health`, and again every ~30 taps: exploring captures a lot (common: BlueStacks memory). Over 18 GB, restart it yourself (`python -m core.device restart <game>`, no need to ask) at the next safe moment: not during a fight, a load or a spend, and with no claim half done. Past ~22 GB screenshots come back blank mid-session, so don't start a fight or a long recording over 18 GB.
+- Open the log: `python -m core.log start learn-dailies` (on `(inside <skill>)` from another conversation: `python -m core.log end --all`, then start again). Check `python -m core.device health` (common: BlueStacks memory), and again every ~30 taps: exploring captures a lot. On any other failure, tell the user what it says and wait.
 
 ## Rules for the taps you choose
 
@@ -44,7 +44,7 @@ After step 3, for each lobby control the missions rows point to that their Go bu
 
 Go a level deeper only toward a daily (a hub that holds Campaign or Resource stages, a shop's tabs), never into a mode's Start.
 
-A hub's cards or a list's entries can sit past the screen edge, and the hub can slide or scroll on entry (common: Lists that move). Swipe to find them, and note the swipe that brings each one on screen. `core.nav goto` taps only what is on screen and never swipes, so it can't reach such an entry: cut it `_anywhere` (map skill), and have the routine wait for the hub to settle (`core.nav.settled`), swipe, settle again, and only then tap it.
+A hub's cards or a list's entries can sit past the screen edge. Swipe to find them, and note the swipe that brings each one on screen (common: Lists that move).
 
 ## 3. Read the missions list
 
@@ -71,7 +71,7 @@ The daily missions as the game lists them, the routine that does each, and what 
 
 Cost is "none" or what one run spends, read from the screen.
 
-If no missions row names mail, add a row for it anyway ("(no row): mail"): the mailbox is claimed every day either way.
+If no missions row names mail, add a row for it anyway ("(no row): mail", §1 step 4).
 
 Then choose the rows to propose:
 
@@ -87,7 +87,7 @@ For each planned row with cost "none", one at a time, run the task skill's flow 
 1. Task Start (its steps 2–6) with the task named after the routine (`claim-mail` → `claim_mail`). Navigate there with `python -m core.nav <game> goto <menu>` (map the route first if goto can't reach it).
 2. Choose the steps from the type in `core/notes/dailies.md` and from what step 2 noted: the claim control while lit, its reward dialog's close (common: Reward dialogs), a tab to pick first. Tap each with `python -m tools.map click <menu> <button> X Y W H --stay --auto`, and say in one line what you tapped and what changed, as the task skill does.
 3. The type says what a done screen looks like; capture one (it's usually the state right after the claim) and log the `info_` that tells it (`python -m tools.map info …`).
-4. Task Stop (its steps 1–9), answering the questions it would ask the user yourself where the type's entry answers them ("not there means done" for a claim), and asking the user only what it doesn't. Start the routine from the file the type names. A claim whose reward shows as one of the game's common popups is tapped with `popups=False`, or `tap_until` closes the reward and taps the claim again (common: Reward dialogs). The approved plan answers Task Stop's step 7 for a free row: run it without asking.
+4. Task Stop (its steps 1–9), answering the questions it would ask the user yourself where the type's entry answers them ("not there means done" for a claim), and asking the user only what it doesn't. Start the routine from the file the type names. A claim whose reward is a common popup is tapped as common: Reward dialogs says. The approved plan answers Task Stop's step 7 for a free row: run it without asking.
 
 A row that turns out to cost something after all (a confirm dialog with a price): stop that row and close the dialog with its Cancel. If the cost is stamina, update its Cost in the table and move the row to §6; otherwise update it and ask.
 
@@ -111,9 +111,9 @@ After each routine's first successful run (`python -m <game>.bot <routine>`), op
 - it didn't move: the routine returned True without doing the daily. Read its run with `--debug`, fix, run again;
 - the row was already complete before the run: Checked stays empty, and the check is owed to the next day's run. Say so.
 
-Before writing `claim_dailies`, make sure §3 step 4 was done: leave the missions menu after a claim, open it again, and note the section and tab it lands on. Missions menus reopen wherever a reward waits (a story or weekly tab once the dailies are claimed), so the routine picks the daily section and tab itself after every entry, and each view gets its own identifier. A `claim_dailies` written from one visit fails the first time the menu opens elsewhere.
+Before writing `claim_dailies`, make sure §3 step 4 was done: a `claim_dailies` written from one visit fails the first time the menu opens elsewhere.
 
-Then write `<game>/routines/claim_dailies.py` (the missions claim, from the file `core/notes/dailies.md` names) and a "daily routine" in `<game>/notes/routines.md`: `claim_mail` first (what mail gives, such as stamina or tickets, feeds the rest), every other approved routine, then `claim_dailies` last, as one `python -m <game>.bot start lobby claim_mail … claim_dailies` command.
+Then write `<game>/routines/claim_dailies.py` (the missions claim, from the file `core/notes/dailies.md` names) and a "daily routine" in `<game>/notes/routines.md`: `claim_mail` first and `claim_dailies` last (`core/notes/dailies.md`, Mail and Missions claim), with every other approved routine between them, as one `python -m <game>.bot start lobby claim_mail … claim_dailies` command.
 
 ## 8. Next day
 

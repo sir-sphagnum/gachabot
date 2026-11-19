@@ -74,7 +74,7 @@ Seen on e7's arena flags and leif cost, ba's lesson and bounty tickets.
 
 ## Tap anywhere
 
-Some screens have no close button and move on at a tap anywhere: re1999's obtained, level-up and VICTORY, ba's relationship-rank-up and login boards, e7's start screen. The routine taps the screen's identifier: the `btn_` is cut on the same box as its `info_` (re1999's obtained and level-up titles, ba's rank-up title, ba's login-board sky), so the tap lands only while the screen it closes shows. A spot on blurred background (re1999's checkin-close) marks a tap point only, never a state.
+Some screens have no close button and move on at a tap anywhere: re1999's obtained, level-up and VICTORY, ba's relationship-rank-up and login boards, e7's start screen. The routine taps the screen's identifier: the `btn_` is cut on the same box as its `info_` (re1999's obtained and level-up titles, ba's rank-up title, ba's login-board sky), so the tap lands only while the screen it closes shows. A spot on blurred background (re1999's checkin-close) marks a tap point only, never a state: its crop is background, which changes with what's behind it.
 
 ## Toasts
 
@@ -84,7 +84,7 @@ A toast can also be a tap's only answer: e7's "Receive All cannot be used with t
 
 ## Lists that move
 
-Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and the daily-shop grid moves bought products to the end; ba's lesson area list and bounty stage list scroll on entry; re1999's resource row moves Pneuma Analysis to the end once its chances are spent. Entries are found with `_anywhere` images or tapped by position once the list has settled (`core.nav.settled`), never while it scrolls. A list that reorders can push an entry off screen: e7's daily-shop grid, with three products bought, puts 5 Flags past the right edge.
+Lists scroll on entry or reorder: e7's hunt list scrolls to the chosen card and the daily-shop grid moves bought products to the end; ba's lesson area list and bounty stage list scroll on entry; re1999's resource row moves Pneuma Analysis to the end once its chances are spent. Entries are found with `_anywhere` images or tapped by position once the list has settled (`core.nav.settled`), never while it scrolls. A list that reorders can push an entry off screen: e7's daily-shop grid, with three products bought, puts 5 Flags past the right edge. `core.nav.goto` taps only what is on screen and never swipes, so it can't reach an entry past the edge: the entry is cut `_anywhere`, and the routine waits for the list to settle, swipes, waits again and only then taps it.
 
 Stage lists and timelines open on the newest or last stage (re1999's In Our Time and resource timelines, ba's overpass), which moves as the account progresses. So a stage is found by its label `_anywhere` (re1999) or picked by reading the rows (ba's stars), never at a fixed spot.
 
@@ -115,4 +115,4 @@ Every game shows screens only on the first launch of a day, or the first entry o
 
 ## BlueStacks memory
 
-BlueStacks' memory grows with every capture and every cold start (e7: 9.6 → 22 GB in ~45 min of two processes capturing each second; ba: ~4–5 GB per cold start). Past ~22 GB screencaps came back empty; with 0.2 GB free on the PC, ba's load stalled into its network-unstable popup. `python -m core.device health` says when a restart is due. Each `<game>.bot` runs its routines through `core.device.with_room`, which restarts BlueStacks (and the game, to its lobby) before a routine once it's over 18 GB, and once more, rerunning the routine, if it stops on blank screenshots or on ADB not answering (ba: `screencap` timed out at 19.5 GB, after a cold start took it past the limit mid-routine).
+BlueStacks' memory grows with every capture and every cold start (e7: 9.6 → 22 GB in ~45 min of two processes capturing each second; ba: ~4–5 GB per cold start). Past ~22 GB screencaps came back empty; with 0.2 GB free on the PC, ba's load stalled into its network-unstable popup. `python -m core.device health` says when a restart is due. Claude then runs `python -m core.device restart <game>` without asking, at the next safe moment: no spend, fight, load or half-done claim in flight, and no fight or long recording started before it. Each `<game>.bot` runs its routines through `core.device.with_room`, which restarts BlueStacks (and the game, to its lobby) before a routine once it's over 18 GB, and once more, rerunning the routine, if it stops on blank screenshots or on ADB not answering (ba: `screencap` timed out at 19.5 GB, after a cold start took it past the limit mid-routine).

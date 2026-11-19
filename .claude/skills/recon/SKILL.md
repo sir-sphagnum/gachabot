@@ -14,7 +14,7 @@ Records what happens in BlueStacks while the user asks you to click through the 
    python -m core.log start recon
    ```
    It prints the log file. If it says `(inside <skill>)` and you didn't start that skill in this conversation, an earlier run never ended: run `python -m core.log end --all`, then start again (`.claude/logging.md` §5).
-2. Check `python -m core.device health`. If it fails, tell the user what it says and wait for them. When it says to restart BlueStacks, offer to run `python -m core.device restart <game>` and run it on their yes; it closes the game, which comes back on its start screen.
+2. Check `python -m core.device health` (common: BlueStacks memory). On any other failure, tell the user what it says and wait.
 3. Start the capture loop in the background (run_in_background: true), from the project root:
    ```
    python -m tools.recon
