@@ -48,7 +48,7 @@ Only tap what the user asked for. If a step would spend premium currency, make a
 1. Run `python -m tools.map log` and check it with the user's steps in mind: right names. Remove the lines of taps that changed nothing.
 2. Ask everything left open in one message, suggesting an answer for each:
    - each dialog's kind, from the guesses in the notes (state of this menu, or common popup);
-   - what the routine should do when each control isn't there (nothing to claim yet, already claimed). For a claim, "not there" usually means done, not a failure;
+   - what the routine should do when each control isn't there (nothing to claim yet, already claimed). For a claim, "not there" usually means done (Rule 6);
    - which images should be `_anywhere` (map skill's naming rules): any control or element that moved between captures, e.g. in a list that reorders.
    Log the answers with `python -m tools.map note <text>`.
 3. Run `python -m tools.map finish`. It crops each `btn_` and `info_` image into its menu's folder and checks it, as in the map skill. Fix any crop it flags, place the dialogs as answered in step 2, and rename the `_anywhere` images. A menu that needs another name (the user asked during the task, or one turned out wrong): `python -m tools.map rename <old> <new>`, after `finish` so the new menus exist; then search the game's routines and notes for the old name.

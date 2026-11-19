@@ -9,7 +9,7 @@ Usage: python -m ba.routines.claim_mail [--debug]
    so a fuller mailbox keeps Claim All yellow for another tap.
 3. Home, then the lobby routine.
 
-A grey Claim All means nothing to claim, which counts as done.
+A grey Claim All means nothing to claim, which counts as done (Rule 6).
 """
 
 import sys

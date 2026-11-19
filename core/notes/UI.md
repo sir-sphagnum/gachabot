@@ -33,30 +33,44 @@ When this file describes how to read the screen, the code for it lives once in `
 
 **Scope:** this covers how the screen is read and waited on. It doesn't cover a menu's own numbers (boxes, thresholds, offsets), which stay in the routine next to a comment on what was measured, nor a routine's sequence of steps.
 
+### Rule 5. Identify a state by an element only it has
+
+Games reuse art across screens, and an image cut from one scores ~1.00 on the others (Shared buttons, Shared screens, Shared titles, Reading a zero, below). So a menu, state or dialog is identified only by an element no other screen shows (a question line, a panel title, a card only that menu has), checked against every saved screen when it's cut. A shared image closes, confirms or taps, never identifies, and is tapped only once the state is known.
+
+- `316053a`: a title chosen for arena turned out to be shared by the next menu, and the identifier had to be undone.
+- `bacb050`: re1999's Home was noted as scoring at most 0.19 elsewhere; it scored 0.94–0.99 on every show screen, so each menu there got its own `info_`.
+
+**Scope:** this covers images that decide which screen is shown. It doesn't cover a dim (Rule 1), where the matching element really is on screen, under the dialog.
+
+### Rule 6. Judge a step by the state it was meant to reach
+
+A step can reach its goal without the signal the routine expected on the way: no reward dialog, a confirmation title missed, a control already gone because its work is done. So a step is judged done by its goal state: the control that does the work gone, grey or showing a timer, the setting's indicator on. A missing control or dialog is read as done, not as failure, once the menu it belongs to is known (Rule 5) and has settled (Rule 2).
+
+- `0170ea0`: claiming MolaGora Farm opens no reward dialog, so `tap_until` kept waiting for "Tap to close" and the routine gave up after the claim had gone through.
+- `db9e34f`: claim_auto waited for Calculation Complete's title, missed it, and failed a claim that had gone through.
+- `ed88516`: with three products bought, 5 Flags moved past the screen's edge, and claim_daily_shop failed it as "not on screen".
+- `2d1b72a`: battle-prep remembered replay mode, so the play icon that turns it on was gone and the run failed looking for it.
+
+**Scope:** this covers judging whether a step's work is done. It doesn't cover deciding which screen is open (Rules 1 and 5), and it never makes a spend retappable (Rule 2's scope).
+
 ## Dims
 
-A popup or dialog dims the screen but leaves what's underneath matching, often at 0.96–1.00: e7's barrel under the quit dialog, re1999's Crew under quit, ba's Campaign and Cafe titles under their popups. Rule 1 covers what to do: routines read a menu from `core.nav.clear`, which closes the game's popups and the menu's own dialogs first. A game's notes record only the score under the dim.
+A popup or dialog dims the screen but leaves what's underneath matching (Rule 1), often at 0.96–1.00: e7's barrel under the quit dialog, re1999's Crew under quit, ba's Campaign and Cafe titles under their popups. A game's notes record only the score under the dim.
 
 ## Shared buttons
 
-Games reuse one button's art across dialogs: e7's "Tap to close" sits on five dialogs and its quit-dialog Cancel/Confirm on three more; ba's Confirm is the same on the cafe's invite and bounty's sweep, and its "Notice" title heads several dialogs. An image cut from one scores ~1.00 on the others. So:
-
-- a shared `btn_` closes or confirms a dialog but never identifies it;
-- it's tapped only right after the action that opens its dialog, or while that dialog's own `info_` (its question or a title no other dialog has) shows;
-- the same goes for the back arrow and Home that sit in one spot on every menu (ba's top bar, re1999's Home at (186, 42), e7's back arrow): tapped only once the menu is known.
-
-A dialog's identifier is its unique text: the question line, or a title nothing else shares.
+Games reuse one button's art across dialogs: e7's "Tap to close" sits on five dialogs and its quit-dialog Cancel/Confirm on three more; ba's Confirm is the same on the cafe's invite and bounty's sweep, and its "Notice" title heads several dialogs. The back arrow and Home sit in one spot on every menu (ba's top bar, re1999's Home at (186, 42), e7's back arrow). So (Rule 5) a shared `btn_` is tapped only right after the action that opens its dialog, or while that dialog's own `info_` (its question line, or a title nothing else shares) shows, and the back arrow and Home only once the menu is known.
 
 ## Shared screens
 
 A menu can show another menu's screens unchanged: e7's secret-shop buy dialog is daily-shop's (title, Cancel and Buy all 1.00 there); ba's gehenna opens overpass's Mission Info, Notice and Sweep Complete in the same places, and mission's Sweep Complete is that dialog too; re1999's battle-prep-pneuma and battle-prep-poussiere are In Our Time's battle-prep, and all three fight on its battle screen.
 
 - No copies are cut: the second menu's routine uses the first menu's images, and its notes say where they live. A copy would be a second image to keep in step for no new information.
-- No `info_` is cut from a shared screen, since it would identify the other menu too. The screen is told open by its control (e7's green Buy), and the menu by what differs (re1999's Pneuma chances line) or, where nothing does, by the path that reached it (re1999's poussiere).
+- No `info_` is cut from a shared screen (Rule 5). The screen is told open by its control (e7's green Buy), and the menu by what differs (re1999's Pneuma chances line) or, where nothing does, by the path that reached it (re1999's poussiere).
 
 ## Shared titles
 
-A menu one level down often keeps the title or header of the one above: e7's arena-landing and arena both read "Arena", battle and hunt both "Battle"; ba's "Bounty" header stays on overpass and "Scrimmage" on gehenna. So the title identifies neither, and each is identified by an element only it has (e7's Arena card and Defense Team; ba's panel titles "Bounty - Overpass" and "Gehenna").
+A menu one level down often keeps the title or header of the one above: e7's arena-landing and arena both read "Arena", battle and hunt both "Battle"; ba's "Bounty" header stays on overpass and "Scrimmage" on gehenna. So the title identifies neither (Rule 5); each is identified by an element only it has (e7's Arena card and Defense Team; ba's panel titles "Bounty - Overpass" and "Gehenna").
 
 ## Lit or grey
 
@@ -69,14 +83,14 @@ Seen on e7's Cultivate, secret-shop's Buy, arena's Challenge and lost rows, orbi
 Menus remember a choice between visits and after fights: e7's Use Owned Energy First stays ticked; re1999's replay mode and its x4 count stay on, and battle-prep reopens in replay mode with the play icon gone. And a toggle often scores the same either way (re1999's Hard 1.00 / 0.99, its Daily tab label 1.00 / 0.90). So:
 
 - the routine reads the setting from its own indicator (e7's ticked box, re1999's replay line and "x4" in the count box) before touching it, and taps the toggle only while the indicator says it's off: a blind tap can turn it off again;
-- a control that turns a setting on can be gone because the setting is already on (re1999's play icon), so its absence isn't a failure until the indicator has been read.
+- a control that turns a setting on can be gone because the setting is already on (re1999's play icon), so its absence is judged by the indicator (Rule 6).
 
 ## Daily missions
 
 Every game is assumed to have a daily-missions menu, and each one gets a `claim_dailies` routine (`python -m <game>.bot claim_dailies`) that only claims and never works on the missions. So far: e7's orbis-guide (Three Sisters' Diary), re1999's tasks (Daily Activeness tab), ba's tasks (Claim All, then the milestone's own Claim).
 
 - **One tap claims everything.** e7's 100 chest claims every ready chest on the bar; re1999's Claim All claims every finished task and milestone. The routine taps that one control, not each row, and taps it again while it's still lit: ba's Claim All can complete a "claim N tasks" task, which lights it again, and leaves the milestone on the bottom bar to its own Claim.
-- **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner is there only then. So "not there" or "not lit" means already claimed or not earned yet, and the routine counts it as success, not failure.
+- **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner is there only then. So "not there" or "not lit" means already claimed or not earned yet, which the routine counts as success (Rule 6).
 - **A claim opens a reward dialog** (common: Reward dialogs): e7's is the menu's own state; re1999's and ba's are common popups.
 - **The menu may open on another tab or section**, so the routine picks the daily one after every entry (re1999 opens on a tab with rewards waiting, Weekly once Daily is claimed).
 
@@ -85,12 +99,12 @@ Every game is assumed to have a daily-missions menu, and each one gets a `claim_
 A claim (missions, mail, earnings, a fight's reward) usually opens a dialog listing what it gave, which waits for a tap. e7's are each menu's own state, closed by the shared "Tap to close" (common: Shared buttons); ba's "REWARD ACQUIRED!" and re1999's "Obtained" are common popups that can show over any menu.
 
 - When it's one of the game's common popups, the claim tap runs with `popups=False`, or `tap_until` closes it as an obstruction and keeps tapping (re1999's claim_mail and claim_dailies).
-- Some claims open none (e7's MolaGora Farm, ba's 8/8 milestone Claim), so a claim is judged by its control changing (gone, grey, a timer), not by a dialog showing.
+- Some claims open none (e7's MolaGora Farm, ba's 8/8 milestone Claim), so a claim is judged by its control (Rule 6), not by a dialog showing.
 - Another popup can sit on top of it (ba's mailbox notice at an ownership limit) and is closed first.
 
 ## Reading a zero
 
-A counter is read as "zero or not" from a crop of its first digit only. Other digits score 0.42–0.84 against the 0 (rounded ones, 6, 8 and 9, come closest), so the routine asks for 0.90–0.95, not the usual 0.85. Counts that were never seen are unknown, so the notes list which were. Over a changing background the digit is matched white-only (`_white`). A bare digit can match a digit on another menu (e7: hunt-team's top bar scores 0.91 on arena's flags 0), so it's read only once the menu is known.
+A counter is read as "zero or not" from a crop of its first digit only. Other digits score 0.42–0.84 against the 0 (rounded ones, 6, 8 and 9, come closest), so the routine asks for 0.90–0.95, not the usual 0.85. Counts that were never seen are unknown, so the notes list which were. Over a changing background the digit is matched white-only (`_white`). A bare digit can match a digit on another menu (e7: hunt-team's top bar scores 0.91 on arena's flags 0), so it's read only once the menu is known (Rule 5).
 
 Seen on e7's arena flags and leif cost, ba's lesson and bounty tickets.
 

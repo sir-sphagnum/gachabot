@@ -12,7 +12,7 @@ Usage: python -m ba.routines.lesson [--debug]
    Lesson Report.
 3. Close All Locations (X), Home, then the lobby routine.
 
-No tickets left at the start counts as done, not as a failure.
+No tickets left at the start counts as done (Rule 6).
 """
 
 import sys

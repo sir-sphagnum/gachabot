@@ -20,7 +20,7 @@ The daily-missions menu (common: Daily missions). Look for **Missions, Tasks, Qu
 A resource that builds up over time and is collected: e7's Forest of Souls (Penguin Nest, Spirit Well, MolaGora Farm), re1999's Wilderness buildings, ba's Cafe Earnings. Look for a building, farm, cafe or base with a % badge, a full bar or a timer.
 
 - **Control:** a Receive or Claim per source (e7's rows), one Claim on an earnings dialog (ba), or a pan-to-next icon and a tap on the resource (re1999).
-- **Done:** the control grey, a timer in its place (e7), or the pan icon gone (re1999): judged by the control, not a dialog (common: Reward dialogs).
+- **Done:** the control grey, a timer in its place (e7), or the pan icon gone (re1999): judged by the control, not a dialog (Rule 6).
 - **Cost:** none to collect. A second control next to the claim can spend a daily use (e7's Cultivate), so it's a step of its own.
 - **Start from:** `e7/routines/claim_forest.py` (rows), `re1999/routines/claim_wilderness.py` (a 3D map, tapped as points), the earnings step of `ba/routines/cafe.py`.
 

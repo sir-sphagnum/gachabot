@@ -12,7 +12,7 @@ Usage: python -m ba.routines.claim_dailies [--debug]
    popup, and turns grey ("Complete").
 4. Back to the lobby: Home icon, then the lobby routine.
 
-Grey means claimed or not earned yet, which counts as done, not a failure.
+Grey means claimed or not earned yet, which counts as done (Rule 6).
 """
 
 import sys
