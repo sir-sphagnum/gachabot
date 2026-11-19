@@ -32,7 +32,7 @@ The missions list says what to do, so it's read first and the lobby is explored 
 1. `python -m core.nav <game> goto lobby`, then `python -m tools.map start <game>`; Read the capture.
 2. List every control you can see, with its label and box, and give each a guess from `core/notes/dailies.md`: missions, idle claim, limited attempts, stamina sink, social check-in, one of "Seen in one game", or nothing daily (settings, events, summon, shop). Show the list to the user in one message; don't wait for an answer unless something is unclear.
 3. Find the missions menu (`core/notes/dailies.md`, Missions claim: the labels to look for). It is often an unlabelled icon (a clipboard, a checklist) or a strip that shows the current task, with neighbours that look alike: a notification panel, achievements (lifetime goals), a career or story-progress list. Tell them apart by what opens: the missions menu has a Daily tab or section, rows with n/m progress, and usually an activity bar with chests. If the lobby has none, look one menu deep in the likeliest hub (a Menu or main-menu button). Then go to step 3 (read the missions list) before step 2.
-4. Find the mailbox (`core/notes/dailies.md`, Mail: an envelope or Mail label). new-game maps it; if `<game>/templates/` has no `mail` menu, map it now as new-game's Mailbox bullet says. Every game gets a `claim_mail` routine, whether or not a missions row asks for mail.
+4. Find the mailbox as `core/notes/dailies.md`, Mail says. new-game maps it; if `<game>/templates/` has no `mail` menu, map it now as new-game's Mailbox bullet says. Every game gets a `claim_mail` routine, whether or not a missions row asks for mail.
 
 ## 2. Explore
 

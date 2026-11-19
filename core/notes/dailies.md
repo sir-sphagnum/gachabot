@@ -37,7 +37,9 @@ Something the game hands out a few of each day (tickets, flags, chances, attempt
 
 ## Stamina sink
 
-Stages paid with stamina (e7: stamina; re1999: Activity; ba: AP), which refills over the day: e7's hunt, re1999's In Our Time and The Poussiere, ba's Hard sweeps. Look for a currency with a max (120/120) in the lobby.
+Stages paid with stamina, which refills over the day up to a max: e7's hunt, re1999's In Our Time and The Poussiere, ba's Hard sweeps. Look for a counter in the lobby that reads x/y, current over max (85/120). x can be higher than y (250/120): the refill stops at the max, but mail, rewards and items add past it, so x ≥ y doesn't mean nothing more can come in, and x > y isn't a misread.
+
+Each game names it its own way: re1999's Activity, ba's AP, e7's stamina (sold as Energy in its shop). Outside these three, as hints for a new game: Keys (Project Neural Cloud), Intelligence Puzzle (Girls' Frontline 2: Exilium), Sanity (Arknights). Some games have none, and some spread it over several supplies (Girls' Frontline: Manpower, Ammunition, Rations, Parts).
 
 - **Control:** a fixed stage, then the fight-finishing way below. Each call spends a fixed amount.
 - **Done:** one run, or a count of runs the routine was asked for. Running out shows as a refill offer, which costs premium currency, so the routine stops at it and never confirms it.
