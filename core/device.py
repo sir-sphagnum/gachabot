@@ -26,7 +26,7 @@ import subprocess
 import sys
 import time
 
-from core.adb import adb, connect, player_pids, run
+from core.adb import AdbTimeout, adb, connect, player_pids, run
 from core.input import BlankScreen, tap
 from core.log import logger, setup
 
@@ -340,10 +340,12 @@ def with_room(game, routine):
 
     Before it: when BlueStacks is over PLAYER_MAX_GB, restart it and bring
     `game` back to its lobby. During it: if it stops on blank screenshots
-    (core.input.BlankScreen), do the same and run it once more. A rerun is
-    safe because routines start by going to their menu from wherever the
-    game is and read what is left to do from the screen. One daily routine
-    alone grew BlueStacks by up to ~7 GB, so the check runs before each.
+    (core.input.BlankScreen) or on ADB not answering (core.adb.AdbTimeout,
+    seen at 19.5 GB when a cold start pushed it past the limit mid-routine),
+    do the same and run it once more. A rerun is safe because routines start
+    by going to their menu from wherever the game is and read what is left
+    to do from the screen. One daily routine alone grew BlueStacks by up to
+    ~7 GB, so the check runs before each.
     """
     player = player_gb()
     if player is not None and player > PLAYER_MAX_GB:
@@ -352,7 +354,7 @@ def with_room(game, routine):
             return False
     try:
         return routine()
-    except BlankScreen as e:
+    except (BlankScreen, AdbTimeout) as e:
         log.warning(f"{e}: restarting BlueStacks and running it again")
     if not _restart_with(game):
         return False
