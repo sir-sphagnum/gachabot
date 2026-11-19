@@ -21,6 +21,7 @@ Don't soften prose just to shorten it. Text that reads like commentary but carri
 |---|---|---|---|
 | Invariant / constraint | "What breaks if I change this?" | code comment | notes |
 | Decision / rejected alternative / menu behaviour | "Why not the obvious way?" "How does this menu behave?" | `<game>/notes/*.md`, or `core/notes/UI.md` once two games show it | code comment |
+| Procedure | "What do I do, in what order?" | `.claude/skills/*/SKILL.md` | notes |
 | Event / narrative | "What changed, what did we try, why?" | git commit message | notes, comments |
 | Orientation | "Where do I start?" | `.claude/CLAUDE.md`, `<game>/CLAUDE.md`, `core/CLAUDE.md` | anywhere else |
 
@@ -45,3 +46,12 @@ Rules arrive only by the promotion rule below, never copied from another project
 One incident can't tell a recurring cause from an accident, and a rule written from one instance gets the wrong scope.
 
 **Finding repeats.** Do a promotion pass when the same correction comes up twice, or when a note passes ~200 lines: read `git log` since the last pass and look for a repeated *cause*, not a repeated symptom.
+
+### Rule 4. Write a fact once, in its subject's home; cite it everywhere else
+
+Text goes to the home its subject routes to (§2), not to the file being edited. Before writing a fact (how a menu behaves, a number, a reason, a rule), search for it (`git grep` its key words). Found: cite it ("(common: <section>)", "`core/notes/dailies.md`, Mail", "Rule N") and add only what the citation doesn't say. Not found: write it in its home and cite it from where you are. A skill names the step and cites the reason; it doesn't carry the reason, the numbers or the examples. When fixing a repeat, search for every copy, not only the one in hand. A copy drifts: once one is fixed, the others go stale, and a reader can't tell which is current.
+
+- `c1ba331`, `49be46f`: the skills restated the core notes. The copies drifted (where the mailbox is; whether stamina needs approval, still asked by dailies.md and the task skill after `61a20e7` stopped asking), and the first fix cut the 18/22 GB numbers from new-game only, leaving them in learn-dailies.
+- `8fa7a77`, moved in `86af931`: rules about reading the screen were written into doc_policy, because §4 defined how rules are earned and said "below".
+
+**Scope:** this covers facts, reasons and rules. It doesn't cover orientation (a `CLAUDE.md` saying what each file holds), the few words a citation uses to name what it cites, or commit messages, which narrate a change and may quote what moved.
