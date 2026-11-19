@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m core.device restart *)",
+      "PowerShell(python -m core.device restart *)"
+    ]
+  }
+}

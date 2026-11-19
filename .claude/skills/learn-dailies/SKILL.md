@@ -5,7 +5,7 @@ description: Learn a game's dailies with Claude choosing the taps - survey its l
 
 # Learn dailies
 
-In map and task the user decides every tap. Here Claude decides, from three sources: the game's own daily-missions list (what to do), `core/notes/dailies.md` (what each kind of daily looks like and which routine to start from) and the screen. It first plans which dailies to do and writes each one's steps as a user would give them to the task skill (§4), then works them through the task flow in the user's place (§5). Stamina (the game's refilling energy, under whatever name the lobby's notes give it) is spent where a planned daily needs it without asking; anything else that spends waits for the user's word. Everything is recorded with the map and task skills' tools, so the result is the same tree, notes and routines they make.
+In map and task the user decides every tap. Here Claude decides, from three sources: the game's own daily-missions list (what to do), `core/notes/dailies.md` (what each kind of daily looks like and which routine to start from) and the screen. It first plans which dailies to do and writes each one's steps as a user would give them to the task skill (§4), then works them through the task flow in the user's place (§5). Claude also picks the spends: whatever a planned daily needs, except what `core/notes/dailies.md`, Never automatic lists. Everything is recorded with the map and task skills' tools, so the result is the same tree, notes and routines they make.
 
 Run all commands from the project root.
 
@@ -18,7 +18,7 @@ Run all commands from the project root.
 ## Rules for the taps you choose
 
 - Every tap you choose yourself goes through `python -m tools.map click … --auto`. `--auto` refuses a button or menu named with a word that can spend (`core.tree.SPEND_WORDS`: buy, start, confirm, sweep, battle, refresh…), so **name each button after its label**, as the map skill says. Never rename one to get past the check.
-- Before tapping, read the button's label and what's around it. A price, a currency icon, a stamina cost, a count that would go down, or a confirm dialog: don't tap it while exploring (§1–§3). A spend is tapped only as a step of a planned row (§5): stamina without asking, any other cost once the user approves its row.
+- Before tapping, read the button's label and what's around it. A price, a currency icon, a stamina cost, a count that would go down, or a confirm dialog: don't tap it while exploring (§1–§3). A spend is tapped only as a step of a planned row (§5).
 - Never tap anything under "Never automatic" in `core/notes/dailies.md`, even with `--auto` allowing it.
 - Read a fresh capture before each tap (`python -m tools.map shot` when anything may have moved since the last one): a tap chosen from an old capture lands on whatever opened since. Read boxes off the full 1920x1080 capture or off `python -m tools.map sheet [CAPTURE...] [--box X Y W H]` (a grid labelled in device pixels), never off a preview you scaled yourself.
 - Act on every warning `click` prints before the next tap: the screen didn't change (drop the line), it still shows HERE (the tap was a `--stay`, or a dialog to log as a state), HERE is no menu `finish` will know, or BlueStacks is over its memory limit.
@@ -73,16 +73,17 @@ Cost is "none" or what one run spends, read from the screen.
 
 If no missions row names mail, add a row for it anyway ("(no row): mail", §1 step 4).
 
-Then choose the rows to propose:
+Then choose the rows to do:
 
 1. Drop rows whose mode needs many decisions made by hand rather than an auto or sweep mode: building a team, upgrading an item or unit, a fight with no way to finish it unplayed, a map whose route is chosen node by node. List them under "Left out" with the reason.
 2. If the missions menu has an activity bar (points per row, chests at thresholds), the goal is its top chest, not every row: of the rows left, pick the cheapest set that reaches it, free rows first, then the cheapest paid ones. Rows past the goal go under "Left out" too.
+3. Pick backup rows: the next cheapest rows past the goal, enough to cover the free rows the plan counts on, since a free row can fail to count (a collect that gives nothing).
 
 Then write each chosen row's steps the way a user would give them in the task skill: the menu to go to, each tap in order (a tab, a stage, a count to set, the claim or the spend, the dialogs after it), and the screen that shows it's done. Take them from the row's type in `core/notes/dailies.md` (for a fight, its "Finishing a fight without playing it" table) and from what §2 and §3 noted. A screen not seen yet, such as what follows a spend, is written as what you expect and marked as a guess.
 
 Show the user the table and each row's steps in one message before tapping any of them. Keep the steps out of the notes: once worked, the routine holds them.
 
-Rows paid only in stamina need no approval: plan what the rows need (the amount goes into the table), as long as the stamina on hand covers it. Rows paid in anything else (a daily attempt, tickets, materials) are asked about in that same message, with what each would spend; wait for that answer only for those rows and carry on with the rest meanwhile. Never-automatic spends (premium currency, refills) stay out whatever the plan says.
+Spends need no approval: plan what the chosen rows need and put each amount in the table, as long as what's on hand covers it. Never-automatic spends stay out whatever the plan says. Start on the rows right after showing the plan.
 
 ## 5. Each daily
 
@@ -90,9 +91,9 @@ Work the planned rows one at a time, free ones first, through the task skill's f
 
 1. Task Start (its steps 2–6) with the task named after the routine (`claim-mail` → `claim_mail`). Navigate there with `python -m core.nav <game> goto <menu>` (map the route first if goto can't reach it).
 2. Give yourself the row's planned steps one at a time, as task steps. Tap each with `python -m tools.map click <menu> <button> X Y W H --stay --auto` (`leads` for one that opens a menu), and say in one line what you tapped and what changed, as the task skill does. For the spending step, check on a fresh capture that the cost and count it shows match the plan, then tap it without `--auto` (which refuses it). Log the screens after it (a fight, a result dialog) as the task skill's step 5 says. To record a fight rather than capture it shot by shot, run `python -m tools.recon <folder> --for <seconds>` with the Bash tool's background option, never a trailing `&` (`tools/recon.py` says why). While a fight or load runs, write notes instead of waiting on it.
-3. A step that doesn't go as planned (its control isn't there, a screen the plan didn't expect, a price on a row planned free): stop the row and close any priced dialog with its Cancel. Fix the row's steps and Cost in the plan; carry on if the cost is stamina, otherwise ask about the row.
+3. A step that doesn't go as planned (its control isn't there, a screen the plan didn't expect, a price on a row planned free): stop the row and close any priced dialog with its Cancel. Fix the row's steps and Cost in the plan; carry on at the new cost unless it's Never automatic. A row that can't count today is replaced by the first backup row.
 4. The type says what a done screen looks like; capture one (usually the state right after the claim or the spend) and log the `info_` that tells it (`python -m tools.map info …`). Then check the row moved: `python -m core.nav <game> goto <missions menu>` and Read a `python -m tools.map shot`. If it didn't, a step missed the daily: find which before Stop.
-5. Task Stop (its steps 1–9), answering the questions it would ask the user yourself where the type's entry answers them ("not there means done" for a claim), and asking the user only what it doesn't. Start the routine from the file the type names. A claim whose reward is a common popup is tapped as common: Reward dialogs says. A spend is one tap, never retapped (Rule 2's scope, `core/notes/UI.md`): the routine sets the planned amount and checks it on screen before that tap, and when the stamina left buys fewer runs than planned, it runs what it can rather than failing. The approved plan answers Task Stop's step 7: run the routine without asking. When the hand pass used up the day's allowance, that run can only find the done state (Rule 6) and must return True from it.
+5. Task Stop (its steps 1–9), answering the questions it would ask the user yourself where the type's entry answers them ("not there means done" for a claim), and asking the user only what it doesn't. Start the routine from the file the type names. A claim whose reward is a common popup is tapped as common: Reward dialogs says. A spend is one tap, never retapped (Rule 2's scope, `core/notes/UI.md`): the routine sets the planned amount and checks it on screen before that tap, and when the stamina left buys fewer runs than planned, it runs what it can rather than failing. The plan answers Task Stop's step 7: run the routine without asking. When the hand pass used up the day's allowance, that run can only find the done state (Rule 6) and must return True from it.
 
 ## 6. Check against the missions list
 
@@ -104,7 +105,7 @@ After each routine's first successful run (`python -m <game>.bot <routine>`), op
 
 Before writing `claim_dailies`, make sure §3 step 4 was done: a `claim_dailies` written from one visit fails the first time the menu opens elsewhere.
 
-Then write `<game>/routines/claim_dailies.py` (the missions claim, from the file `core/notes/dailies.md` names) and a "daily routine" in `<game>/notes/routines.md`: `claim_mail` first and `claim_dailies` last (`core/notes/dailies.md`, Mail and Missions claim), with every other approved routine between them, as one `python -m <game>.bot start lobby claim_mail … claim_dailies` command.
+Then write `<game>/routines/claim_dailies.py` (the missions claim, from the file `core/notes/dailies.md` names) and a "daily routine" in `<game>/notes/routines.md`: `claim_mail` first and `claim_dailies` last (`core/notes/dailies.md`, Mail and Missions claim), with every other planned routine between them, as one `python -m <game>.bot start lobby claim_mail … claim_dailies` command.
 
 ## 7. Next day
 
