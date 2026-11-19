@@ -66,7 +66,7 @@ Only tap what the user asked for. If a step would spend premium currency, make a
 
 ## Steps Claude chooses
 
-The learn-dailies skill runs this flow with Claude in the user's place: it picks each step from the daily's type (`core/notes/dailies.md`) and taps it with `python -m tools.map click … --auto`, which refuses names with a spending word (`core.tree.SPEND_WORDS`). A step that spends stamina for a row in the approved plan runs; any other spend waits for the user, and is tapped without `--auto` once they agree.
+The learn-dailies skill runs this flow with Claude in the user's place, giving itself the steps it planned for the daily (its §4 and §5). Its taps go through `python -m tools.map click … --auto`, which refuses names with a spending word (`core.tree.SPEND_WORDS`); a spend its plan allows is tapped without `--auto`.
 
 ## Running an existing task
 

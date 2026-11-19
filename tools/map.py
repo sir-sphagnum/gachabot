@@ -29,8 +29,8 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         TARGET names the button itself and finish makes no menu for it.
         --auto: Claude chose this tap itself (learn-dailies), not the user.
         Refused when TARGET or HERE has a word that can spend
-        (core.tree.SPEND_WORDS); such taps wait for the user's word and run
-        without --auto. The log line keeps "auto", so the steps Claude chose
+        (core.tree.SPEND_WORDS); such taps run without --auto, once the user
+        or learn-dailies' plan allows the spend. The log line keeps "auto", so the steps Claude chose
         can be told from the user's.
         After the tap it warns (printed and logged) when HERE is no menu finish
         will know (not in the tree, not logged as a popup or opened by an
