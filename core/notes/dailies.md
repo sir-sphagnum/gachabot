@@ -37,7 +37,7 @@ Something the game hands out a few of each day (tickets, flags, chances, attempt
 
 ## Stamina sink
 
-Stages paid with stamina (e7: stamina; re1999: Activity; ba: AP), which refills over the day: e7's hunt, re1999's In Our Time and The Poussiere, ba's Hard sweeps. Look for a currency with a max (120/120) in the top bar and a cost on Start.
+Stages paid with stamina (e7: stamina; re1999: Activity; ba: AP), which refills over the day: e7's hunt, re1999's In Our Time and The Poussiere, ba's Hard sweeps. Look for a currency with a max (120/120) in the lobby.
 
 - **Control:** a fixed stage, then the fight-finishing way below. Each call spends a fixed amount.
 - **Done:** one run, or a count of runs the routine was asked for. Running out shows as a refill offer, which costs premium currency, so the routine stops at it and never confirms it.
@@ -68,7 +68,7 @@ A daily the game counts for visiting or touching something, with nothing to win 
 
 ## Mail
 
-A mailbox of gifts with attachments (login rewards, compensation, items sent on at an ownership limit). Every game has one, whether or not a missions row asks for it, so learn-dailies always looks for it. Look for an **envelope** icon or **Mail / Mailbox** label on the lobby, often in the top bar with a count badge (e7: in the HUD row; ba: top-right bar; re1999: left column).
+A mailbox of gifts with attachments (login rewards, compensation, items sent on at an ownership limit). Every game has one, whether or not a missions row asks for it, so learn-dailies always looks for it. Look for an **envelope / present** icon or **Mail / Mailbox** label on the lobby, with count badge (e7: in the HUD row; ba: top-right bar; re1999: left column).
 
 - **Control:** one Claim All / Receive All (re1999, ba, e7), never each mail's own Claim. It's there whether or not anything is left, and a mail Claim All can't take stays in the list.
 - **Done:** read per game, from what the tap answers: Claim All grey (ba); a "nothing to claim" toast (re1999 "No mail with attachment", e7 "Receive All cannot be used with this mail."). Mail left in the list is not a failure.
