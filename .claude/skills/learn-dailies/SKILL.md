@@ -98,7 +98,7 @@ Never spend by hand while exploring. A daily allowance can't be redone the same 
 For each stamina row in the plan, and each other paid row the user approved:
 
 1. Map the route with `--auto` up to the spending control: the count to set, the dialogs before the spend, and the control that spends. Look at its label and the cost it shows, and log it with `info` instead of tapping it. The type's "Finishing a fight without playing it" table says what to look for near Start.
-2. Task Stop as above (steps 1–6): `finish`, then write the routine. The spend is one tap, never retapped (doc_policy Rule 2's scope), and the routine sets the planned amount and checks it on screen before that tap. When the stamina left buys fewer runs than planned, it runs what it can rather than failing.
+2. Task Stop as above (steps 1–6): `finish`, then write the routine. The spend is one tap, never retapped (Rule 2's scope, `core/notes/UI.md`), and the routine sets the planned amount and checks it on screen before that tap. When the stamina left buys fewer runs than planned, it runs what it can rather than failing.
 3. Run the routine (`python -m <game>.bot <routine> --debug`): its first run is the spend and the test. The screens after the spend (a fight, a result dialog) aren't mapped yet, so the routine stops on the first one it doesn't know and saves it as its error screen. Map it from there (`tools.map start`, then `state` / `info` / its close), close it, finish the routine with it, and check the rest on the next day's run.
 
 While a fight or load runs, write the next routine or the notes instead of waiting on it.

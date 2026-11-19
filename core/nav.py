@@ -92,7 +92,7 @@ def check_focus(game):
 def tap_until(button, expected, delay=1.5, tries=5, popups=True, first=True):
     """Tap `button` until one of `expected` is on screen.
 
-    This is how a routine taps (.claude/doc_policy.md Rule 2): it judges the
+    This is how a routine taps (core/notes/UI.md Rule 2): it judges the
     tap by the screen over `delay` seconds, not by one look right after it,
     and taps again only once that time has passed with no result.
 
