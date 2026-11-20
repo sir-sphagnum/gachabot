@@ -93,6 +93,7 @@ Every game is assumed to have a daily-missions menu, and each one gets a `claim_
 - **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner is there only then. So "not there" or "not lit" means already claimed or not earned yet, which the routine counts as success (Rule 6).
 - **A claim opens a reward dialog** (common: Reward dialogs): e7's is the menu's own state; re1999's and ba's are common popups.
 - **The menu may open on another tab or section**, so the routine picks the daily one after every entry (re1999 opens on a tab with rewards waiting, Weekly once Daily is claimed).
+- **A claimed row can come back as its next tier**: a harder row of the same kind (clear 1 stage → 8, defeat 100 enemies → 300 → 500, reach 50 activity → 100), counting the day's total so far. So the rows on a first visit can be fewer than the day holds, and the day's missions are done only once the menu's goal is claimed (its top chest, or every reward set), not once the rows first seen are.
 
 ## Reward dialogs
 
