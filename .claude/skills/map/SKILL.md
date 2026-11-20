@@ -73,7 +73,7 @@ The folders and file names are the whole map: there is no separate index file to
    ```
    python -m tools.map click <here> <target> X Y W H
    ```
-   It taps the box's centre, waits until two captures 0.3 s apart look the same (giving up after 4 s on animated menus, and adding "(still changing)") and prints the after-capture's path. If the after-capture still shows the old menu or a load, take `shot`s until the new menu shows, then point the click at that capture: `python -m tools.map leads <menu> --after <capture>`. When the click must follow a routine at once (e.g. the lobby falls back to rest within seconds), chain them in one command and pass `--fresh`, so the box is cut from a capture taken just before the tap:
+   If the box no longer looks as it does on the current capture, it doesn't tap: it saves a fresh capture, and you read the box off that and click again (`--moving` for a control that animates in place). Otherwise it taps the box's centre, waits until two captures 0.3 s apart look the same (giving up after 4 s on animated menus, and adding "(still changing)") and prints the after-capture's path. If the after-capture still shows the old menu or a load, take `shot`s until the new menu shows, then point the click at that capture: `python -m tools.map leads <menu> --after <capture>`. When the click must follow a routine at once (e.g. the lobby falls back to rest within seconds), chain them in one command and pass `--fresh`, so the box is cut from a capture taken just before the tap:
    ```
    python -m e7.routines.lobby && python -m tools.map click lobby sanctuary 27 246 112 86 --fresh
    ```

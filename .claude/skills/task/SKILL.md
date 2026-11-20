@@ -30,7 +30,7 @@ A task's controls are buttons, saved like any other in the folder of the menu th
 1. Look at the current capture (the one the last `tools.map` command printed). Run `python -m tools.map shot` first when the screen may have changed since.
 2. Find the control the user named. If you can't, or more than one thing fits, ask. Do not guess.
 3. Box it in 1920x1080 pixels, tight but whole (label or icon), leaving out sparkles and other animated bits.
-4. Tap and capture: `python -m tools.map click <menu> <button> X Y W H --stay`. Add `--fresh` when the control may have moved or changed since the capture (timers, a list that scrolls).
+4. Tap and capture: `python -m tools.map click <menu> <button> X Y W H --stay`. If the box changed since the capture (a list that scrolled), `click` doesn't tap and saves a fresh capture: read the box off it and click again. A control that animates in place (a timer, a pulsing button) gets `--moving`.
 5. Read the after-capture and tell the user in one line: "tapped <control> (cx, cy) → <what changed>". If the screen shows:
    - **no change**: say so in that line. Stop step 1 removes the tap from the log.
    - **another menu**: `python -m tools.map leads <menu>` marks the tap as opening it, so `finish` makes the menu (map skill).

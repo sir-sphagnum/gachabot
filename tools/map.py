@@ -2,7 +2,7 @@
 
 Usage: python -m tools.map start GAME
        python -m tools.map shot
-       python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay] [--auto]
+       python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay] [--auto] [--moving]
        python -m tools.map back
        python -m tools.map info HERE ELEMENT X Y W H [--on CAPTURE]
        python -m tools.map leads MENU [--after CAPTURE]
@@ -25,6 +25,10 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         TARGET), wait for the screen to settle and capture it. The box is cut
         from the current screen at finish, so it must show the button: pass
         --fresh to capture just before tapping (e.g. right after a routine).
+        Without --fresh it first refuses to tap, and makes a fresh capture the
+        current screen, when the box no longer looks as it does on the current
+        one (a list still moving, a swipe made outside tools.map).
+        --moving skips that check, for a control that animates in place.
         --stay: the button keeps the game on HERE (claim, tab, close a dialog);
         TARGET names the button itself and finish makes no menu for it.
         --auto: Claude chose this tap itself (learn-dailies), not the user.
@@ -87,7 +91,7 @@ import cv2
 from core import ROOT, templates_dir
 from core.input import back as press_back, capture, tap
 from core.log import logger, setup
-from core.vision import crop, difference, find, fingerprint, is_black, save
+from core.vision import crop, diff, difference, find, fingerprint, is_black, save
 from core import tree
 from core.device import health as device_health
 from core.nav import identity as nav_identity, locate
@@ -102,6 +106,10 @@ SETTLE_MIN, SETTLE_MAX = 1.0, 4.0  # seconds; animated menus never settle, so gi
 SETTLED = 1.0  # percent of pixels changed between two captures (see core/vision.py)
 GOOD = 0.95    # a crop should score at least this on the screen it came from
 THRESHOLD = 0.85  # core.vision.find's default: at or above it, an image matches
+# Mean pixel difference (core.vision.diff) above which a box has changed. e7
+# measured 0.0-0.1 on still icons between captures, 5.9 and up on a counter
+# that changed by one digit.
+MOVED = 3.0
 
 
 def settle():
@@ -178,7 +186,7 @@ def shot():
     print(path)
 
 
-def click(here, target, box, fresh=False, stay=False, auto=False):
+def click(here, target, box, fresh=False, stay=False, auto=False, moving=False):
     entries = _entries()
     _check_names(here, target)
     if auto and (tree.spends(target) or tree.spends(here)):
@@ -188,6 +196,8 @@ def click(here, target, box, fresh=False, stay=False, auto=False):
         before = _save(capture(), f"before-{target}")
     else:
         before = _current(entries)
+        if not moving:
+            _same_box(before, box)
     x, y, w, h = box
     cx, cy = x + w // 2, y + h // 2
     tx, ty = tap(cx, cy)
@@ -199,11 +209,31 @@ def click(here, target, box, fresh=False, stay=False, auto=False):
         entry["stay"] = True
     if auto:
         entry["auto"] = True
+    if moving:
+        entry["moving"] = True
     _append(entry)
     still = "" if settled else " (still changing)"
     log.info(f"{here} {'/' if stay else '>'} {target} at ({tx}, {ty}), {after}{still}")
     print(f"Tapped ({tx}, {ty}); {after}{still}")
     _warn_click(entries, here, stay, ROOT / before, img)
+
+
+def _same_box(before, box):
+    """Exit without tapping when the screen in `box` no longer looks as it does
+    on capture `before`, the one the box was read from: a tap chosen there
+    would land on whatever moved in since (a list still gliding, a swipe made
+    outside tools.map), and finish would cut the box from a capture that
+    doesn't show the button. The fresh capture becomes the current one."""
+    now = capture()
+    moved = diff(ROOT / before, now, box)
+    if moved <= MOVED:
+        return
+    path = _save(now, "shot")
+    _append({"shot": path})
+    log.warning(f"box {box} changed since {Path(before).name} ({moved:.1f}), not tapping")
+    sys.exit(f"The screen in box {' '.join(map(str, box))} changed since {before} "
+             f"(mean difference {moved:.1f}): not tapped. Read {path} and choose the box again "
+             "(--moving for a control that animates in place)")
 
 
 def _warn(text):
@@ -661,8 +691,9 @@ def _box(args):
 if __name__ == "__main__":
     setup(console=False)
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else (None, [])
-    fresh, stay, auto = "--fresh" in args, "--stay" in args, "--auto" in args
-    args = [a for a in args if a not in ("--fresh", "--stay", "--auto")]
+    fresh, stay, auto, moving = ("--fresh" in args, "--stay" in args, "--auto" in args,
+                                 "--moving" in args)
+    args = [a for a in args if a not in ("--fresh", "--stay", "--auto", "--moving")]
     opts = {}
     if "--box" in args:
         i = args.index("--box")
@@ -680,7 +711,7 @@ if __name__ == "__main__":
     elif cmd == "shot" and not args:
         shot()
     elif cmd == "click" and len(args) == 6:
-        click(args[0], args[1], _box(args[2:]), fresh, stay, auto)
+        click(args[0], args[1], _box(args[2:]), fresh, stay, auto, moving)
     elif cmd == "back" and not args:
         back()
     elif cmd == "info" and len(args) == 6:
