@@ -107,7 +107,8 @@ if __name__ == "__main__":
         print("Routines:", ", ".join(ROUTINES) or "(none yet)")
         sys.exit(1)
     for name in names:
-        result = (COMMANDS.get(name) or ROUTINES[name])()
+        # Routines run with BlueStacks' memory kept in check (core.device.with_room).
+        result = COMMANDS[name]() if name in COMMANDS else device.with_room(GAME, ROUTINES[name])
         if result is False:
             log.error(f"{{name}}: failed")
             sys.exit(1)
