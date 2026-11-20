@@ -73,6 +73,7 @@ rename  rename menu OLD to NEW in the session's game: its folder, the images
 CAPTURE is a file name in recon/map/ (e.g. 04-shot.png).
 """
 
+import hashlib
 import importlib
 import json
 import re
@@ -95,6 +96,7 @@ log = logger(__file__)
 
 DIR = ROOT / "recon" / "map"
 LOG = DIR / "log.jsonl"
+CUT = DIR / "cut.json"  # hashes of the images finish wrote this session
 NAME = re.compile(r"^[a-z0-9-]+$")
 SETTLE_MIN, SETTLE_MAX = 1.0, 4.0  # seconds; animated menus never settle, so give up
 SETTLED = 1.0  # percent of pixels changed between two captures (see core/vision.py)
@@ -161,7 +163,7 @@ def start(game):
     shutil.rmtree(DIR, ignore_errors=True)
     DIR.mkdir(parents=True)
     LOG.write_text("", encoding="utf-8")
-    _append({"game": game})
+    _append({"game": game, "started": time.time()})
     path = _save(capture(), "start")
     _append({"shot": path})
     log.info(f"started {game}, {path}")
@@ -364,7 +366,9 @@ def finish():
       the click's after-capture as its screen.png. A TARGET that already exists
       is a link; its screen.png is left alone (it may be a chosen state).
     - The box is cut from the screen it was logged on, replacing any earlier
-      image of the same element on that menu. If it scores below GOOD there
+      image of the same element on that menu, unless that image was changed
+      by hand after the session started (_by_hand): then it is kept and the
+      line skipped. If it scores below GOOD there
       in colour but matches white-only, it is saved with _white.
     - The image is then scored, in its box, on every other menu's and popup's
       screen*.png. The best score is printed (the "at most X elsewhere" the
@@ -373,6 +377,8 @@ def finish():
     """
     entries = _entries()
     game = entries[0]["game"]
+    started = entries[0].get("started")
+    cut = set(json.loads(CUT.read_text(encoding="utf-8"))) if CUT.exists() else set()
     menus, _ = tree.load(game)
     folders = {name: ROOT / m["path"] for name, m in menus.items()}
     for name, p in tree.load_popups(game)[0].items():
@@ -433,8 +439,15 @@ def finish():
                 print(f"{label}: new menu {_rel(folders[name])}")
                 log.info(f"new menu {_rel(folders[name])}")
         stem = f"{e['kind']}_{here}_{name}_"
+        olds = list(d.glob(stem + "*.png"))
+        edited = [old for old in olds if _by_hand(old, started, cut)]
+        if edited:
+            print(f"{label}: kept {_rel(edited[0])}, changed by hand since this session started; "
+                  "to cut it from the log instead, delete it and run finish again")
+            log.warning(f"{edited[0].name}: changed by hand since the session started, keeping it")
+            continue
         anywhere = ""  # a recrop keeps _anywhere, which only a rename adds
-        for old in d.glob(stem + "*.png"):
+        for old in olds:
             m = tree.ELEMENT.match(old.name)
             if m and m["anywhere"]:
                 anywhere = "_anywhere"
@@ -447,6 +460,10 @@ def finish():
             if white >= GOOD:
                 out = out.rename(out.with_name(out.stem + "_white.png"))
                 score = white
+        # Saved after each crop, not at the end: a finish that crashes part
+        # way would otherwise leave its own crops looking hand-made.
+        cut.add(_hash(out))
+        CUT.write_text(json.dumps(sorted(cut)), encoding="utf-8")
         flag = "" if score >= GOOD else "  <-- crop doesn't match its source"
         print(f"  {_rel(out)}: {score:.2f} on its source{flag}")
         (log.debug if score >= GOOD else log.warning)(f"{out.name}: {score:.2f} on its source")
@@ -486,6 +503,19 @@ def _make_popup(game, e, folders):
         print(f"popup {name}: new popup {_rel(d)}")
         log.info(f"new popup {_rel(d)}")
     folders[name] = d
+
+
+def _hash(path):
+    return hashlib.sha1(Path(path).read_bytes()).hexdigest()
+
+
+def _by_hand(path, started, cut):
+    """True when image `path` changed after the session started and no finish
+    of this session wrote it: a crop re-cut, edited or added by hand, which a
+    re-cut from the log would replace. A session logged before `started` was
+    recorded (None) has no such check. Content, not path, is what finish
+    remembers, so `rename` (which keeps content) doesn't count as a change."""
+    return started is not None and path.stat().st_mtime > started and _hash(path) not in cut
 
 
 def _key(e):
