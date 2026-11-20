@@ -19,9 +19,9 @@ each tap that lands spends 14 stamina.
 import sys
 import time
 
-from core.input import capture, swipe, tap
+from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import goto, locate, tap_until
+from core.nav import goto, locate, scroll_to, tap_until
 from re1999.config import GAME, TEMPLATES_DIR
 from re1999.routines import lobby
 
@@ -62,12 +62,9 @@ def _open_in_our_time():
     # only while the volume list (its label) still shows.
     if locate(VOLUME, capture()) and not tap_until(VOLUME_POSTER, [lambda s: not locate(VOLUME, s)], delay=2):
         return False
-    for _ in range(ROW_SWIPES):
-        if locate(POSTER, capture()):
-            return tap_until(POSTER, [TRAIL], delay=2)
-        swipe(*ROW_SWIPE, 600)
-        time.sleep(1.5)
-    return False
+    if not scroll_to(POSTER, ROW_SWIPE, ROW_SWIPES, ms=600):
+        return False
+    return tap_until(POSTER, [TRAIL], delay=2)
 
 
 def run():

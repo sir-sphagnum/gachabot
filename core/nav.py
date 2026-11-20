@@ -54,7 +54,7 @@ import cv2
 
 from core import ROOT, steps, templates_dir, tree
 from core.device import floating_window, focused_app, is_running, package, wait_until
-from core.input import capture, tap
+from core.input import capture, swipe, tap
 from core.log import logger, setup
 from core.tree import ELEMENT, load_popups
 from core.vision import difference, find, fingerprint, is_black, load
@@ -288,6 +288,35 @@ def settled(timeout, still=STILL, interval=0.3):
         return moved < still
 
     return wait_until(_still, timeout, interval=interval) is not None
+
+
+SCROLL_SETTLE = 3  # seconds for a list or map to stop gliding after a swipe
+
+
+def scroll_to(template, points, tries=6, ms=500, timeout=SCROLL_SETTLE):
+    """Bring `template` (an entry of a list, a stage on a map) on screen by
+    swiping. Waits for the screen to stop moving and looks for it; while it
+    isn't there, swipes `points` (x1, y1, x2, y2) over `ms` milliseconds and
+    does the same, up to `tries` swipes. Returns (cx, cy, score) as `locate`
+    does, read off a still screen, or None.
+
+    A list keeps gliding after a swipe, so a capture taken during it shows the
+    entry where it won't stay (core/notes/UI.md, "Lists that move"). A screen
+    whose art never stops is looked at once `timeout` has passed anyway.
+    """
+    name = Path(template).name
+    for n in range(tries + 1):
+        if not settled(timeout):
+            log.debug(f"still moving after {timeout}s, looking anyway")
+        hit = locate(template, capture())
+        if hit:
+            log.debug(f"{name} on screen after {n} swipes")
+            return hit
+        if n < tries:
+            log.debug(f"{name} not on screen, swipe {n + 1}/{tries}")
+            swipe(*points, ms)
+    log.warning(f"{name} not on screen after {tries} swipes")
+    return None
 
 
 def _print(screen):
