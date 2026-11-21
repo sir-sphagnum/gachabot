@@ -10,7 +10,8 @@ Usage: python -m core.device connect
            for Android to boot, then starts the games given (none if no game
            is given) one after another, each closing the one before, and runs
            each one's start_screen and lobby routines, if it has them, so each
-           ends in its lobby; the last one is left running
+           ends in its lobby; the last one is left running. While a game's
+           lobby isn't reached, it restarts again, up to RESTART_TRIES in all
        python -m core.device start game
            closes every other running game in GAMES, then starts this one
        python -m core.device stop|status [game ...]
@@ -310,6 +311,11 @@ BOOT_TIMEOUT = 120   # seconds from opening BlueStacks to Android having booted
 # `--instance <name>` instead, HD-Player opened only a tooltip window and
 # Android never booted.
 PLAYER_ARGS = ["--guest", "--present=embed", "--chrome=windows"]
+# A game can come up after a restart laid out for another screen size, where
+# nothing matches, and a further restart sets it right (e7/notes/UI.md,
+# start-screen, Wrong layout). So a lobby missed after a restart is retried
+# with another restart, this many in all.
+RESTART_TRIES = 3
 
 
 def restart(boot_timeout=BOOT_TIMEOUT):
@@ -361,17 +367,21 @@ def with_room(game, routine):
     return routine()
 
 
-def _restart_with(game):
-    """Restart BlueStacks, start `game` and take it to its lobby. True on success."""
-    ok, msg = restart()
-    (log.info if ok else log.error)(msg)
-    if not ok or not start_game(game):
-        log.error(f"{game} not started after the restart")
-        return False
-    if run_to_lobby(game) is False:
-        log.error(f"{game} lobby not reached after the restart")
-        return False
-    return True
+def _restart_with(game, tries=RESTART_TRIES):
+    """Restart BlueStacks, start `game` and take it to its lobby, restarting
+    again while the lobby isn't reached, `tries` restarts in all. True on
+    success."""
+    for attempt in range(1, tries + 1):
+        ok, msg = restart()
+        (log.info if ok else log.error)(msg)
+        if not ok or not start_game(game):
+            log.error(f"{game} not started after the restart")
+            return False
+        if run_to_lobby(game) is not False:
+            return True
+        log.warning(f"{game} lobby not reached after restart {attempt}/{tries}")
+    log.error(f"{game} lobby not reached after {tries} restarts")
+    return False
 
 
 def run_to_lobby(game):
@@ -464,19 +474,26 @@ if __name__ == "__main__":
         sys.exit(0 if ok else 1)
     elif cmd == "restart":
         before = player_gb()
-        ok, msg = restart()
-        if ok:
-            was = f"{before:.1f} GB before" if before is not None else "wasn't running"
-            msg += f": {was}, {player_gb():.1f} GB now"
-        _answer(msg, ok)
-        for game in args if ok else []:
-            started = start_game(game)
-            ok &= started
-            _answer(f"{game}: {'started' if started else 'failed to start'}", started)
-            passed = run_to_lobby(game) if started else None
-            if passed is not None:
-                ok &= passed
-                _answer(f"{game}: {'in lobby' if passed else 'lobby not reached'}", passed)
+        for attempt in range(1, RESTART_TRIES + 1):
+            ok, msg = restart()
+            if ok:
+                was = f"{before:.1f} GB before" if before is not None else "wasn't running"
+                msg += f": {was}, {player_gb():.1f} GB now"
+            _answer(msg, ok)
+            missed = False
+            for game in args if ok else []:
+                started = start_game(game)
+                ok &= started
+                _answer(f"{game}: {'started' if started else 'failed to start'}", started)
+                passed = run_to_lobby(game) if started else None
+                if passed is not None:
+                    ok &= passed
+                    missed |= not passed
+                    _answer(f"{game}: {'in lobby' if passed else 'lobby not reached'}", passed)
+            if not missed or attempt == RESTART_TRIES:
+                break
+            print(f"Restarting again ({attempt + 1}/{RESTART_TRIES})")
+            before = player_gb()
         sys.exit(0 if ok else 1)
     elif cmd == "start":
         if len(args) != 1:
