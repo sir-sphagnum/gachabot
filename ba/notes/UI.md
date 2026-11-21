@@ -301,6 +301,13 @@ Full-screen student art with a heart rank, "Relationship rank up!" and the stat 
 - Identified by its title (`info_relationship-rank-up_title_596-898-730-74.png`): at most 0.31 elsewhere.
 - Closed by tapping the same title (`btn_relationship-rank-up_close_596-898-730-74.png`; common: Tap anywhere); the next rank-up or the lesson report follows.
 
+## area-rank-up popup (`ba/templates/common/popups/area-rank-up/`)
+
+"AREA RANK UP!" over a white band with the area's new rank badge ("Rank 9"), "New zone unlocked!" and "TOUCH TO CONTINUE". Seen once, over all-locations after a lesson raised the area's rank (2026-11-21); after a tap, the lesson report showed. A common popup because it shows after whichever lesson crosses a rank, and then lesson's taps close it.
+
+- Identified by "AREA RANK UP!" (`info_area-rank-up_title_548-205-822-110.png`): at most 0.24 elsewhere.
+- Closed by tapping the same title (`btn_area-rank-up_close_548-205-822-110.png`; common: Tap anywhere). Cut from the error screen: by hand, a tap on TOUCH TO CONTINUE moved on; the title tap hasn't run yet.
+
 ## reward popup (`ba/templates/common/popups/reward/`)
 
 "REWARD ACQUIRED!" with the items received and "TOUCH TO CONTINUE" at the bottom. Seen after the cafe earnings, mail, tasks and Tactical Challenge claims (common: Reward dialogs).
