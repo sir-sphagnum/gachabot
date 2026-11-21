@@ -5,7 +5,9 @@ Usage: python -m ba.routines.cafe [--debug]
 1. Go to the cafe (core.nav.goto), and close the Guide / Visiting Student
    List dialog if it opens (Confirm).
 2. Earnings: open Cafe Earnings; while Claim is yellow, tap it and close the
-   reward popup it opens. Grey means nothing to claim. Close the dialog (X).
+   reward popup it opens. Grey means nothing to claim. With AP at its cap
+   the claim is refused ("Insufficient inventory space."): Confirm, and
+   leave the earnings for the next run. Close the dialog (X).
 3. Invite: if the Invitation ticket is available (pink, not grey with a
    cooldown), open it, sort by Relationship Rank unless the sort button
    already reads so, and tap Invite on the top row, then Confirm. A student
@@ -49,6 +51,10 @@ EARNINGS_CLOSE = CAFE / "btn_cafe_earnings-close_1446-194-56-56.png"
 CLAIM_AREA = (800, 750, 320, 90)
 YELLOW = 60
 CLAIM_WAIT = 5  # seconds for the reward popup to show after Claim
+# "Insufficient inventory space." over the earnings dialog. It covers the
+# earnings title, so it's checked before the title.
+FULL = dialog(CAFE / "info_cafe_earnings-full-message_700-584-520-50.png",
+              CAFE / "btn_cafe_earnings-full-confirm_780-745-360-100.png")
 
 # The pink ticket. It turns grey with a cooldown once used, and then the
 # template doesn't match at all.
@@ -117,6 +123,12 @@ def _earnings(popups, delay, tries):
                 log.error(f"popup_{popup} not closed")
                 return False
             continue
+        if open_popup({"earnings-full": FULL}, screen):
+            log.warning("earnings: inventory full (AP at its cap), leaving them for the next run")
+            if not close_popup("earnings-full", FULL, delay, tries):
+                log.error("earnings-full notice not closed")
+                return False
+            break
         if not locate(EARNINGS_TITLE, screen):
             log.error("earnings dialog closed unexpectedly")
             return False

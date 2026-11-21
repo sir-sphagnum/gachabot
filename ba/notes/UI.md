@@ -72,6 +72,7 @@ Opened by Cafe Earnings bottom right (`btn_cafe_earnings_1668-950-196-36.png`, j
 - Claim (`btn_cafe_earnings-claim_796-742-330-100.png`) opens the reward popup. Afterwards the dialog stays open with the counters at 0 and Claim grey (`screen-claimed.png`). The template still scores 0.86 on grey Claim, so the routine tells them apart by colour (common: Lit or grey): mean red minus blue over the button is +165 yellow, 0 grey.
 - Closed by the X (`btn_cafe_earnings-close_1446-194-56-56.png`).
 - A full claim gave 570,000 credits and 530 AP (No. 1 and No. 2 credits together).
+- **earnings-full** (`screen-earnings-full.png`): with AP at its cap (999/208), Claim opened "Notice" / "Insufficient inventory space. Make space to proceed." with the AP icon, Confirm and an X, and claimed nothing. Identified by its message (`info_cafe_earnings-full-message_700-584-520-50.png`: at most 0.33 elsewhere); it covers the earnings title. Confirm (`btn_cafe_earnings-full-confirm_780-745-360-100.png`, the shared Notice button: 0.63 on best-record's) closes it; where it leads hasn't been seen, since the images were cut from an error screen. Below the cap the claim went through, the AP past the cap going to the mailbox (mailbox popup), so the daily order spends AP (`sweep_hard`) before `cafe`.
 
 ### invitation (`screen-invitation.png`)
 
