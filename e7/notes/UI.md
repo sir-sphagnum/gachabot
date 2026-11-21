@@ -276,6 +276,14 @@ Task `check-background-status` (`e7/routines/check_background_status.py`, `pytho
 - Closed by tapping "Tap to close" (`btn_disconnected_close_860-643-200-90.png`, centre (960, 688)), higher up than date-changed's, so each popup has its own close button.
 - Closing it goes to the start screen.
 
+## patch-update popup (`e7/templates/common/popups/patch-update/`)
+
+"Patch Update" / "There is a new patch available. Would you like to download?" with the patch size, Cancel and Proceed, over the start screen. Seen after tapping start on 2026-11-21 (18.4 MB); the game doesn't go on without the patch.
+
+- Identified by its question's first line (`info_patch-update_message_690-343-540-48.png`): at most 0.32 elsewhere.
+- Closed by **Proceed** (`btn_patch-update_close_990-785-335-70.png`: at most 0.41 elsewhere): the bot downloads patches without asking (the user's call, 2026-11-21). The download ended on the start screen within 30 s; the version line bottom left went from R:0 to R:23. What shows during the download wasn't captured, so the lobby routine waits up to 5 min for the start screen, lobby or a popup instead of pressing Back.
+- Cut from an error screen; the Proceed tap by the routine hasn't run yet.
+
 ## web-notice popup (`e7/templates/common/popups/web-notice/`)
 
 An in-game web page (event or banner art, or a blank page with a spinner while it loads) in a frame with an X at the top right and a black footer bar: back/forward/refresh/home at the left, "Do not show this again for 1 days." with a tick at the right. Shown over the lobby after launch, sometimes a few seconds after the lobby routine has finished; Back doesn't close it, so the lobby's Back presses run out on it (common: Back).

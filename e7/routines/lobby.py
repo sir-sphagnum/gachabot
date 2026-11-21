@@ -10,7 +10,8 @@ menu walk, so keep its path and run() returning True on success.
      would be a guess;
    - if one of the game's common popups (e7/templates/common/popups/) or a
      lobby dialog (quit, daily check-in, check-in received) is open, close it
-     (Cancel for the quit dialog) and look again;
+     (Cancel for the quit dialog) and look again; after Patch Update's
+     Proceed, wait for the download to end;
    - if the start screen is up, hand over to the start_screen routine (and
      reset the Back count);
    - otherwise press Back.
@@ -49,7 +50,7 @@ CHECKIN = dialog(LOBBY / "info_lobby_checkin-text_1420-882-260-44.png",  # "Rewa
                  LOBBY / "btn_lobby_checkin-confirm_1530-965-170-60.png")  # Confirm, opens CHECKIN_RECEIVED
 CHECKIN_RECEIVED = dialog(LOBBY / "info_lobby_checkin-received-title_675-170-570-65.png",
                           LOBBY / "btn_lobby_checkin-received-close_860-1000-200-80.png")  # "Tap to close"
-
+PATCH_WAIT = 300  # seconds for a patch download; 18.4 MB took under 30 s
 
 def run(backs=10, taps=5, delay=1.5):
     """Return True once the active lobby is on screen, False if it couldn't get there.
@@ -76,6 +77,15 @@ def run(backs=10, taps=5, delay=1.5):
                 log.error(f"popup_{popup} not closed")
                 return False
             screen = capture()
+            if popup == "patch-update":
+                # Its close is Proceed, which starts the download. Nothing
+                # on the download screen is mapped, and a Back there would
+                # be a guess, so wait it out.
+                log.info("patch downloading, waiting for the start screen")
+                screen = wait_until(lambda: _after_patch(popups), PATCH_WAIT)
+                if screen is None:
+                    log.error(f"no start screen {PATCH_WAIT}s after the patch started")
+                    return False
             continue
         if locate(BARREL, screen):
             break
@@ -101,6 +111,15 @@ def run(backs=10, taps=5, delay=1.5):
         return True
     log.error("HUD not shown")
     return False
+
+
+def _after_patch(popups):
+    """A fresh capture once the start screen, the lobby or a popup shows, else None."""
+    screen = capture()
+    if (start_screen.at_start_screen(screen) or locate(BARREL, screen)
+            or open_popup(popups, screen)):
+        return screen
+    return None
 
 
 def _with(template):
