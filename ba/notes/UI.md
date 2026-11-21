@@ -35,7 +35,8 @@ The daily missions (common: Daily missions). Reached from the lobby's Tasks shor
 - Claim All (`btn_tasks_claim-all_1570-962-312-88.png`) claims the ready rows but not the milestone. Its claim can complete "Complete at least 5 Daily Task(s)", which lights Claim All again, so it was tapped twice. Grey Claim All scores 0.84 on the template, so colour decides (common: Lit or grey): mean red minus blue over it is +168 yellow, −2 grey.
 - First Claim All opened the mailbox popup, then the reward popup; the second went straight to the reward popup.
 - The milestone Claim (`btn_tasks_milestone-claim_1388-962-146-84.png`) paid 20 pyroxene at once, with no popup (common: Reward dialogs), and turned grey "Complete": +164 yellow, −8 grey.
-- Automated by `ba/routines/claim_dailies.py` (`python -m ba.bot claim_dailies`): Claim All while yellow, then the milestone while yellow, then Home. Written from the 2026-11-17 claim; not run yet.
+- When Claim All completes the 8th task, the milestone's Claim lights a moment after the reward popup closes: a look right after the close saw it grey while it was ready (2026-11-21).
+- Automated by `ba/routines/claim_dailies.py` (`python -m ba.bot claim_dailies`): Claim All while yellow, then up to 5 s for the milestone to light, then the milestone while yellow, then Home. Run once (2026-11-21): Claim All claimed, but the milestone was taken as grey before the wait was added, and was claimed by hand. The wait hasn't run yet.
 
 ## mail (`ba/templates/start-screen/lobby/mail/`)
 

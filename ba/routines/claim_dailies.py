@@ -9,7 +9,9 @@ Usage: python -m ba.routines.claim_dailies [--debug]
    5 Daily Task(s)", which lights Claim All again, so it's tapped until grey.
 3. Claim All never takes the "Complete at least 8 Daily Task(s)" milestone
    on the bottom bar: tap its Claim while yellow. It pays at once, with no
-   popup, and turns grey ("Complete").
+   popup, and turns grey ("Complete"). When Claim All completed the 8th task,
+   the Claim lights a moment after the reward popup closes, so the routine
+   waits up to MILESTONE_WAIT for it before taking it as grey (Rule 2).
 4. Back to the lobby: Home icon, then the lobby routine.
 
 Grey means claimed or not earned yet, which counts as done (Rule 6).
@@ -39,6 +41,7 @@ CLAIM_ALL = (1570, 962, 312, 88)
 MILESTONE = (1388, 962, 146, 84)
 YELLOW = 80
 CLAIM_WAIT = 5  # seconds for a claim's popup to show, or its button to go grey
+MILESTONE_WAIT = 5  # seconds for the milestone's Claim to light after Claim All
 
 
 def run(delay=1.5, tries=5):
@@ -51,9 +54,11 @@ def run(delay=1.5, tries=5):
         log.error(f"{MENU} not reached")
         return False
     popups = game_popups(GAME)
-    for name, box in (("claim all", CLAIM_ALL), ("milestone", MILESTONE)):
-        if not _claim(name, box, popups, delay, tries):
-            return False
+    if not _claim("claim all", CLAIM_ALL, popups, delay, tries):
+        return False
+    wait_until(lambda: _yellow(capture(), MILESTONE), MILESTONE_WAIT)
+    if not _claim("milestone", MILESTONE, popups, delay, tries):
+        return False
     if not tap_until(HOME, lobby.CAMPAIGN, delay, tries):
         log.warning("home tap didn't reach the lobby, running the lobby routine")
     if not lobby.run():
