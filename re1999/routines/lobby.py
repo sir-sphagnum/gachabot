@@ -12,13 +12,16 @@ Until the Crew button shows with no popup or lobby dialog over it:
 - if one of the game's common popups (re1999/templates/common/popups/) or a
   lobby dialog (DIALOGS) is open, close it and look again;
 - if the start screen is up, hand over to the start_screen routine (and
-  reset the Back count);
+  reset the Back count), at most HANDOVERS times;
 - otherwise press Back.
 
 Popups and dialogs are checked before Crew because Crew still matches (1.00)
 through the quit dialog's dim. Closing one can change where the game is (the
 daily check-in card closes into its calendar, which closes into event-login),
-so the loop starts over after each.
+so the loop starts over after each. Once the routine has acted (a Back, a
+close, a load, a hand-over), Crew counts only after SETTLE seconds with no
+popup or dialog: they open a moment after the lobby is drawn (common:
+Lobbies), and a Back pressed while a menu was closing opens quit late.
 
 Crew is part of the HUD, so the lobby counts as reached only with its HUD up.
 """
@@ -28,8 +31,8 @@ import sys
 from core.device import uptime, wait_until
 from core.input import back, capture
 from core.log import logger, setup
-from core.nav import (close_popup, dialog, game_popups, loading, locate, open_popup, past_black,
-                      past_loading)
+from core.nav import (close_popup, dialog, game_popups, held, loading, locate, open_popup,
+                      past_black, past_loading)
 from re1999.config import BACK_KEY, GAME, TEMPLATES_DIR
 from re1999.routines import start_screen
 
@@ -42,6 +45,11 @@ CORNER = (1870, 40)  # top-right corner of the screen, outside the check-in cale
 # launch screen (splash art, fades, the start screen fading in) and the
 # routine waits instead of pressing Back: Backs there opened the quit dialog.
 LAUNCH = 45  # seconds; launch to start screen took ~20 s
+SETTLE = 3  # seconds Crew must show with no popup once the routine has acted
+# A start screen that keeps coming back after start_screen ran is one the
+# routine can't get past (an error that loops to it): without a cap it would
+# hand over forever, since each hand-over resets the Back count.
+HANDOVERS = 3
 
 DIALOGS = {
     # "Quit the Game?", opened by Back in the lobby. Cancel, never Confirm.
@@ -72,7 +80,8 @@ def run(backs=10, delay=1.5):
     """
     known = popups()
     screen = capture()
-    presses = closed = 0
+    presses = closed = handovers = settles = 0
+    acted = False  # a Back, close, load or hand-over since the last look
     while True:
         screen = past_black(screen)
         if loading(GAME, screen):
@@ -80,6 +89,7 @@ def run(backs=10, delay=1.5):
             if screen is None:
                 log.error("not reached, stuck on a loading screen")
                 return False
+            acted = True
             continue
         popup = open_popup(known, screen)
         if popup:
@@ -92,15 +102,30 @@ def run(backs=10, delay=1.5):
                 log.error(f"popup_{popup} not closed")
                 return False
             screen = capture()
+            acted = True
             continue
         if locate(CREW, screen):
+            if acted:
+                if settles == backs:
+                    log.error(f"lobby never held {SETTLE}s with no popup in {backs} looks")
+                    return False
+                settles += 1
+                log.debug(f"crew showing, watching {SETTLE}s for popups")
+                if held(lambda s: _clear_crew(s, known), SETTLE, SETTLE + delay) is None:
+                    screen = capture()  # a popup opened, or Crew went: look again
+                    continue
             log.info("reached")
             return True
         if start_screen.at_start_screen(screen):
-            log.info("start screen, handing over")
+            if handovers == HANDOVERS:
+                log.error(f"start screen still showing after {HANDOVERS} hand-overs")
+                return False
+            handovers += 1
+            log.info(f"start screen, handing over ({handovers}/{HANDOVERS})")
             start_screen.run(appear=delay)
             screen = capture()
             presses = 0
+            acted = True
             continue
         age = uptime(GAME)
         if age is not None and age < LAUNCH:
@@ -108,6 +133,7 @@ def run(backs=10, delay=1.5):
             screen = wait_until(lambda: _known(capture(), known), LAUNCH - age)
             if screen is None:  # not `or`: a capture's truth value raises
                 screen = capture()
+            acted = True
             continue
         if presses == backs:
             log.error(f"not reached after {backs} backs")
@@ -115,9 +141,15 @@ def run(backs=10, delay=1.5):
         presses += 1
         log.debug(f"back {presses}/{backs}")
         back(BACK_KEY)
+        acted = True
         screen = wait_until(_crew, delay)
         if screen is None:
             screen = capture()
+
+
+def _clear_crew(screen, known):
+    """`screen` if Crew shows on it with no popup or lobby dialog open, else None."""
+    return screen if locate(CREW, screen) and not open_popup(known, screen) else None
 
 
 def _known(screen, known):

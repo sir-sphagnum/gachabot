@@ -44,7 +44,8 @@ Part 1 creates the files with a script. Part 2 maps the screens from launch to t
    - each tap judged by the screen it settles on (Rule 2), START's absence held with `core.nav.held` before waiting for the lobby.
    - loads and the launch wait as common: Loading screens says, with `LAUNCH` set well above the launch time noted in step 3.
    - the screens from step 4 that Back can't close, closed by their own button (common: Back).
-   - the lobby routine hands over to `start_screen` when the start screen shows (a disconnect can lead there), and `start_screen` returns True leaving a popup open, so the lobby routine, run after it, closes it; it returns False only when it could not get past the start screen. `core.device restart` runs `start_screen` and then `lobby`, so it ends in the lobby either way.
+   - the lobby routine hands over to `start_screen` when the start screen shows (a disconnect can lead there), at most `HANDOVERS` times, and `start_screen` returns True leaving a popup open, so the lobby routine, run after it, closes it; it returns False only when it could not get past the start screen. `core.device restart` runs `start_screen` and then `lobby`, so it ends in the lobby either way.
+   - the lobby counted only once no popup can still be coming (common: Lobbies): `start_screen` watches `settle` seconds after the lobby shows, and the lobby routine, once it has acted, holds the lobby `SETTLE` seconds with no popup. Set both from the start-tap recording, above the gap seen between the lobby and the first popup.
    - a HUD that can be at rest woken with `core.nav.tap_until` on a spot that is safe to tap, until the HUD element shows (common: Lobbies).
    Drop whatever only re1999 or E7 needs. Log as `.claude/logging.md` says.
 6. **Test**, each more than once, watching each run as `.claude/logging.md` §6 shows (the Monitor tool with that command): a failure's ERROR line names the screen it saved.

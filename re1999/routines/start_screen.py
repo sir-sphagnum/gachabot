@@ -21,7 +21,10 @@ through the quit dialog's dim. On the first launch of the day the game shows
 the obtained popup, then the check-in card and event-login, before the lobby.
 Any of them is left open and the routine returns True, its part done; the
 lobby routine, which hands over to this one and runs after it, closes them
-and looks again.
+and looks again. Popups open a moment after the lobby is drawn (common:
+Lobbies), so a lobby seen with no popup is watched `settle` seconds more
+before the routine returns: the lobby routine run next trusts a lobby it
+finds without having acted.
 """
 
 import sys
@@ -45,7 +48,7 @@ CREW = START / "lobby" / "info_lobby_crew_1646-591-138-124.png"
 GONE = 1.5  # seconds START must stay missing to count as gone
 
 
-def run(appear=60, taps=3, delay=3, load=60, fade=20):
+def run(appear=60, taps=3, delay=3, load=60, fade=20, settle=4):
     """Return True once past the start screen, with the lobby showing or a popup
     open for the lobby routine to close; False otherwise.
 
@@ -57,6 +60,7 @@ def run(appear=60, taps=3, delay=3, load=60, fade=20):
         story loading screen after START took ~10 s.
     fade: seconds to wait for START once the start screen shows without it.
     The lobby wait (`load`) covers the ~20 s login after the tap too.
+    settle: seconds to keep watching for a popup once the lobby shows.
     """
     found = wait_until(_look, appear)
     if found is None:
@@ -64,7 +68,7 @@ def run(appear=60, taps=3, delay=3, load=60, fade=20):
         return False
     state, screen = found
     if state != "start":
-        return _report(state)
+        return _report(state, settle)
 
     if not locate(START_BUTTON, screen):
         log.debug("start screen without START, waiting")
@@ -94,7 +98,7 @@ def run(appear=60, taps=3, delay=3, load=60, fade=20):
             return False
         state, screen = found
         if state != "start":
-            return _report(state)
+            return _report(state, settle)
         log.warning("START showing again, tap ignored")
 
 
@@ -129,7 +133,11 @@ def _look(states=("popup", "start", "lobby")):
     return (state, screen) if state in states else None
 
 
-def _report(state):
+def _report(state, settle):
+    if state == "lobby":
+        log.debug(f"lobby showing, watching {settle}s for popups")
+        if wait_until(lambda: _look(("popup",)), settle):
+            state = "popup"
     if state == "popup":
         log.info("popup open, returning to caller")
         return True

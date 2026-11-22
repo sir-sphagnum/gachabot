@@ -151,6 +151,7 @@ Android Back doesn't close every screen. ba's idle lobby ignores it, ba's login 
 
 - Back on the lobby opens a quit dialog (e7, re1999), so the lobby routine opens it whenever it presses Back once too often. It's closed with Cancel; Confirm quits the game.
 - The lobby's HUD hides when idle (e7 after ~9 s, ba within minutes). The idle lobby needs an identifier from the scene (e7's barrel, ba's hanging sign), and the lobby routine wakes it before anything taps the HUD.
+- Popups open a moment after the lobby is drawn: ba's news ~2 s after Campaign shows, and in two games set up and since removed, Neural Cloud's announcement ~1 s after its lobby and Arknights' lobby showing clear for ~1 s between two login popups. A lobby seen once is no proof none is coming (Rule 2), so start_screen watches a few seconds for a popup before it returns, and the lobby routine, once it has acted (a Back, a close, a load, a hand-over), counts the lobby only after it has held with no popup or dialog (`ba/routines/lobby.py`, `re1999/routines/lobby.py`). The hold also catches a quit dialog opened late by a Back pressed while a menu was still closing.
 - Login dialogs are handled as First of the day or week (below) says.
 
 ## First of the day or week
