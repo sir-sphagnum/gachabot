@@ -43,6 +43,7 @@ GAMES = {
     "re1999": "com.bluepoch.m.en.reverse1999",
     "ba": "com.nexon.bluearchive",
     "ak": "com.YoStarEN.Arknights",
+    "nc": "com.sunborn.neuralcloud.en",
 }
 
 
