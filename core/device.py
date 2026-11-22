@@ -11,7 +11,8 @@ Usage: python -m core.device connect
            is given) one after another, each closing the one before, and runs
            each one's start_screen and lobby routines, if it has them, so each
            ends in its lobby; the last one is left running. While a game's
-           lobby isn't reached, it restarts again, up to RESTART_TRIES in all
+           lobby isn't reached, with no stop screen, load or popup showing
+           (stuck_on), it restarts again, up to RESTART_TRIES in all
        python -m core.device start game
            closes every other running game in GAMES, then starts this one
        python -m core.device stop|status [game ...]
@@ -28,7 +29,7 @@ import sys
 import time
 
 from core.adb import AdbTimeout, adb, connect, player_pids, run
-from core.input import BlankScreen, tap
+from core.input import BlankScreen, capture, tap
 from core.log import logger, setup
 
 log = logger(__file__)
@@ -380,9 +381,47 @@ def _restart_with(game, tries=RESTART_TRIES):
             return False
         if run_to_lobby(game) is not False:
             return True
+        seen = stuck_on(game)
+        if seen:
+            log.error(f"{game} stuck on {seen}, not restarting again")
+            return False
         log.warning(f"{game} lobby not reached after restart {attempt}/{tries}")
     log.error(f"{game} lobby not reached after {tries} restarts")
     return False
+
+
+STUCK_LOOK = 3  # seconds stuck_on looks; ak's pre-start diamond drops out of single captures
+
+
+def stuck_on(game, look=STUCK_LOOK):
+    """What `game` is waiting on, as a few words ("popup pre-start"): a stop
+    screen, a loading screen or a common popup seen within `look` seconds;
+    None when none of them shows.
+
+    Restarting again when the lobby isn't reached is for a game that came up
+    wrong (e7's wrong layout and its Login and Select Server screens,
+    e7/notes/UI.md), which restarts set right. One of these screens means
+    the game is up and waiting on something a restart doesn't answer, and a
+    restart can do harm: on 2026-11-22 two of them, with ak blocked under a
+    launch dialog over pre-start, killed its launch update, and it asked to
+    download 13 GB again. Menus don't count: e7's start-screen identifier
+    matched at 0.98 behind Login on 2026-11-21, when restarts fixed it."""
+    from core import nav  # core.nav imports this module
+
+    def known():
+        try:
+            screen = capture()
+        except (BlankScreen, AdbTimeout):
+            return None
+        stop = nav.stop_screen(game, screen)
+        if stop:
+            return f"stop screen {stop}"
+        if nav.loading(game, screen):
+            return "a loading screen"
+        popup = nav.open_popup(nav.game_popups(game), screen)
+        return f"popup {popup}" if popup else None
+
+    return wait_until(known, look)
 
 
 def run_to_lobby(game):
@@ -481,7 +520,7 @@ if __name__ == "__main__":
                 was = f"{before:.1f} GB before" if before is not None else "wasn't running"
                 msg += f": {was}, {player_gb():.1f} GB now"
             _answer(msg, ok)
-            missed = False
+            missed = stuck = False
             for game in args if ok else []:
                 started = start_game(game)
                 ok &= started
@@ -491,7 +530,11 @@ if __name__ == "__main__":
                     ok &= passed
                     missed |= not passed
                     _answer(f"{game}: {'in lobby' if passed else 'lobby not reached'}", passed)
-            if not missed or attempt == RESTART_TRIES:
+                seen = stuck_on(game) if passed is False else None
+                if seen:
+                    stuck = True
+                    _answer(f"{game}: stuck on {seen}, not restarting again", False)
+            if not missed or stuck or attempt == RESTART_TRIES:
                 break
             print(f"Restarting again ({attempt + 1}/{RESTART_TRIES})")
             before = player_gb()

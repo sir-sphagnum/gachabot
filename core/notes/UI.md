@@ -26,7 +26,7 @@ A game answers a tap late, for a moment, or not at all: the result can show a se
 
 ### Rule 3. A check this file describes is written once, in core
 
-When this file describes how to read the screen, the code for it lives once in `core/` and routines call it: `core.nav.clear` (popups closed before reading a menu, Rule 1), `core.vision.tint` (lit or grey), `core.vision.diff` (a counter or icon that changed between frames), `core.nav.settled` (a list that stopped moving), `core.nav.scroll_to` (an entry past the screen's edge), `core.nav.past_loading` (black and loading screens waited out), `core.nav.wait_clear` (a long wait that closes popups as they open: Level up), `core.nav.held` and `tap_until` (Rule 2). A routine that needs a check core lacks adds it to core.
+When this file describes how to read the screen, the code for it lives once in `core/` and routines call it: `core.nav.clear` (popups closed before reading a menu, Rule 1), `core.vision.tint` (lit or grey), `core.vision.diff` (a counter or icon that changed between frames), `core.nav.settled` (a list that stopped moving), `core.nav.scroll_to` (an entry past the screen's edge), `core.nav.past_loading` (black and loading screens waited out), `core.nav.wait_clear` (a long wait that closes popups as they open, Rule 7), `core.nav.held` and `tap_until` (Rule 2). A routine that needs a check core lacks adds it to core.
 
 - `7c56885`, `7670c5f`, `8ead727`, `e557780`: each routine that read a lit button wrote its own `_lit`, with a different slice order, channel unpacking and comparison, though the notes describe one rule.
 - `7c56885`, `5efc4e3`, `7670c5f`, `8ead727`, `e557780`, `b94626e`, `9669062`: seven routines carried their own `_clear` for Rule 1, some closing one popup, some looping, some checking the title.
@@ -52,6 +52,15 @@ A step can reach its goal without the signal the routine expected on the way: no
 - `2d1b72a`: battle-prep remembered replay mode, so the play icon that turns it on was gone and the run failed looking for it.
 
 **Scope:** this covers judging whether a step's work is done. It doesn't cover deciding which screen is open (Rules 1 and 5), and it never makes a spend retappable (Rule 2's scope).
+
+### Rule 7. A long wait watches for whatever else can show, not only its result
+
+A fight, a load, a cold start or a restart can end on a screen other than the one waited for: a popup over the result, a dialog nobody mapped, a choice that is the user's. A wait that can only end on its result or its timeout sits there until the timeout, or until the user steps in. So every long wait has a deadline and looks at what else shows. Routines, and Claude when it drives the game by hand, wait with `core.nav.wait_clear` (`python -m core.nav <game> wait … --timeout S`), which closes popups as they open and fails with an error screen. A command that runs for minutes (a test run, `core.device restart`) is watched through its log lines (`.claude/logging.md` §6), never waited on for its exit alone.
+
+- `af80a12`: a `core.device restart ak` test ran in the background while Claude waited on its exit. Its first ERROR (pre-start under a launch dialog nobody had mapped) came a minute in; the two restarts that followed killed the game's launch update before the user asked Claude to look.
+- `af80a12`: a loop Claude wrote waited for 1-12's result screen; the run ended on the account's Level Up screen, and the loop sat behind it until the user stepped in.
+
+**Scope:** this covers waits of more than a few seconds on a result nothing taps for. It doesn't cover the seconds a tap is given to work (Rule 2's `delay`).
 
 ## Dims
 
@@ -122,7 +131,7 @@ Some screens have no close button and move on at a tap anywhere: re1999's obtain
 
 ## Level up
 
-A fight's EXP can level the account up, and the game then shows a level-up screen before or over the result: re1999's "Level Up" band over VICTORY, ak's account Level Up screen in place of the result. It shows only on the fight that crosses a level, so a routine first meets it on some later run. Under re1999's band VICTORY still matched and `tap_until` closed the band before the victory tap; ak's hid the result, and an earlier ak run_stage, waiting for the result alone, sat behind it for 10 minutes. So the level-up is mapped as a common popup (common: Tap anywhere), and a fight's result is waited for with `core.nav.wait_clear`, which closes popups as they open, never with a `wait_until` that only looks for the result.
+A fight's EXP can level the account up, and the game then shows a level-up screen before or over the result: re1999's "Level Up" band over VICTORY, ak's account Level Up screen in place of the result. It shows only on the fight that crosses a level, so a routine first meets it on some later run. Under re1999's band VICTORY still matched and `tap_until` closed the band before the victory tap; ak's hid the result. So the level-up is mapped as a common popup (common: Tap anywhere), and a fight's result is waited for as Rule 7 says.
 
 ## Toasts
 

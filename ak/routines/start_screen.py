@@ -8,7 +8,8 @@ logo over a grey START).
 
 1. Wait for pre-start, the title, the lobby, or a popup or lobby dialog to
    show (the game may still be loading, e.g. right after
-   `python -m ak.bot start`). Already in the lobby: done.
+   `python -m ak.bot start`). Already in the lobby: done. A stop screen
+   (the resource-package choice): give up without touching it.
 2. Pre-start: tap its diamond until it goes (popup_pre-start), then wait for
    the title.
 3. Title: tap START, waiting for it to fade in first if the title shows
@@ -36,7 +37,7 @@ import sys
 from core.device import wait_until
 from core.input import capture, tap
 from core.log import logger, setup
-from core.nav import close_popup, game_popups, held, locate, open_popup
+from core.nav import close_popup, game_popups, held, locate, open_popup, stop_screen
 from ak.config import GAME, TEMPLATES_DIR
 
 log = logger(__file__)
@@ -47,6 +48,7 @@ START_BUTTON = START / "btn_start-screen_lobby_806-716-308-102.png"
 LOGO = START / "info_start-screen_logo_520-380-870-150.png"
 SQUADS = START / "lobby" / "info_lobby_squads_1050-465-185-80.png"
 PRE_START = "pre-start"  # the popup that holds the pre-start screen's diamond
+STOP = "stop"  # a stop screen (core.nav.stop_screen): the routine gives up untouched
 GONE = 1.5  # seconds START must stay missing to count as gone
 
 
@@ -72,6 +74,9 @@ def run(appear=120, taps=3, delay=3, load=60, fade=20, settle=5):
             log.error(f"no start screen or lobby after {appear}s")
             return False
         state, screen = found
+        if state == STOP:
+            log.error(f"stop_{stop_screen(GAME, screen)} showing: the user's call, not acting on it")
+            return False
         if state != PRE_START:
             break
         if pre_starts == taps:
@@ -129,8 +134,10 @@ def _with_start():
 
 
 def _state(screen):
-    """PRE_START, "popup", "start", "lobby", or None for anything else."""
+    """STOP, PRE_START, "popup", "start", "lobby", or None for anything else."""
     from ak.routines import lobby  # lobby imports this module
+    if stop_screen(GAME, screen):
+        return STOP
     popup = open_popup(lobby.popups(), screen)
     if popup:
         return PRE_START if popup == PRE_START else "popup"
@@ -141,7 +148,7 @@ def _state(screen):
     return None
 
 
-def _look(states=(PRE_START, "popup", "start", "lobby")):
+def _look(states=(STOP, PRE_START, "popup", "start", "lobby")):
     """(state, screen) for a fresh capture if its state is one of `states`, else None."""
     screen = capture()
     state = _state(screen)

@@ -5,6 +5,8 @@ Usage: python -m core.nav GAME goto MENU [--here MENU] [--debug]
        python -m core.nav GAME where [CAPTURE]
        python -m core.nav GAME tap BUTTON EXPECTED [EXPECTED ...] [--delay S]
                                    [--tries N] [--no-popups] [--debug]
+       python -m core.nav GAME wait EXPECTED [EXPECTED ...] --timeout S
+                                   [--tries N] [--no-popups] [--debug]
 
 GAME is a game's folder name (e.g. e7). --debug also logs each tap and wait.
 
@@ -25,6 +27,12 @@ template files. Template names that follow the map skill's scheme
 (over the whole screen when the name says _anywhere), matching white-only when
 the name says _white; any other file is searched over the whole screen. Exits 0 when an expected element was seen, 1 otherwise.
 
+wait: wait_clear from the command line, for a result no tap brings (a
+fight's end, a long load) when Claude drives the game by hand (Rule 7): waits
+up to --timeout seconds for an EXPECTED element with no known popup open,
+closing popups as they open (up to --tries). Exits 0 when one showed, 1 with
+an ERROR and its error screen otherwise.
+
 goto: take GAME to MENU, a menu folder name under <game>/templates/,
 from wherever it is. Every walk starts from the game's lobby: its menu folder
 named `lobby`, reached by the game's lobby routine. Then it taps down the
@@ -33,10 +41,10 @@ to walk from it instead. Exits 0 once MENU is on screen, 1 otherwise.
 
 routes: print each menu's route from the lobby, without touching the game.
 
-where: name the common popups open and every menu whose identifying images
-match, best score first, on the screen or on a saved CAPTURE. More than one
-menu can match (shared identifiers, a menu under a popup's dim). Exits 1 when
-nothing matches.
+where: name the stop screen or loading screen showing, the common popups
+open and every menu whose identifying images match, best score first, on the
+screen or on a saved CAPTURE. More than one menu can match (shared
+identifiers, a menu under a popup's dim). Exits 1 when nothing matches.
 
 goto and tap stop with an error, before tapping anything, unless GAME is the
 app in focus and fullscreen (not floating).
@@ -56,7 +64,7 @@ from core import ROOT, steps, templates_dir, tree
 from core.device import floating_window, focused_app, is_running, package, wait_until
 from core.input import capture, swipe, tap
 from core.log import logger, setup
-from core.tree import ELEMENT, load_popups
+from core.tree import ELEMENT, load_popups, load_stops
 from core.vision import difference, find, fingerprint, is_black, load
 
 log = logger(__file__)
@@ -176,7 +184,7 @@ def wait_clear(expected, timeout, popups=True, tries=5, delay=1.5, interval=0.5)
     For a long wait on a result no tap brings (a fight's result screen, the
     end of a load): a popup that opens during it (a level-up after a fight)
     can hide the result, and a wait that only looks for the result sits
-    behind it until its timeout (core/notes/UI.md, "Level up").
+    behind it until its timeout (core/notes/UI.md, Rule 7).
     expected, popups: as tap_until takes them. tries: maximum popups closed.
     delay: seconds each close tap is given to work.
     Returns what tap_until returns, or None (logged as a WARNING) when
@@ -412,10 +420,19 @@ def open_popup(popups, screen):
     return None
 
 
+# Seconds a popup must stay missing to count as closed (Rule 2). ak's pre-start
+# diamond pulses around the match threshold under a launch dialog's dim, so
+# it dropped out of single captures every ~0.5 s: taken as closed on one
+# look, it was "closed" 10 times with 3 taps while the dialog over it, which
+# the bot didn't know, blocked every tap.
+CLOSED_HOLD = 1.0
+
+
 def close_popup(name, popup, delay=1.5, tries=5):
     """Tap `popup`'s close button until the popup is gone. Returns True once
-    it is gone, False (logged as a WARNING) if it is still open after `tries`
-    taps. name: the popup's key in its popups dict, for the log.
+    it has stayed gone CLOSED_HOLD seconds, before or after a tap, False
+    (logged as a WARNING) if it is still open after `tries` taps.
+    name: the popup's key in its popups dict, for the log.
     Each call adds a line to the step statistics (core.steps)."""
     stats = {"taps": 0, "skipped": 0}
     start = time.monotonic()
@@ -429,17 +446,23 @@ def close_popup(name, popup, delay=1.5, tries=5):
 
 
 def _close_popup(name, popup, delay, tries, stats):
+    def gone(screen):
+        return not _is_open(popup, screen)
+
+    def stays_gone():
+        return held(gone, CLOSED_HOLD, CLOSED_HOLD + delay) is not None
+
     for attempt in range(1, tries + 1):
         screen = capture()
-        if not _is_open(popup, screen):
-            return True
+        if gone(screen):
+            if stays_gone():
+                return True
+            screen = capture()
         stats["taps"] += 1
         if not _tap(popup["close"]["file"], screen, f"popup_{name}: close tap {attempt}/{tries}"):
             stats["skipped"] += 1
-        if _wait_for(lambda s: not _is_open(popup, s), delay):
+        if stays_gone():
             return True
-    if not _is_open(popup, capture()):
-        return True
     log.warning(f"popup_{name} still open after {tries} close taps")
     return False
 
@@ -499,6 +522,23 @@ def game_popups(game):
     """The popups of `game` (from core.tree.load_popups) that the bot can both
     detect (info_ images) and close (a close button), keyed by name."""
     return {n: p for n, p in load_popups(game)[0].items() if p["info"] and p["close"]}
+
+
+@cache
+def game_stops(game):
+    """The stop screens of `game` (from core.tree.load_stops) the bot can
+    detect (info_ images), keyed by name."""
+    return {n: s for n, s in load_stops(game)[0].items() if s["info"]}
+
+
+def stop_screen(game, screen):
+    """Name of the stop screen of `game` showing on `screen`, or None.
+
+    A stop screen waits on a choice that is the user's (core/tree.py), so a
+    routine that sees one taps nothing, presses no Back, and gives up with
+    an ERROR naming it. Lobby routines look for one before anything else:
+    on a screen they don't know they press Back."""
+    return open_popup(game_stops(game), screen)
 
 
 def _first(templates, screen):
@@ -686,9 +726,15 @@ def _main():
                    help="seconds to wait for EXPECTED after each tap (default 1.5)")
     t.add_argument("--tries", type=int, default=5, help="maximum taps (default 5)")
     t.add_argument("--no-popups", action="store_true", help="don't look for popups")
+    wt = sub.add_parser("wait", parents=[debug],
+                        help="wait for an EXPECTED element, closing popups as they open")
+    wt.add_argument("expected", nargs="+")
+    wt.add_argument("--timeout", type=float, required=True, help="seconds to wait at most")
+    wt.add_argument("--tries", type=int, default=5, help="maximum popups closed (default 5)")
+    wt.add_argument("--no-popups", action="store_true", help="don't look for popups")
     a = p.parse_args()
     setup(getattr(a, "debug", False),
-          run=f"{__spec__.name}-{a.game}-{a.cmd}" if a.cmd in ("goto", "tap") else None)
+          run=f"{__spec__.name}-{a.game}-{a.cmd}" if a.cmd in ("goto", "tap", "wait") else None)
     if a.game not in tree.games():
         sys.exit(f"No game '{a.game}'. Games: {', '.join(tree.games())}")
     try:
@@ -704,14 +750,22 @@ def _run(a):
         return 0
 
     if a.cmd == "where":
-        popups, menus = where(a.game, a.capture or capture())
+        screen = a.capture or capture()
+        stop = stop_screen(a.game, screen)
+        load = loading(a.game, screen)
+        popups, menus = where(a.game, screen)
+        if stop:
+            print(f"stop_{stop} showing")
+        if load:
+            print("loading screen")
         for name in popups:
             print(f"popup_{name} open")
         for name, template, score in menus:
             print(f"{name}  ({template} {score:.2f})")
-        if not popups and not menus:
-            print("No known menu or popup")
-        return 0 if popups or menus else 1
+        found = stop or load or popups or menus
+        if not found:
+            print("No known menu, popup, load or stop screen")
+        return 0 if found else 1
 
     if a.cmd == "goto":
         menus, _ = tree.load(a.game)
@@ -719,6 +773,18 @@ def _run(a):
             if name and name not in menus:
                 sys.exit(f"No menu '{name}'. Menus: {', '.join(menus)}")
         return 0 if goto(a.game, a.menu, a.here) else 1
+
+    if a.cmd == "wait":
+        check_focus(a.game)
+        result = wait_clear(a.expected, a.timeout, popups=None if a.no_popups else a.game,
+                            tries=a.tries)
+        if not result:
+            names = ", ".join(Path(e).name for e in a.expected)
+            log.error(f"wait: {names} not on screen with no popup open in {a.timeout:g}s")
+            return 1
+        template, (cx, cy, score) = result
+        print(f"Found {Path(template).name} at ({cx}, {cy}), score {score:.3f}")
+        return 0
 
     if "," in a.button and not Path(a.button).exists():
         a.button = tuple(int(v) for v in a.button.split(","))

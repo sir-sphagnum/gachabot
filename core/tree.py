@@ -38,6 +38,14 @@ its screen-<state>.png, info_ and btn_ images go in that menu's folder.
                                            when ALL its info_ images match
   common/popups/<popup>/btn_<popup>_close_...png
                                            the tap that closes it
+and the stop screens: screens where the bot must not act at all, because
+what to do is the user's call (e.g. which resource package to download),
+and a Back or a tap there could choose for them. They have no buttons.
+  common/stops/<stop>/                     a screen to stop on
+  common/stops/<stop>/screen.png           a capture of it
+  common/stops/<stop>/info_<stop>_<element>_...png
+                                           identifies it: the screen shows
+                                           when ALL its info_ images match
 """
 
 import re
@@ -67,6 +75,7 @@ def spends(name):
     return any(word in SPEND_WORDS for word in name.split("-"))
 COMMON = "common"
 POPUPS = "popups"
+STOPS = "stops"
 
 
 def games():
@@ -149,6 +158,32 @@ def load_popups(game):
     return popups, problems
 
 
+def load_stops(game):
+    """Read one game's stop screens from <game>/templates/common/stops/.
+    Returns (stops, problems).
+
+    stops: {name: {"path", "screen", "states", "buttons", "info"}}
+    """
+    stops, problems = {}, []
+    base = templates_dir(game) / COMMON / STOPS
+    if not base.is_dir():
+        return stops, problems
+    for d in sorted(p for p in base.iterdir() if p.is_dir()):
+        rel = _rel(d)
+        stop = {"path": rel, "screen": d / "screen.png" if (d / "screen.png").exists() else None,
+                "states": {}, "buttons": [], "info": []}
+        _read_elements(d, rel, stop, problems)
+        if not stop["info"]:
+            problems.append(f"{rel}: no info_ images, so the bot can't detect it")
+        for b in stop["buttons"]:
+            problems.append(f"{rel}/{b['file'].name}: a stop screen has no buttons, "
+                            "the bot never taps on it")
+        if not stop["screen"]:
+            problems.append(f"{rel}: no screen.png")
+        stops[d.name] = stop
+    return stops, problems
+
+
 def _rel(path):
     return path.relative_to(ROOT).as_posix()
 
@@ -173,7 +208,7 @@ def _read_elements(d, rel, into, problems):
         into["buttons" if m["kind"] == "btn" else "info"].append(entry)
 
 
-def show(game, menus, problems, popups=None):
+def show(game, menus, problems, popups=None, stops=None):
     def box(e):
         x, y, w, h = e["box"]
         return f"({x},{y} {w}x{h}{', white' if e['white'] else ''})"
@@ -214,6 +249,12 @@ def show(game, menus, problems, popups=None):
                 print(f"      btn  -> {b['name']} {box(b)}")
             for i in popup["info"]:
                 print(f"      info    {i['name']} {box(i)}")
+    if stops:
+        print(f"  {COMMON}/{STOPS}/")
+        for name, stop in stops.items():
+            print(f"    {name}/")
+            for i in stop["info"]:
+                print(f"      info    {i['name']} {box(i)}")
     if problems:
         print("\nProblems:")
         for p in problems:
@@ -231,4 +272,5 @@ if __name__ == "__main__":
             print()
         menus, problems = load(game)
         popups, popup_problems = load_popups(game)
-        show(game, menus, problems + popup_problems, popups)
+        stops, stop_problems = load_stops(game)
+        show(game, menus, problems + popup_problems + stop_problems, popups, stops)

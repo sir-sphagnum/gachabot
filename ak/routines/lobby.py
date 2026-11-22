@@ -6,6 +6,8 @@ core.nav loads this module by name as the game's lobby routine, the start of
 every menu walk, so keep its path and run() returning True on success.
 
 Until the Squads tile shows with no popup or lobby dialog over it:
+- if a stop screen (ak/templates/common/stops/) shows, give up without
+  touching it: it waits on the user's choice, and a Back there could choose;
 - while the screen is black or a known loading screen
   (ak/templates/common/loading/) shows, or the game started under LAUNCH
   seconds ago, wait; Back pressed then would be a guess;
@@ -31,7 +33,7 @@ from core.device import uptime, wait_until
 from core.input import back, capture
 from core.log import logger, setup
 from core.nav import (close_popup, dialog, game_popups, held, loading, locate, open_popup,
-                      past_black, past_loading)
+                      past_black, past_loading, stop_screen)
 from ak.config import BACK_KEY, GAME, TEMPLATES_DIR
 from ak.routines import start_screen
 
@@ -64,10 +66,9 @@ DIALOGS = {
 
 def popups():
     """The game's common popups and the lobby's dialogs, in the form core.nav
-    takes, pre-start last: launch dialogs (voice settings) open over it, and
-    its diamond, dimmed under them, flickers around the match threshold. Seen
-    first, it read as open and close_popup as closed, so the routine
-    "closed" it 10 times without a tap and gave up."""
+    takes, pre-start last: launch dialogs (voice settings) open over it and
+    leave its diamond matching, so a dialog seen after it would never be
+    closed, and every tap on the diamond would land on the dialog."""
     found = {**game_popups(GAME), **DIALOGS}
     return {**{k: v for k, v in found.items() if k != start_screen.PRE_START},
             start_screen.PRE_START: found[start_screen.PRE_START]}
@@ -86,6 +87,10 @@ def run(backs=10, delay=1.5):
     acted = False  # a Back, close, load or hand-over since the last look
     while True:
         screen = past_black(screen)
+        stop = stop_screen(GAME, screen)
+        if stop:
+            log.error(f"stop_{stop} showing: the user's call, not acting on it")
+            return False
         if loading(GAME, screen):
             screen = past_loading(GAME, screen)
             if screen is None:
@@ -156,8 +161,8 @@ def _clear_squads(screen, known):
 
 def _known(screen, known):
     """`screen` if the routine knows what to do on it, else None."""
-    if (loading(GAME, screen) or open_popup(known, screen) or locate(SQUADS, screen)
-            or start_screen.at_start_screen(screen)):
+    if (stop_screen(GAME, screen) or loading(GAME, screen) or open_popup(known, screen)
+            or locate(SQUADS, screen) or start_screen.at_start_screen(screen)):
         return screen
     return None
 
