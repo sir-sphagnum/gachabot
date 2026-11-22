@@ -87,12 +87,12 @@ Menus remember a choice between visits and after fights: e7's Use Owned Energy F
 
 ## Daily missions
 
-Every game is assumed to have a daily-missions menu, and each one gets a `claim_dailies` routine (`python -m <game>.bot claim_dailies`) that only claims and never works on the missions. So far: e7's orbis-guide (Three Sisters' Diary), re1999's tasks (Daily Activeness tab), ba's tasks (Claim All, then the milestone's own Claim).
+Every game is assumed to have a daily-missions menu, and each one gets a `claim_dailies` routine (`python -m <game>.bot claim_dailies`) that only claims and never works on the missions. So far: e7's orbis-guide (Three Sisters' Diary), re1999's tasks (Daily Activeness tab), ba's tasks (Claim All, then the milestone's own Claim), ak's missions (Daily tab, a Collect All banner).
 
 - **One tap claims everything.** e7's 100 chest claims every ready chest on the bar; re1999's Claim All claims every finished task and milestone. The routine taps that one control, not each row, and taps it again while it's still lit: ba's Claim All can complete a "claim N tasks" task, which lights it again, and leaves the milestone on the bottom bar to its own Claim.
-- **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner is there only then. So "not there" or "not lit" means already claimed or not earned yet, which the routine counts as success (Rule 6).
+- **The claim control shows or lights only while something is claimable.** e7's chest badge is lit only then; re1999's Claim All banner and ak's Collect All banner are there only then. So "not there" or "not lit" means already claimed or not earned yet, which the routine counts as success (Rule 6).
 - **A claim opens a reward dialog** (common: Reward dialogs): e7's is the menu's own state; re1999's and ba's are common popups.
-- **The menu may open on another tab or section**, so the routine picks the daily one after every entry (re1999 opens on a tab with rewards waiting, Weekly once Daily is claimed).
+- **The menu may open on another tab or section**, so the routine picks the daily one after every entry (re1999 opens on a tab with rewards waiting, Weekly once Daily is claimed; ak on Pinboard).
 - **A claimed row can come back as its next tier**: a harder row of the same kind (clear 1 stage → 8, defeat 100 enemies → 300 → 500, reach 50 activity → 100), counting the day's total so far. So the rows on a first visit can be fewer than the day holds, and the day's missions are done only once the menu's goal is claimed (its top chest, or every reward set), not once the rows first seen are.
 
 ## Reward dialogs
@@ -122,13 +122,13 @@ Some screens have no close button and move on at a tap anywhere: re1999's obtain
 
 ## Level up
 
-A fight's EXP can level the account up, and the game then shows a level-up screen before or over the result: re1999's "Level Up" band over VICTORY, Arknights' account Level Up screen in place of the result (a game since removed). It shows only on the fight that crosses a level, so a routine first meets it on some later run. Under re1999's band VICTORY still matched and `tap_until` closed the band before the victory tap; Arknights' hid the result, and its run_stage, waiting for the result alone, sat behind it for 10 minutes. So the level-up is mapped as a common popup (common: Tap anywhere), and a fight's result is waited for with `core.nav.wait_clear`, which closes popups as they open, never with a `wait_until` that only looks for the result.
+A fight's EXP can level the account up, and the game then shows a level-up screen before or over the result: re1999's "Level Up" band over VICTORY, ak's account Level Up screen in place of the result. It shows only on the fight that crosses a level, so a routine first meets it on some later run. Under re1999's band VICTORY still matched and `tap_until` closed the band before the victory tap; ak's hid the result, and an earlier ak run_stage, waiting for the result alone, sat behind it for 10 minutes. So the level-up is mapped as a common popup (common: Tap anywhere), and a fight's result is waited for with `core.nav.wait_clear`, which closes popups as they open, never with a `wait_until` that only looks for the result.
 
 ## Toasts
 
 Chat and mission toasts slide over the top of the screen for a few seconds (e7's "entered channel" toast, ba's mission toasts over dialog titles). Identifiers are taken where toasts don't reach.
 
-A toast can also be a tap's only answer: e7's "Receive All cannot be used with this mail." and re1999's "No mail with attachment" (nothing to claim), ba's "Unavailable right now." (Back refused), re1999's "Dust +7125" (collected). It's gone within seconds, so the routine looks for it in the tap's own wait (a `tap_until` check), not after.
+A toast can also be a tap's only answer: e7's "Receive All cannot be used with this mail.", re1999's "No mail with attachment" and ak's "No mail to claim" (nothing to claim), ba's "Unavailable right now." (Back refused), re1999's "Dust +7125" (collected). It's gone within seconds, so the routine looks for it in the tap's own wait (a `tap_until` check), not after.
 
 ## Lists that move
 
@@ -149,16 +149,16 @@ Android Back doesn't close every screen. ba's idle lobby ignores it, ba's login 
 
 ## Lobbies
 
-- Back on the lobby opens a quit dialog (e7, re1999), so the lobby routine opens it whenever it presses Back once too often. It's closed with Cancel; Confirm quits the game.
+- Back on the lobby opens a quit dialog (e7, re1999, ak), so the lobby routine opens it whenever it presses Back once too often. It's closed with Cancel; Confirm quits the game.
 - The lobby's HUD hides when idle (e7 after ~9 s, ba within minutes). The idle lobby needs an identifier from the scene (e7's barrel, ba's hanging sign), and the lobby routine wakes it before anything taps the HUD.
-- Popups open a moment after the lobby is drawn: ba's news ~2 s after Campaign shows, and in two games set up and since removed, Neural Cloud's announcement ~1 s after its lobby and Arknights' lobby showing clear for ~1 s between two login popups. A lobby seen once is no proof none is coming (Rule 2), so start_screen watches a few seconds for a popup before it returns, and the lobby routine, once it has acted (a Back, a close, a load, a hand-over), counts the lobby only after it has held with no popup or dialog (`ba/routines/lobby.py`, `re1999/routines/lobby.py`). The hold also catches a quit dialog opened late by a Back pressed while a menu was still closing.
+- Popups open a moment after the lobby is drawn: ba's news ~2 s after Campaign shows, ak's sign-in calendar ~1 s after its lobby, and Neural Cloud's announcement ~1 s after its lobby (a game set up and since removed). A lobby seen once is no proof none is coming (Rule 2), so start_screen watches a few seconds for a popup before it returns, and the lobby routine, once it has acted (a Back, a close, a load, a hand-over), counts the lobby only after it has held with no popup or dialog (`ba/routines/lobby.py`, `re1999/routines/lobby.py`, `ak/routines/lobby.py`). The hold also catches a quit dialog opened late by a Back pressed while a menu was still closing.
 - Login dialogs are handled as First of the day or week (below) says.
 
 ## First of the day or week
 
-Every game shows screens only on the first launch of a day, or the first entry of a menu in a day or week: e7's check-in dialogs (after the date change), its guild hall's dialog and arena's weekly rank reward; re1999's login reward, check-in card, event-login and profile panel; ba's banner and login boards. Mapping and testing happen on later launches, so these are missing from the templates, and a routine meets them first on the next day's run, where they stop it (`ffb80d0`, `8b62e7c`, `4575157`, `06f1cc9`).
+Every game shows screens only on the first launch of a day, or the first entry of a menu in a day or week: e7's check-in dialogs (after the date change), its guild hall's dialog and arena's weekly rank reward; re1999's login reward, check-in card, event-login and profile panel; ba's banner and login boards; ak's sign-in calendar, its Resource Today reward and the event boards. Mapping and testing happen on later launches, so these are missing from the templates, and a routine meets them first on the next day's run, where they stop it (`ffb80d0`, `8b62e7c`, `4575157`, `06f1cc9`).
 
-- Where they're handled depends on what can be read underneath. A dialog over a lobby that is already identifiable is a lobby state (e7's check-in, re1999's checkin card). One that shows before the lobby is drawn, or over any menu, is a common popup, so start_screen and lobby close it (ba's boards, re1999's event-login). One that a single menu shows on entry is that menu's dialog, waited for on entry (e7's arena reward).
+- Where they're handled depends on what can be read underneath. A dialog over a lobby that is already identifiable is a lobby state (e7's check-in, re1999's checkin card). One that shows before the lobby is drawn, or over any menu, is a common popup, so start_screen and lobby close it (ba's boards, re1999's event-login, ak's calendar and boards). One that a single menu shows on entry is that menu's dialog, waited for on entry (e7's arena reward).
 - Their art changes with events, so they're identified by what stays: ba's login boards by the classroom behind every board, not by a board's title.
 - Back often does nothing on them (common: Back), so a lobby routine's Back presses don't get past them.
 

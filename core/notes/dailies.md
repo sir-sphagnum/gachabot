@@ -36,9 +36,9 @@ Something the game hands out a few of each day (tickets, flags, chances, attempt
 
 ## Stamina sink
 
-Stages paid with stamina, which refills over the day up to a max: e7's hunt, re1999's In Our Time and The Poussiere, ba's Hard sweeps. Look for a counter in the lobby that reads x/y, current over max (85/120). x can be higher than y (250/120): the refill stops at the max, but mail, rewards and items add past it, so x ≥ y doesn't mean nothing more can come in, and x > y isn't a misread.
+Stages paid with stamina, which refills over the day up to a max: e7's hunt, re1999's In Our Time and The Poussiere, ba's Hard sweeps, ak's main theme stages. Look for a counter in the lobby that reads x/y, current over max (85/120). x can be higher than y (250/120): the refill stops at the max, but mail, rewards and items add past it, so x ≥ y doesn't mean nothing more can come in, and x > y isn't a misread.
 
-Each game names it its own way: re1999's Activity, ba's AP, e7's stamina (sold as Energy in its shop). Outside these three, as hints for a new game: Keys (Project Neural Cloud), Intelligence Puzzle (Girls' Frontline 2: Exilium), Sanity (Arknights). Some games have none, and some spread it over several supplies (Girls' Frontline: Manpower, Ammunition, Rations, Parts).
+Each game names it its own way: re1999's Activity, ba's AP, e7's stamina (sold as Energy in its shop), ak's Sanity. Outside these games, as hints for a new game: Keys (Project Neural Cloud), Intelligence Puzzle (Girls' Frontline 2: Exilium). Some games have none, and some spread it over several supplies (Girls' Frontline: Manpower, Ammunition, Rations, Parts).
 
 - **Control:** a fixed stage, then the fight-finishing way below. Each call spends a fixed amount.
 - **Done:** one run, or a count of runs the routine was asked for. Running out shows as a refill offer, which costs premium currency, so the routine stops at it and never confirms it.
@@ -52,7 +52,7 @@ Every game has one, and it decides how simple the routine is. Look for these nea
 | Way | Seen | What the routine does |
 |---|---|---|
 | Sweep / MAX / Multi-Sweep | ba (bounty, scrimmage, Hard) | set the count, confirm, close the summary; no fight screen |
-| Replay of a recorded clear | re1999 (stage replay x1–x4) | switch to replay mode, start, wait for VICTORY |
+| Replay of a recorded clear | re1999 (stage replay x1–x4), ak (Auto Deploy, from a 3-star clear made without a support unit) | switch to replay mode, start, wait for VICTORY |
 | Background battling | e7 (hunt) | start it, come back later to claim (`e7/routines/check_background_status.py`) |
 | Auto + skip | e7 (arena, World Boss: Auto), ba (Tactical Challenge: >>) | start, turn auto on or skip, wait for the result screen |
 
@@ -72,7 +72,7 @@ A daily the game counts for visiting or touching something, with nothing to win 
 A mailbox of gifts with attachments (login rewards, compensation, items sent on at an ownership limit). Every game has one, whether or not a missions row asks for it. Look for an **envelope / present** icon or **Mail / Mailbox** label on the lobby, with count badge (e7: in the HUD row; ba: top-right bar; re1999: left column).
 
 - **Control:** one Claim All / Receive All (re1999, ba, e7), never each mail's own Claim. It's there whether or not anything is left, and a mail Claim All can't take stays in the list.
-- **Done:** read per game, from what the tap answers: Claim All grey (ba), or a "nothing to claim" toast (re1999, e7; common: Toasts). Mail left in the list is not a failure.
+- **Done:** read per game, from what the tap answers: Claim All grey (ba), or a "nothing to claim" toast (re1999, e7, ak; common: Toasts). Mail left in the list is not a failure.
 - **Cost:** none. e7 asks to confirm first ("Would you like to receive all mail…"): a confirm word that spends nothing, tapped without `--auto` once the question is read.
 - **Mail Claim All skips:** e7's GM mail unlocks only after "Move to Link" opens an outside link, so it stays (Never automatic, below).
 - **Start from:** `ba/routines/claim_mail.py` (a button lit or grey), `re1999/routines/claim_mail.py` (a reward popup or a toast), `e7/routines/claim_mail.py` (a confirm dialog, then a reward dialog or a toast).
