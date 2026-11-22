@@ -18,16 +18,16 @@ How routines and navigation report what they are doing: what logs and what print
 12:03:40 DEBUG   nav: black screen, waiting
 12:03:41 WARNING lobby: popup_disconnected open, closing
 12:03:41 DEBUG   nav: popup_disconnected: close tap 1/5 at (960, 688)
-12:03:43 INFO    lobby: start screen, handing over
-12:03:43 DEBUG   start_screen: tap 1/3 at (960, 1036)
-12:03:44 INFO    start_screen: left start screen, waiting for lobby
-12:03:51 INFO    start_screen: in lobby
-12:03:51 INFO    lobby: reached, waking HUD
-12:03:52 DEBUG   nav: tap 1/5 at (1869, 49)
-12:03:53 INFO    lobby: HUD showing
+12:03:43 INFO    lobby: start screen, tapping START (1/9)
+12:03:43 DEBUG   lobby: START at (960, 1036)
+12:03:45 INFO    lobby: left start screen, waiting for the lobby
+12:03:52 INFO    lobby: lobby idle, waking HUD
+12:03:52 DEBUG   nav: tap 1/3 at (1869, 49)
+12:03:53 DEBUG   lobby: lobby showing, watching 4s for popups
+12:03:57 INFO    lobby: reached
 ```
 
-- Each module takes its logger with `log = logger(__file__)`, named after the file (`lobby`, `start_screen`, `nav`). That tells you which code wrote the line, so the message doesn't repeat it.
+- Each module takes its logger with `log = logger(__file__)`, named after the file (`lobby`, `unknown`, `nav`). That tells you which code wrote the line, so the message doesn't repeat it.
 - The time shows how long each wait took, which matters because most failures in this bot are something taking longer than a timeout.
 - `-7s` pads the level to `WARNING`'s width so the messages line up.
 - Command-line entry points call `setup()` once. A normal run shows INFO and above. `--debug` adds the DEBUG lines (each tap and wait), for chasing a problem. A skill log (§5) and a run log (§7) always get every level.
@@ -54,7 +54,7 @@ Edge cases:
 
 - **Retried routines.** A routine that gives up still logs its ERROR even when its caller retries it. The caller's WARNING then says what it does next (`lobby not reached, restarting walk`).
 - **Same event, different outcome.** The level follows what happens next, not the event. In `goto`, `no route from here to shop` is a WARNING when it goes on to walk from the lobby. `no route from lobby to shop` is an ERROR, because the walk stops.
-- **Returning False by design.** A routine that returns False so its caller can deal with the screen hasn't given up. That's INFO (e.g. start_screen's `popup open, returning to caller`, which the lobby routine then closes).
+- **Returning False by design.** A routine that returns False so its caller can deal with the screen hasn't given up. That's INFO, not ERROR.
 - **Every give-up logs.** A routine that returns False without an ERROR leaves the log ending mid-run with no reason.
 
 ## 4. Wording
@@ -83,7 +83,7 @@ Each skill run (recon, map, navigate) keeps its log lines in one file, `logs/YYY
 
 Every process that calls `setup()` saves the BlueStacks screen on each ERROR line as `logs/YYYYMMDD-HHMMSS-error-<logger>.png` (gitignored), and logs `error screen: <path>` at INFO right after it. An ERROR is a routine giving up (§3), and the screen it gave up on is what explains why; a capture taken later may show the game has moved on. One capture per 5 s per process, since a routine's ERROR and the bot's `failed` line that follows it show the same screen. If the capture itself fails (BlueStacks down), a WARNING says so and the ERROR stands alone.
 
-To watch a run that takes minutes (a `<game>.bot` run, `core.device restart`, a cold start), so a failure reaches you while it runs and not when it exits (Rule 7, `core/notes/UI.md`): start it with the Bash tool's background option, its output going to a file, then watch that file with the Monitor tool (`timeout_ms` 1800000). Read the error screen only when one is logged.
+To watch a run that takes minutes (a `<game>.bot` run, `core.device restart`, a cold start), so a failure reaches you while it runs and not when it exits (Rule 7, `core/notes/UI.md`): start it with the Bash tool's background option, its output going to a file, then watch that file with the Monitor tool (`timeout_ms` 1800000). Read the error screen only when one is logged. An `unknown screen:` WARNING names a capture nothing explained, saved before the bot acted on it (§9): it is the screen to map, where the error screen may show what came after.
 
 ```bash
 python -m <game>.bot <routine>... > logs/watch-<game>.txt 2>&1          # Bash, background
@@ -118,3 +118,12 @@ Every call of `tap_until`, `close_popup` and `held` (`core/nav.py`) adds one JSO
 - **Names.** `button` is the template's file name, `popup_<name>` for `close_popup`, a check's function name for `held` (or an `expected` check). Points and lambdas have no name, so they're `x,y@routine:line` and `check@routine:line`; editing the routine moves the line and starts a new row.
 - **Counts.** `taps` made, `skipped` (of them, taps on a button not on screen), `popups` closed on the way (`tap_until` only), `flickers` (`held` only: times the result showed and dropped), `s` seconds the call took, popups included, and `ok` whether it returned a result. A `close_popup` inside a `tap_until` writes its own line too.
 - **Never in the way.** A line that can't be written logs a WARNING and the step goes on. The file is appended to, never rotated: about 250 bytes a line, ~25 KB per full daily. Delete it to start the counts over.
+
+## 9. Unknown screens
+
+A screen that nothing in a game's templates explains (`core.nav.describe` is empty: not black, no stop, load, popup or menu) is saved by `core.unknown` as `logs/unknown/<game>/YYYYMMDD-HHMMSS-<routine>.png` (gitignored), with a `.json` beside it, before the bot acts on it. The lobby loop (`core.lobby`) saves one before each Back it presses on it, or when a launch or START wait ends on it. `tap_until`, `wait_clear` and `clear` save the screen they gave up on, when it is unknown. Claude reads them with the unknown skill.
+
+- **Fields.** `game`, `run` and `routine` as in §8, `first` and `last` seen, `count`, `doing` (what the bot did next: `pressing back 3/10`, `giving up`) and `last_doing`, the game's `uptime` in seconds, and `closest`: the five `info_` images that scored best on it. A known identifier just under 0.85 there points at a screen that moved or a wrong layout, not a new screen.
+- **Once per screen.** A capture within 1 % of a saved one (`core.vision.difference`, the scale `tools.dedupe` uses) only counts up that save's `count`. The line is a WARNING the first time a process sees the screen and DEBUG after, so ten Backs on it log one WARNING.
+- **Kept until handled.** Saves stay across runs until `python -m core.unknown <game> done <file>…` deletes them, once mapped or judged not worth mapping.
+- **Never in the way.** A save that fails logs a WARNING and the caller goes on.

@@ -8,8 +8,8 @@ The title screen ("Tap to Start"). Its one indicator is also its button: the cop
 
 - Launch: E7 opens in a floating window (black, copyright line at its bottom), then once fullscreen shows a black loading screen for ~2 s before the start screen. Tapping start gives another black load (~7 s) before the lobby at rest. Black screens are waited out (`core.nav.past_black`), never acted on (common: Loading screens).
 - A Google Play Games welcome toast (dark pill, top centre) shows over the start screen for a few seconds. The copyright line still matches under it.
-- After a BlueStacks restart (`python -m core.device restart e7`) the start screen showed a **Login** button (bottom centre) instead of "Tap to Start". After the third restart within a few minutes, a Google Play dialog sat over it: "You already have a game running with your Google Play account. Continue playing?" with "Use another account" and "Continue with existing account". Neither is mapped yet, and `start_screen` doesn't handle them. On 2026-11-19 the dialog showed after `with_room`'s restart and was gone after the lobby routine's Back presses, leaving Login. Tapping Login opened STOVE's "Please select login method" page (Email, Guest, Google, Facebook, Apple, Line; X top right), so the account was signed out: signing in is the user's to do, never the bot's.
-- Automated by `e7/routines/start_screen.py` (`python -m e7.bot start_screen`).
+- After a BlueStacks restart (`python -m core.device restart e7`) the start screen showed a **Login** button (bottom centre) instead of "Tap to Start". After the third restart within a few minutes, a Google Play dialog sat over it: "You already have a game running with your Google Play account. Continue playing?" with "Use another account" and "Continue with existing account". Neither is mapped yet, so the lobby loop saves them as unknown screens (unknown skill). On 2026-11-19 the dialog showed after `with_room`'s restart and was gone after the lobby routine's Back presses, leaving Login. Tapping Login opened STOVE's "Please select login method" page (Email, Guest, Google, Facebook, Apple, Line; X top right), so the account was signed out: signing in is the user's to do, never the bot's.
+- Passed by the lobby routine (`e7/routines/lobby.py`, `python -m e7.bot lobby`), which taps the copyright line as START.
 - E7 can end up in a window instead of fullscreen: after BlueStacks was restored, and after Android Back (not E7's Escape) dropped it to the home screen and it was reopened from the dock. Windowed, the layout is stretched or framed differently and nothing matches. `python -m core.device fullscreen` puts it back (`check_focus` names it when a routine starts windowed).
 - **Wrong layout**: after a BlueStacks restart E7 can come up fullscreen at the right resolution (`wm size` 1920x1080, density 240) but laid out for another size: the copyright line ~18% smaller (this template scores ~0.15), the lobby's left column and top-right icons cut off at the edges, so the main-menu tap lands on Mail. Nothing matches then, so it reads as if the game had changed. Seen twice in a row, right on the third restart. Probably BlueStacks' display not being settled when the game starts rather than E7 itself, since it came and went across restarts with no game update between; it moves to `core/notes/UI.md` once another game shows it.
   - Before taking a menu as changed, compare the capture with its saved `screen.png`: one element differing is a change; the whole screen scaled or shifted is this.
@@ -43,7 +43,7 @@ Behaviour:
 - The lobby falls back to rest on its own after a few seconds idle (~9 s observed); `start-screen` opens it at rest.
 - After loading, a chat toast "You have entered channel #N." (white bubble just below the top-right icons) shows for ~4 s. It doesn't cover the 4-boxes icon, which still matches.
 - Activate by tapping the main-menu icon's spot, (1869, 49), until the icon shows. If the tap opens `main-menu` instead, the panel's X sits on the same spot, so the next tap closes it and leaves the lobby active.
-- Automated by `e7/routines/lobby.py` (`python -m e7.bot lobby`).
+- Automated by `e7/routines/lobby.py` (`python -m e7.bot lobby`), a `core.lobby` spec: the barrel alone is its `idle` state, woken at (1869, 49). As a spec it also holds the lobby `settle` 4 s with no popup (web-notice opened a few seconds after the lobby), waits 45 s after launch on unknown screens, and gives up on stop screens. On 2026-11-22 a cold start reached the lobby in 48 s (START took 2 taps; the hold caught checkin, friendship-point-notification and buff-effect), and it reached the lobby from forest-of-souls and from the quit dialog.
 
 ## sanctuary (`e7/templates/start-screen/lobby/sanctuary/`)
 
@@ -282,7 +282,7 @@ Task `check-background-status` (`e7/routines/check_background_status.py`, `pytho
 "Patch Update" / "There is a new patch available. Would you like to download?" with the patch size, Cancel and Proceed, over the start screen. Seen after tapping start on 2026-11-21 (18.4 MB); the game doesn't go on without the patch.
 
 - Identified by its question's first line (`info_patch-update_message_690-343-540-48.png`): at most 0.32 elsewhere.
-- Closed by **Proceed** (`btn_patch-update_close_990-785-335-70.png`: at most 0.41 elsewhere): the bot downloads patches without asking (the user's call, 2026-11-21). The download ended on the start screen within 30 s; the version line bottom left went from R:0 to R:23. What shows during the download wasn't captured, so the lobby routine waits up to 5 min for the start screen, lobby or a popup instead of pressing Back.
+- Closed by **Proceed** (`btn_patch-update_close_990-785-335-70.png`: at most 0.41 elsewhere): the bot downloads patches without asking (the user's call, 2026-11-21). The download ended on the start screen within 30 s; the version line bottom left went from R:0 to R:23. What shows during the download wasn't captured, so after Proceed the lobby routine waits up to 5 min for a known screen instead of pressing Back (the spec's `quiet_after`).
 - Cut from an error screen; the Proceed tap by the routine hasn't run yet.
 
 ## web-notice popup (`e7/templates/common/popups/web-notice/`)
@@ -291,3 +291,10 @@ An in-game web page (event or banner art, or a blank page with a spinner while i
 
 - Identified by the footer's "Do not show this again for 1 days." (`info_web-notice_dont-show_1440-985-320-40.png`): 1.00 over the art and over the blank loading page, at most 0.45 elsewhere.
 - Closed by the X (`btn_web-notice_close_1846-47-50-50.png`, centre (1871, 72)): 1.00 / 0.96, at most 0.45 elsewhere. One tap closes it and leaves the lobby.
+
+## buff-effect popup (`e7/templates/common/popups/buff-effect/`)
+
+"Buff Effect": the account's active buffs (Welcome Back and Returning blessings, guild blessings), each with its time left, the totals (EXP, gold, a third) top right, and "Tap to close" under the panel. Shown over the lobby on every launch seen on 2026-11-22 (a cold start and a restart), ~13 s after the lobby was drawn, after check-in and friendship-point-notification. The panel covers the barrel, so it's a common popup, not a lobby state (common: First of the day or week). Its buffs come and go, so it may stop showing once they run out.
+
+- Identified by its "Buff Effect" title (`info_buff-effect_title_280-172-205-56.png`): 1.00 on it, at most 0.42 elsewhere. The capture's top left shows the account's player ID, which no crop takes in.
+- Closed by "Tap to close" (`btn_buff-effect_close_866-1018-186-48.png`, centre (959, 1042)): at most 0.38 elsewhere. Cut from the save `core.unknown` made of it; one Back closed it then, and the tap hasn't run yet.

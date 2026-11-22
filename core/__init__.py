@@ -14,6 +14,10 @@ Layers, each importing only the ones above it:
             in logs/steps.jsonl (.claude/logging.md §8)
     nav     tap_until, popup handling, walking the menu tree from the
             game's lobby (<game>/routines/lobby.py)
+    unknown save screens nothing in a game's templates explains
+            (logs/unknown/, .claude/logging.md §9)
+    lobby   the loop from launch through the start screen to the lobby,
+            run from each game's spec (<game>/routines/lobby.py)
 """
 
 from pathlib import Path

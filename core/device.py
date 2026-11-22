@@ -9,8 +9,8 @@ Usage: python -m core.device connect
            closes the running apps, then BlueStacks, opens it again and waits
            for Android to boot, then starts the games given (none if no game
            is given) one after another, each closing the one before, and runs
-           each one's start_screen and lobby routines, if it has them, so each
-           ends in its lobby; the last one is left running. While a game's
+           each one's lobby routine, if it has one, so each ends in its
+           lobby; the last one is left running. While a game's
            lobby isn't reached, with no stop screen, load or popup showing
            (stuck_on), it restarts again, up to RESTART_TRIES in all
        python -m core.device start game
@@ -425,16 +425,11 @@ def stuck_on(game, look=STUCK_LOOK):
 
 
 def run_to_lobby(game):
-    """Run the game's start_screen routine, then its lobby routine (their
-    <game>.routines ROUTINES entries), and return the last one's result, or
-    None when the game has neither. `game` is a short name from GAMES; a
-    package name has no routines here.
-
-    The lobby routine runs whatever start_screen returned: start_screen
-    leaves any popup open after START (a game's first launch of the day
-    shows several) for the lobby routine to close, and fails only when it
-    could not get past the start screen. From the lobby, lobby returns at
-    once."""
+    """Run the game's lobby routine (its <game>.routines ROUTINES entry),
+    which gets past the start screen and its popups too (core.lobby), and
+    return its result, or None when the game has none. `game` is a short
+    name from GAMES; a package name has no routines here. From the lobby,
+    lobby returns at once."""
     if game not in GAMES:
         return None
     module = f"{game}.routines"
@@ -444,11 +439,10 @@ def run_to_lobby(game):
         if e.name not in (game, module):  # the routines exist but import something missing
             raise
         return None
-    result = None
-    for name in ("start_screen", "lobby"):
-        if name in routines:
-            result = routines[name]()
-            log.info(f"{game} {name}: {'ok' if result else 'not done'}")
+    if "lobby" not in routines:
+        return None
+    result = routines["lobby"]()
+    log.info(f"{game} lobby: {'ok' if result else 'not done'}")
     return result
 
 

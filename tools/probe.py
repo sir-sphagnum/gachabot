@@ -12,10 +12,10 @@ walk  for each menu under MENU (default: the lobby), in route order:
       (core.tree.SPEND_WORDS), so nothing is bought, fought or used up. It
       never presses Back on the lobby (that opens the quit dialog). Stops
       after N menus (default 40): every capture adds to BlueStacks' memory.
-cold  force-stop the game, then launch it and run its start_screen and lobby
-      routines while a second thread saves the screen each second it changes.
-      Frames that are black, a loading screen (templates/common/loading/), a
-      known popup or a menu are explained; the rest go in the report, one
+cold  force-stop the game, then launch it and run its lobby routine while a
+      second thread saves the screen each second it changes. Frames that
+      core.nav.describe explains (black, a stop or loading screen, a known
+      popup, a menu) are left out of the findings; the rest go in the report, one
       line per stretch of consecutive frames: an unmapped splash or load, or
       a popup or dialog, usually a first-of-the-day one (core/notes/UI.md,
       First of the day or week). Run it on the first launch after the game's
@@ -42,7 +42,7 @@ import cv2
 from core import ROOT, device, tree
 from core.input import back, capture
 from core.log import logger, setup
-from core.nav import HOME, check_focus, goto, loading, route, where
+from core.nav import HOME, check_focus, describe, goto, route, where
 from core.vision import difference, fingerprint, is_black, save
 
 log = logger(__file__)
@@ -228,7 +228,7 @@ def cold(game):
         screen = cv2.imread(str(f))
         if is_black(screen):
             continue
-        said = "loading" if loading(game, screen) else _describe(game, screen)[2]
+        said = ", ".join(describe(game, screen)) or "nothing known"
         timeline.append(f"- {f.stem}: {said}")
         if said == "nothing known":
             run.append(f)

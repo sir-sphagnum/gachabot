@@ -19,10 +19,10 @@ creates:
     <game>/notes/UI.md, routines.md
     <game>/CLAUDE.md                    imports the notes
 
-It refuses to touch a game folder that already exists. The start_screen and
-lobby routines aren't created: they depend on the game's screens, which the
-rest of the skill maps first. A stub lobby routine returning True would let
-core.nav walk from a lobby it never checked.
+It refuses to touch a game folder that already exists. The lobby routine,
+the game's core.lobby spec, isn't created: it names the game's screens,
+which the rest of the skill maps first. A stub lobby routine returning True
+would let core.nav walk from a lobby it never checked.
 """
 
 import keyword
@@ -127,9 +127,8 @@ run it by name, e.g.:
     from {game}.routines import arena
     ROUTINES = {{"arena": arena.run}}
 
-core.device restart runs the "start_screen" and "lobby" entries after
-starting the game, and core.nav loads {game}/routines/lobby.py by name, so
-keep both names.
+core.device restart runs the "lobby" entry after starting the game, and
+core.nav loads {game}/routines/lobby.py by name, so keep both names.
 """
 
 ROUTINES = {{}}

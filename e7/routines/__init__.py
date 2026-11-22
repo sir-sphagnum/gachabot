@@ -9,12 +9,15 @@ run it by name, e.g.:
     # here
     from e7.routines import arena
     ROUTINES = {"arena": arena.run}
+
+core.device restart runs the "lobby" entry after starting the game, and
+core.nav loads e7/routines/lobby.py by name, so keep both names.
 """
 
 from e7.routines import (check_background_status, claim_dailies, claim_daily_shop, claim_forest, claim_mail, hunt,
-                         lobby, refresh_secret_shop, run_arena, start_screen, world_boss)
+                         lobby, refresh_secret_shop, run_arena, world_boss)
 
-ROUTINES = {"start_screen": start_screen.run, "lobby": lobby.run,
+ROUTINES = {"lobby": lobby.run,
             "claim_forest": claim_forest.run, "check_background_status": check_background_status.run,
             "claim_daily_shop": claim_daily_shop.run, "run_arena": run_arena.run,
             "claim_dailies": claim_dailies.run, "claim_mail": claim_mail.run, "hunt": hunt.run,

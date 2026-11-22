@@ -4,6 +4,8 @@ Each game's notes live in `<game>/notes/`, one file per topic. Menu notes go in 
 
 If you're about to act on a game (tap, run a routine, map menus) before having read anything under its folder, read `<game>/CLAUDE.md` and the notes it imports first.
 
+Screens the bot met and nothing in a game's templates explained are saved in `logs/unknown/<game>/` (`python -m core.unknown` lists them). The unknown skill works through them.
+
 ## Rules
 
 Where text belongs, when it may be deleted, and how lessons become rules: @doc_policy.md

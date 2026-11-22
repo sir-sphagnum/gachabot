@@ -140,6 +140,8 @@ def tap_until(button, expected, delay=1.5, tries=5, popups=True, first=True):
     hit = None
     try:
         hit = _tap_until(button, expected, delay, tries, known, first, stats)
+        if hit is None:
+            _gave_up(_game_of(popups, known, [button, *expected]))
         return hit
     finally:
         steps.record("tap_until", steps.name(button), game=steps.game(button, *expected),
@@ -196,36 +198,43 @@ def wait_clear(expected, timeout, popups=True, tries=5, delay=1.5, interval=0.5)
         expected = [expected]
     known = _resolve_popups(popups, expected)
     start = time.monotonic()
-    deadline = start + timeout
-    closed = 0
+    stats = {"popups": 0}
     hit = None
     try:
-        while time.monotonic() < deadline:
-            screen = capture()
-            if is_black(screen):
-                time.sleep(interval)
-                continue
-            popup = open_popup(known, screen)
-            if popup:
-                if closed == tries:
-                    log.warning(f"popups still showing after closing {tries}")
-                    return None
-                closed += 1
-                log.warning(f"popup_{popup} open, closing")
-                if not close_popup(popup, known[popup], delay, tries):
-                    return None
-                continue
-            hit = _first(expected, screen)
-            if hit:
-                return hit
-            time.sleep(interval)
-        log.warning(f"expected element not seen in {timeout}s")
-        return None
+        hit = _wait_clear(expected, timeout, known, tries, delay, interval, stats)
+        if hit is None:
+            _gave_up(_game_of(popups, known, expected))
+        return hit
     finally:
         steps.record("wait_clear", steps.name(expected[0]), game=steps.game(*expected),
                      expected=[steps.name(e) for e in expected],
-                     found=steps.name(hit[0]) if hit else None, popups=closed,
+                     found=steps.name(hit[0]) if hit else None, **stats,
                      s=round(time.monotonic() - start, 1), ok=bool(hit))
+
+
+def _wait_clear(expected, timeout, known, tries, delay, interval, stats):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        screen = capture()
+        if is_black(screen):
+            time.sleep(interval)
+            continue
+        popup = open_popup(known, screen)
+        if popup:
+            if stats["popups"] == tries:
+                log.warning(f"popups still showing after closing {tries}")
+                return None
+            stats["popups"] += 1
+            log.warning(f"popup_{popup} open, closing")
+            if not close_popup(popup, known[popup], delay, tries):
+                return None
+            continue
+        hit = _first(expected, screen)
+        if hit:
+            return hit
+        time.sleep(interval)
+    log.warning(f"expected element not seen in {timeout}s")
+    return None
 
 
 def past_black(screen=None, timeout=BLACK_WAIT):
@@ -394,6 +403,13 @@ def clear(popups, title=None, delay=1.5, tries=5):
     Closing a popup can open another (a claim's reward); up to `tries` are
     closed.
     """
+    screen = _clear(popups, title, delay, tries)
+    if screen is None:
+        _gave_up(_game_of(None, popups, [title] if title else []))
+    return screen
+
+
+def _clear(popups, title, delay, tries):
     for _ in range(tries + 1):
         screen = past_black()
         name = open_popup(popups, screen)
@@ -607,6 +623,51 @@ def where(game, screen):
         if hits:
             found.append((name, *max(hits, key=lambda h: h[1])))
     return popups, sorted(found, key=lambda f: -f[2])
+
+
+def describe(game, screen):
+    """What in `game`'s templates explains `screen`, as short labels: "black",
+    "stop_<name>", "loading", "popup_<name>", "<menu> (<template> <score>)".
+    Empty for an unknown screen, one core.unknown saves. screen: a capture
+    or a saved one's path."""
+    screen = load(screen)
+    if is_black(screen):
+        return ["black"]
+    stop = stop_screen(game, screen)
+    if stop:
+        return [f"stop_{stop}"]
+    if loading(game, screen):
+        return ["loading"]
+    popups, menus = where(game, screen)
+    return [f"popup_{p}" for p in popups] + [f"{m} ({t} {s:.2f})" for m, t, s in menus]
+
+
+def _gave_up(game):
+    """A helper gave up: save the screen it gave up on when nothing in
+    `game`'s templates explains it (core.unknown). The routine's ERROR saves
+    an error screen too, but only an unknown one is kept for mapping."""
+    if not game:
+        return
+    try:
+        screen = capture()
+        if describe(game, screen):
+            return
+    except Exception as e:  # BlankScreen, AdbTimeout: the helper's own result stands
+        log.warning(f"screen not checked after giving up: {e}")
+        return
+    from core import unknown  # core.unknown imports this module
+    unknown.save(game, screen, "giving up")
+
+
+def _game_of(popups, known, templates):
+    """The game a helper works on: a game name passed as `popups`, else the
+    game whose templates are among `templates` or the popups' close buttons,
+    else the calling routine's folder (core.steps.game)."""
+    if isinstance(popups, str):
+        return popups
+    closes = [p["close"]["file"] for p in (known or {}).values()
+              if p.get("close") and isinstance(p["close"]["file"], (str, Path))]
+    return steps.game(*[t for t in templates if isinstance(t, (str, Path))], *closes)
 
 
 def lobby(game):

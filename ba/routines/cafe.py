@@ -75,9 +75,10 @@ NEIGHBOR_TITLE = CAFE / "info_cafe_invite-neighbor-title_736-230-448-52.png"
 # The shared Cancel (common: Shared buttons): tapped only while
 # NEIGHBOR_TITLE shows.
 NEIGHBOR_CANCEL = CAFE / "btn_cafe_invite-neighbor-cancel_600-712-340-92.png"
-# "Notice" alone also matches network-unstable's title; that popup is checked
-# (its own message) before this is trusted.
-INVITE_NOTICE = CAFE / "info_cafe_invite-notice_884-220-150-56.png"
+# "... will be invited to the cafe.", searched anywhere: the line is centred,
+# so it moves with the student's name. Not the "Notice" title, which every
+# Notice dialog shares (quit, network-unstable).
+INVITE_NOTICE = CAFE / "info_cafe_invite-text_798-478-420-50_anywhere.png"
 INVITE_CONFIRM = CAFE / "btn_cafe_invite-confirm_972-706-354-100.png"
 INVITE_WAIT = 10  # seconds for "Inviting..." to end; it took ~3 s
 

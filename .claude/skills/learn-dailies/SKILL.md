@@ -11,7 +11,7 @@ Run all commands from the project root.
 
 ## Before you start
 
-- The game has a lobby and a `start_screen` routine (new-game skill). If not, run new-game first.
+- The game has a lobby routine, its `core.lobby` spec (new-game skill). If not, run new-game first.
 - Read `<game>/CLAUDE.md` and the notes it imports, `core/notes/dailies.md`, and the map and task skills (`.claude/skills/map/SKILL.md`, `.claude/skills/task/SKILL.md`): this skill uses their tools and their Stop steps.
 - Open the log: `python -m core.log start learn-dailies` (on `(inside <skill>)` from another conversation: `python -m core.log end --all`, then start again). Check `python -m core.device health` (common: BlueStacks memory), and again every ~30 taps: exploring captures a lot. On any other failure, tell the user what it says and wait.
 
@@ -116,7 +116,7 @@ First-of-the-day screens can only be met on the next day's first launch (common:
 1. Ask the user the game's daily reset time (local) and whether the PC and BlueStacks will be on then.
 2. On their yes, create a scheduled task (`create_scheduled_task`) for ~15 minutes after reset, daily, with this prompt (fill in the game; it must stand on its own):
 
-   > In the GachaBot project, run `python -m tools.probe <game> cold`. It force-stops <game>, launches it and runs its start_screen and lobby routines while recording the screen, then writes recon/probe/report.md. Read the report, then Read each capture it lists under "Screens nothing identifies". Reply with one line per unknown screen: what it shows and whether it looks like a popup over any menu or a dialog of the lobby (core/notes/UI.md, "First of the day or week"). Don't map, tap, close or commit anything: the user maps them with the map skill. If the probe says the health check failed, say so and stop.
+   > In the GachaBot project, run `python -m tools.probe <game> cold`. It force-stops <game>, launches it and runs its lobby routine while recording the screen, then writes recon/probe/report.md. Read the report, then Read each capture it lists under "Screens nothing identifies". Reply with one line per unknown screen: what it shows and whether it looks like a popup over any menu or a dialog of the lobby (core/notes/UI.md, "First of the day or week"). Don't map, tap, close or commit anything: the user maps them with the map skill. If the probe says the health check failed, say so and stop.
 
 3. Tell the user it runs while the Claude app is open (or at its next launch), and that its report lists the screens to map with the map skill (`tools.map popup` / `state`). Also suggest a `python -m tools.probe <game> walk` after their next mapping session: it checks every mapped menu is still reached and recognised.
 

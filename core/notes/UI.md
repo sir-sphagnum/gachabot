@@ -26,7 +26,7 @@ A game answers a tap late, for a moment, or not at all: the result can show a se
 
 ### Rule 3. A check this file describes is written once, in core
 
-When this file describes how to read the screen, the code for it lives once in `core/` and routines call it: `core.nav.clear` (popups closed before reading a menu, Rule 1), `core.vision.tint` (lit or grey), `core.vision.diff` (a counter or icon that changed between frames), `core.nav.settled` (a list that stopped moving), `core.nav.scroll_to` (an entry past the screen's edge), `core.nav.past_loading` (black and loading screens waited out), `core.nav.wait_clear` (a long wait that closes popups as they open, Rule 7), `core.nav.held` and `tap_until` (Rule 2). A routine that needs a check core lacks adds it to core.
+When this file describes how to read the screen, the code for it lives once in `core/` and routines call it: `core.nav.clear` (popups closed before reading a menu, Rule 1), `core.vision.tint` (lit or grey), `core.vision.diff` (a counter or icon that changed between frames), `core.nav.settled` (a list that stopped moving), `core.nav.scroll_to` (an entry past the screen's edge), `core.nav.past_loading` (black and loading screens waited out), `core.nav.wait_clear` (a long wait that closes popups as they open, Rule 7), `core.nav.held` and `tap_until` (Rule 2), `core.nav.describe` and `core.unknown` (a screen nothing explains, saved before acting on it), `core.lobby` (launch to the lobby, from each game's spec). A routine that needs a check core lacks adds it to core.
 
 - `7c56885`, `7670c5f`, `8ead727`, `e557780`: each routine that read a lit button wrote its own `_lit`, with a different slice order, channel unpacking and comparison, though the notes describe one rule.
 - `7c56885`, `5efc4e3`, `7670c5f`, `8ead727`, `e557780`, `b94626e`, `9669062`: seven routines carried their own `_clear` for Rule 1, some closing one popup, some looping, some checking the title.
@@ -149,8 +149,8 @@ Stage lists and timelines open on the newest or last stage (re1999's In Our Time
 
 Loads come between screens: e7's are black (`core.nav.past_black` waits them out); ba's "Now Loading" and re1999's launch loading screen show art that changes, so they're identified by their text masked to its letters (common: Moving parts) and kept in `<game>/templates/common/loading/`. ba's image also matches the launch loads.
 
-- Nothing on a load answers Back, and a Back that lands as the load ends acts on what follows (re1999: Backs on the splash and the start screen's fade-in opened the quit dialog). So lobby routines wait while a load shows (`core.nav.loading` tells one, `core.nav.past_loading` waits past it and past black), and, for the first seconds after launch (`core.device.uptime`), on any screen they don't know.
-- A load not mapped yet (re1999's story and wilderness loads, ba's cafe "Tip!") reads as an unknown screen, where the lobby routine presses Back once the launch wait is over. Map it when a routine trips on it.
+- Nothing on a load answers Back, and a Back that lands as the load ends acts on what follows (re1999: Backs on the splash and the start screen's fade-in opened the quit dialog). So the lobby loop (`core.lobby`) waits while a load shows (`core.nav.loading` tells one, `core.nav.past_loading` waits past it and past black), and on any screen it doesn't know for the first seconds after launch (`core.device.uptime`) and after a START tap.
+- A load not mapped yet (ba's cafe "Tip!") reads as an unknown screen. Outside those waits the lobby loop saves it (`core.unknown`, unknown skill) and presses Back. Map it when a routine trips on it.
 
 ## Back
 
@@ -160,14 +160,14 @@ Android Back doesn't close every screen. ba's idle lobby ignores it, ba's login 
 
 - Back on the lobby opens a quit dialog (e7, re1999, ak), so the lobby routine opens it whenever it presses Back once too often. It's closed with Cancel; Confirm quits the game.
 - The lobby's HUD hides when idle (e7 after ~9 s, ba within minutes). The idle lobby needs an identifier from the scene (e7's barrel, ba's hanging sign), and the lobby routine wakes it before anything taps the HUD.
-- Popups open a moment after the lobby is drawn: ba's news ~2 s after Campaign shows, ak's sign-in calendar ~1 s after its lobby, and Neural Cloud's announcement ~1 s after its lobby (a game set up and since removed). A lobby seen once is no proof none is coming (Rule 2), so start_screen watches a few seconds for a popup before it returns, and the lobby routine, once it has acted (a Back, a close, a load, a hand-over), counts the lobby only after it has held with no popup or dialog (`ba/routines/lobby.py`, `re1999/routines/lobby.py`, `ak/routines/lobby.py`). The hold also catches a quit dialog opened late by a Back pressed while a menu was still closing.
+- Popups open a moment after the lobby is drawn: ba's news ~2 s after Campaign shows, ak's sign-in calendar ~1 s after its lobby, and Neural Cloud's announcement ~1 s after its lobby (a game set up and since removed). A lobby seen once is no proof none is coming (Rule 2), so the lobby loop (`core.lobby`), once it has acted (a Back, a close, a load, a START tap), counts the lobby only after it has held `settle` seconds with no popup or dialog. The hold also catches a quit dialog opened late by a Back pressed while a menu was still closing.
 - Login dialogs are handled as First of the day or week (below) says.
 
 ## First of the day or week
 
 Every game shows screens only on the first launch of a day, or the first entry of a menu in a day or week: e7's check-in dialogs (after the date change), its guild hall's dialog and arena's weekly rank reward; re1999's login reward, check-in card, event-login and profile panel; ba's banner and login boards; ak's sign-in calendar, its Resource Today reward and the event boards. Mapping and testing happen on later launches, so these are missing from the templates, and a routine meets them first on the next day's run, where they stop it (`ffb80d0`, `8b62e7c`, `4575157`, `06f1cc9`).
 
-- Where they're handled depends on what can be read underneath. A dialog over a lobby that is already identifiable is a lobby state (e7's check-in, re1999's checkin card). One that shows before the lobby is drawn, or over any menu, is a common popup, so start_screen and lobby close it (ba's boards, re1999's event-login, ak's calendar and boards). One that a single menu shows on entry is that menu's dialog, waited for on entry (e7's arena reward).
+- Where they're handled depends on what can be read underneath. A dialog over a lobby that is already identifiable is a lobby state (e7's check-in, re1999's checkin card). One that shows before the lobby is drawn, or over any menu, is a common popup, so the lobby loop closes it (ba's boards, re1999's event-login, ak's calendar and boards). One that a single menu shows on entry is that menu's dialog, waited for on entry (e7's arena reward).
 - Their art changes with events, so they're identified by what stays: ba's login boards by the classroom behind every board, not by a board's title.
 - Back often does nothing on them (common: Back), so a lobby routine's Back presses don't get past them.
 
