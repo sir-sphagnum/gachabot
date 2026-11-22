@@ -50,7 +50,7 @@ Part 1 creates the files with a script. Part 2 maps the screens from launch to t
    - the lobby counted only once no popup can still be coming (common: Lobbies): `start_screen` watches `settle` seconds after the lobby shows, and the lobby routine, once it has acted, holds the lobby `SETTLE` seconds with no popup. Set both from the start-tap recording, above the gap seen between the lobby and the first popup.
    - a HUD that can be at rest woken with `core.nav.tap_until` on a spot that is safe to tap, until the HUD element shows (common: Lobbies).
    Drop whatever only re1999 or E7 needs. Log as `.claude/logging.md` says.
-6. **Test**, each more than once, watching each run as `.claude/logging.md` §6 shows (the Monitor tool with that command), never waiting on its exit alone (Rule 7): a failure's ERROR line names the screen it saved.
+6. **Test**, each more than once, watching each run as `.claude/logging.md` §6 shows (a background run with the Monitor tool on its output), never waiting on its exit alone (Rule 7): a failure's ERROR line names the screen it saved.
    - a cold start: `python -m core.device stop <game>`, then `python -m <game>.bot start start_screen lobby`.
    - `python -m <game>.bot lobby` from the start screen, from a menu a few taps deep, from a menu slow to close (a 3D or map menu: a Back pressed while it closes lands on the lobby and opens quit), and with the quit prompt open.
    - optionally, `python -m core.device restart <game>`, which should end on `<game>: in lobby`. Ask first: it closes BlueStacks and every game in it. Watch it like the others: on a missed lobby it restarts BlueStacks again by itself.

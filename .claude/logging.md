@@ -83,13 +83,17 @@ Each skill run (recon, map, navigate) keeps its log lines in one file, `logs/YYY
 
 Every process that calls `setup()` saves the BlueStacks screen on each ERROR line as `logs/YYYYMMDD-HHMMSS-error-<logger>.png` (gitignored), and logs `error screen: <path>` at INFO right after it. An ERROR is a routine giving up (§3), and the screen it gave up on is what explains why; a capture taken later may show the game has moved on. One capture per 5 s per process, since a routine's ERROR and the bot's `failed` line that follows it show the same screen. If the capture itself fails (BlueStacks down), a WARNING says so and the ERROR stands alone.
 
-To watch a routine run, stream only the lines worth acting on and read the error screen only when one is logged:
+To watch a run that takes minutes (a `<game>.bot` run, `core.device restart`, a cold start), so a failure reaches you while it runs and not when it exits (Rule 7, `core/notes/UI.md`): start it with the Bash tool's background option, its output going to a file, then watch that file with the Monitor tool (`timeout_ms` 1800000). Read the error screen only when one is logged.
 
 ```bash
-python -m <game>.bot <routine> 2>&1 | grep --line-buffered -E "INFO|WARNING|ERROR|Traceback|^  |Error"
+python -m <game>.bot <routine>... > logs/watch-<game>.txt 2>&1          # Bash, background
+tail -n +1 -f logs/watch-<game>.txt | grep --line-buffered -E "WARNING|ERROR|error screen|Traceback|^  |Error"   # Monitor
 ```
 
-`^  ` and `Error` let a crash's traceback through whole (its `  File` lines and the exception), not just its first line.
+- **Why a file.** A Monitor kills its command when it expires (30 minutes at most), and `run_stage` alone runs ~25 minutes. Under the Monitor only `tail` dies; the run goes on. Re-arm with `tail -n 0 -f`, which skips the lines already seen.
+- **Why this filter.** Every line that passes is a message in the conversation, and a Monitor that passes too many is stopped. INFO (each `route:`, each `on <menu>`) is left out, since the background run's exit notification already says how it ended; only its `error screen:` line passes, as it names the ERROR's capture. WARNING is kept because a run working around something (`popup_x open, closing` again and again) is the early sign of an ERROR. `^  ` and `Error` let a crash's traceback through whole (its `  File` lines and the exception), not just its first line.
+- **When the run exits,** stop the Monitor (TaskStop): `tail -f` never ends by itself.
+- **No Monitor** for a command that ends itself on its result (`python -m core.nav <game> wait`), or a short run in the foreground: its exit is the one notification needed.
 
 ## 7. Run logs
 

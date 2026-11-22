@@ -60,7 +60,7 @@ Only tap what the user asked for. If a step would spend premium currency, make a
    - read the screen with core's helpers, not your own (Rule 3): `core.nav.clear` before any check on the menu, `core.vision.tint` for lit or grey, `core.vision.diff` for a count that changed, `core.nav.held` for a result that can flicker, `core.nav.settled` for a list that scrolls, `core.nav.wait_clear` for a long wait no tap ends (a fight, a load: Rule 7);
    - True once the last step's result shows.
    Register it in `<game>/routines/__init__.py`'s `ROUTINES` under its module name.
-7. Ask before running it: a rerun repeats the task, and a claim already taken leaves nothing to tap. If the user agrees, run `python -m core.device health` first: if it fails, handle it as in step 3. Then run `python -m <game>.bot <task> --debug` and report how it went.
+7. Ask before running it: a rerun repeats the task, and a claim already taken leaves nothing to tap. If the user agrees, run `python -m core.device health` first: if it fails, handle it as in step 3. Then run `python -m <game>.bot <task> --debug`, watched as `.claude/logging.md` §6 shows when it takes minutes, and report how it went.
 8. Write what you learned about the menu's controls into its section of `<game>/notes/UI.md` (which state each shows in, what each tap leads to, scores), and how to run the task.
 9. Close the log with `python -m core.log end`. Tell the user the routine's command, the notes that changed and the log file `end` printed.
 

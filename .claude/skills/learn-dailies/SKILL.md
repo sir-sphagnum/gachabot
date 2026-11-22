@@ -97,7 +97,7 @@ Work the planned rows one at a time, free ones first, through the task skill's f
 
 ## 6. Check against the missions list
 
-After each routine's first successful run (`python -m <game>.bot <routine>`), open the missions menu and read its row again:
+Run each routine watched as `.claude/logging.md` §6 shows, the stamina sinks above all (`run_stage`-like runs take tens of minutes). After each routine's first successful run (`python -m <game>.bot <routine>`), open the missions menu and read its row again:
 
 - progress moved, or the row now shows Claim / complete: write "yes, <date>" in Checked;
 - it didn't move although the daily could still be done: the routine returned True without doing it. Read its run with `--debug`, fix, run again;
