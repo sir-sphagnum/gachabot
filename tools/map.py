@@ -5,7 +5,7 @@ Usage: python -m tools.map start GAME
        python -m tools.map click HERE TARGET X Y W H [--fresh] [--stay] [--auto] [--moving]
        python -m tools.map back
        python -m tools.map info HERE ELEMENT X Y W H [--on CAPTURE]
-       python -m tools.map leads MENU [--after CAPTURE]
+       python -m tools.map leads MENU [--after CAPTURE] [--click TARGET]
        python -m tools.map popup NAME [--on CAPTURE]
        python -m tools.map state MENU STATE [--on CAPTURE]
        python -m tools.map note TEXT...
@@ -49,8 +49,11 @@ info    log box X Y W H of the current screen as element ELEMENT of menu HERE.
         --on: cut it from that capture in recon/map/ instead (e.g. the one a
         menu was reached on, when it isn't the last).
 leads   mark the last click as opening menu MENU (drops --stay, renames its
-        target). --after: that capture is the menu's screen, for a menu that
-        only showed on a later `shot` (a load after the tap).
+        target), and print which click it changed. --click: change the last
+        click logged as TARGET instead, when other clicks came after it (a
+        popup closed after the tap). --after: that capture is the menu's
+        screen, for a menu that only showed on a later `shot` (a load after
+        the tap).
 popup   mark the current screen (or --on CAPTURE) as showing popup NAME:
         finish creates common/popups/NAME/ from it and crops the info and
         close lines logged on NAME there.
@@ -61,7 +64,10 @@ log     print the log, then the menus it touches that nothing identifies yet
         (new ones, and existing ones with no info_ or button to another menu).
 finish  crop every logged box into its menu folder, create new menus, check
         each image and print a report. A button tapped several times on the
-        same box is cropped once, from its first tap.
+        same box is cropped once, from its first tap. It warns about each new
+        menu that ends with no image in it: nothing will identify it, and
+        often its click kept the game on HERE (a panel, a tab) and wasn't
+        logged --stay.
 score   score images on every capture of this session and every saved screen:
         the images of the menus the log touches, or of the MENUs or IMAGE
         paths given. --in: score them on the PNGs in FOLDER instead of this
@@ -288,23 +294,30 @@ def info(here, element, box, on=None):
         _warn(f"no menu '{here}' in the tree or opened earlier in the log: finish will skip this line")
 
 
-def leads(menu, after=None):
-    """Mark the last click as opening `menu`: it loses --stay, takes `menu` as
-    its target, and, with `after`, that capture as the menu's screen (for a
-    menu that showed only on a later `shot`)."""
+def leads(menu, after=None, click=None):
+    """Mark the last click (or the last one logged as `click`) as opening
+    `menu`: it loses --stay, takes `menu` as its target, and, with `after`,
+    that capture as the menu's screen (for a menu that showed only on a
+    later `shot`). It prints which click it changed: it edits a line logged
+    earlier, and the last click is not always the one meant."""
     entries = _entries()
     _check_names(menu)
     clicks = [e for e in entries if e.get("kind") == "btn"]
-    if not clicks:
+    if click:
+        clicks = [e for e in clicks if e["name"] == click]
+        if not clicks:
+            sys.exit(f"No click logged as '{click}'")
+    elif not clicks:
         sys.exit("No click logged yet")
     e = clicks[-1]
-    e.pop("stay", None)
+    stay = e.pop("stay", False)
     old, e["name"] = e["name"], menu
     if after:
         e["after"] = _capture_path(after)
     _write(entries)
     log.info(f"{e['here']} > {menu} (was {old}), {e['after']}")
-    print(json.dumps(e))
+    print(f"Changed the click logged as '{old}'{' (--stay)' if stay else ''} on {e['here']}, "
+          f"box {' '.join(map(str, e['box']))}: it now opens {menu}, screen {e['after']}")
 
 
 def rename(old, new):
@@ -504,6 +517,13 @@ def finish():
         if others:
             print("    also matches: " + ", ".join(f"{p} ({s:.2f})" for p, s in others))
             log.warning(f"{out.name} also matches " + ", ".join(f"{p} ({s:.2f})" for p, s in others))
+    for name in made:
+        if not any(folders[name].glob("*_*.png")):
+            print(f"warning: new menu {name} holds no image, so nothing will identify it. If its "
+                  "click kept the game on the menu it was tapped on (a panel, a tab), the click is a "
+                  "--stay: add \"stay\": true to its line in recon/map/log.jsonl, delete "
+                  f"{_rel(folders[name])}/ and run finish again. Otherwise log an info on it.")
+            log.warning(f"new menu {name} holds no image")
     if notes:
         print("\nNotes:")
         for n in notes:
@@ -699,7 +719,7 @@ if __name__ == "__main__":
         i = args.index("--box")
         opts["--box"] = _box(args[i + 1:i + 5])
         del args[i:i + 5]
-    for flag in ("--on", "--after", "--in"):
+    for flag in ("--on", "--after", "--in", "--click"):
         if flag in args:
             i = args.index(flag)
             if i + 1 >= len(args):
@@ -717,7 +737,7 @@ if __name__ == "__main__":
     elif cmd == "info" and len(args) == 6:
         info(args[0], args[1], _box(args[2:]), opts.get("--on"))
     elif cmd == "leads" and len(args) == 1:
-        leads(args[0], opts.get("--after"))
+        leads(args[0], opts.get("--after"), opts.get("--click"))
     elif cmd == "popup" and len(args) == 1:
         popup(args[0], opts.get("--on"))
     elif cmd == "state" and len(args) == 2:

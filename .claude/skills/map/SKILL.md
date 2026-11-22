@@ -68,7 +68,7 @@ The folders and file names are the whole map: there is no separate index file to
 1. Look at the current capture: the one the last `tools.map` command printed. Run `python -m tools.map shot` first only when the screen may have changed since (the user did something, a routine ran, a timer or idle state may have kicked in).
 2. Find the button the user named. If you can't find it, or more than one thing matches, ask. Do not guess.
 3. Decide its box in 1920x1080 pixels: tight around the button, but including its whole label or icon. Leave out sparkles and other animated bits next to it. If the image you see is scaled, scale the box.
-4. Name the target from the user's words or the button's label. If it isn't clear, use a placeholder and fix it with `python -m tools.map leads <menu>` once you see the new screen.
+4. Name the target from the user's words or the button's label. If it isn't clear, use a placeholder and fix it with `python -m tools.map leads <menu>` once you see the new screen (`--click <placeholder>` when another click was logged after it). `leads` prints the click it changed: check it's the one you meant.
 5. Tap and capture in one call:
    ```
    python -m tools.map click <here> <target> X Y W H
