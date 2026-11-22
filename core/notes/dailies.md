@@ -56,7 +56,7 @@ Every game has one, and it decides how simple the routine is. Look for these nea
 | Background battling | e7 (hunt) | start it, come back later to claim (`e7/routines/check_background_status.py`) |
 | Auto + skip | e7 (arena, World Boss: Auto), ba (Tactical Challenge: >>) | start, turn auto on or skip, wait for the result screen |
 
-A fight that can only be played by hand isn't a daily the bot does.
+A fight that can only be played by hand isn't a daily the bot does. Whatever the way, the result can come with a level-up screen (common: Level up), so the routine waits for it with `core.nav.wait_clear`.
 
 ## Social check-in
 

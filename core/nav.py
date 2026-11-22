@@ -169,6 +169,57 @@ def _tap_until(button, expected, delay, tries, known, first, stats):
         _wait_for(lambda s: open_popup(known, s) or _first(expected, s), delay)
 
 
+def wait_clear(expected, timeout, popups=True, tries=5, delay=1.5, interval=0.5):
+    """Wait up to `timeout` seconds for one of `expected` to show with no
+    popup open, closing each popup that opens meanwhile.
+
+    For a long wait on a result no tap brings (a fight's result screen, the
+    end of a load): a popup that opens during it (a level-up after a fight)
+    can hide the result, and a wait that only looks for the result sits
+    behind it until its timeout (core/notes/UI.md, "Level up").
+    expected, popups: as tap_until takes them. tries: maximum popups closed.
+    delay: seconds each close tap is given to work.
+    Returns what tap_until returns, or None (logged as a WARNING) when
+    nothing showed in time, a popup couldn't be closed, or more than `tries`
+    were. Black screens are waited through. Each call adds a line to the
+    step statistics (core.steps).
+    """
+    if isinstance(expected, (str, Path)) or callable(expected):
+        expected = [expected]
+    known = _resolve_popups(popups, expected)
+    start = time.monotonic()
+    deadline = start + timeout
+    closed = 0
+    hit = None
+    try:
+        while time.monotonic() < deadline:
+            screen = capture()
+            if is_black(screen):
+                time.sleep(interval)
+                continue
+            popup = open_popup(known, screen)
+            if popup:
+                if closed == tries:
+                    log.warning(f"popups still showing after closing {tries}")
+                    return None
+                closed += 1
+                log.warning(f"popup_{popup} open, closing")
+                if not close_popup(popup, known[popup], delay, tries):
+                    return None
+                continue
+            hit = _first(expected, screen)
+            if hit:
+                return hit
+            time.sleep(interval)
+        log.warning(f"expected element not seen in {timeout}s")
+        return None
+    finally:
+        steps.record("wait_clear", steps.name(expected[0]), game=steps.game(*expected),
+                     expected=[steps.name(e) for e in expected],
+                     found=steps.name(hit[0]) if hit else None, popups=closed,
+                     s=round(time.monotonic() - start, 1), ok=bool(hit))
+
+
 def past_black(screen=None, timeout=BLACK_WAIT):
     """The current screen once it isn't black (core.vision.is_black).
 
