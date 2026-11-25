@@ -730,7 +730,7 @@ def goto(game, target, here=None, attempts=2, delay=1.5, tries=5):
                 log.warning(f"{HOME} not reached" + ("" if last else ", restarting walk"))
                 continue
         log.info("route: " + " > ".join([origin, *(b["name"] for _, b in steps)]))
-        stopped = _walk(menus, steps, home, delay, tries)
+        stopped = _walk(game, menus, origin, steps, home, delay, tries)
         if not stopped:
             log.info(f"on {target}")
             return True
@@ -739,19 +739,42 @@ def goto(game, target, here=None, attempts=2, delay=1.5, tries=5):
     return False
 
 
-def _walk(menus, steps, home, delay, tries):
-    """Tap down `steps`. Returns None once done, or why it stopped."""
+def _walk(game, menus, origin, steps, home, delay, tries):
+    """Tap down `steps` from `origin`. Returns None once done, or why it stopped."""
+    passed = {origin}
     for menu, button in steps:
         # A lobby may hide its buttons when idle (E7's after ~9 s), so run the
         # lobby routine right before each tap on it. When they already show,
         # that costs only a few captures.
         if menu == HOME and not home():
             return f"{HOME} buttons not showing"
+        passed.add(menu)
         nxt = button["name"]
         log.info(f"{menu} > {nxt}")
         if not tap_until(button["file"], identity(menus, nxt), delay, tries):
+            _save_foreign(game, passed, f"walking {menu} > {nxt}, gave up")
             return f"{nxt} not shown after tapping {button['file'].name}"
     return None
+
+
+def _save_foreign(game, passed, doing):
+    """Save the screen a walk stopped on (core.unknown) when it matches menus
+    the walk didn't pass through. tap_until saves only a screen nothing
+    explains, but an unmapped dialog over a menu can share its title with
+    other menus' dialogs (common: Shared buttons) and so count as known. A
+    menu on the walk (`passed`) can still show under a panel, so only the
+    others count."""
+    try:
+        screen = capture()
+        popups, found = where(game, screen)
+    except Exception as e:  # BlankScreen, AdbTimeout: the walk's own result stands
+        log.warning(f"screen not checked after the walk stopped: {e}")
+        return
+    others = sorted({m for m, _, _ in found} - passed)
+    if popups or not others:
+        return
+    from core import unknown  # core.unknown imports this module
+    unknown.save(game, screen, f"{doing}; matches {', '.join(others)}")
 
 
 def locate(template, screen, threshold=0.85):
