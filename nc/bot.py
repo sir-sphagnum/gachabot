@@ -1,6 +1,6 @@
 """Project Neural Cloud bot entry point.
 
-Usage: python -m nc.bot start          launch Project Neural Cloud (or bring it to the front), fullscreen, closing any other running game
+Usage: python -m nc.bot start          launch Project Neural Cloud (or bring it to the front), closing any other running game
        python -m nc.bot stop           force-stop Project Neural Cloud
        python -m nc.bot back           close the current menu
        python -m nc.bot ROUTINE ...    run routines from nc.routines.ROUTINES, in order
@@ -20,7 +20,7 @@ log = logger(__file__)
 
 
 def start():
-    """Launch Project Neural Cloud fullscreen. Returns True once it is in focus and fullscreen."""
+    """Launch Project Neural Cloud. Returns True once it is in focus."""
     return device.start_game(GAME)
 
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         print("Routines:", ", ".join(ROUTINES) or "(none yet)")
         sys.exit(1)
     for name in names:
-        # Routines run with BlueStacks' memory kept in check (core.device.with_room).
+        # Routines run with the emulator's memory kept in check (core.device.with_room).
         result = COMMANDS[name]() if name in COMMANDS else device.with_room(GAME, ROUTINES[name])
         if result is False:
             log.error(f"{name}: failed")

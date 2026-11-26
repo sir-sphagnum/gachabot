@@ -81,7 +81,7 @@ Each skill run (recon, map, navigate) keeps its log lines in one file, `logs/YYY
 
 ## 6. Error screens
 
-Every process that calls `setup()` saves the BlueStacks screen on each ERROR line as `logs/YYYYMMDD-HHMMSS-error-<logger>.png` (gitignored), and logs `error screen: <path>` at INFO right after it. An ERROR is a routine giving up (§3), and the screen it gave up on is what explains why; a capture taken later may show the game has moved on. One capture per 5 s per process, since a routine's ERROR and the bot's `failed` line that follows it show the same screen. If the capture itself fails (BlueStacks down), a WARNING says so and the ERROR stands alone.
+Every process that calls `setup()` saves the emulator screen on each ERROR line as `logs/YYYYMMDD-HHMMSS-error-<logger>.png` (gitignored), and logs `error screen: <path>` at INFO right after it. An ERROR is a routine giving up (§3), and the screen it gave up on is what explains why; a capture taken later may show the game has moved on. One capture per 5 s per process, since a routine's ERROR and the bot's `failed` line that follows it show the same screen. If the capture itself fails (emulator down), a WARNING says so and the ERROR stands alone.
 
 To watch a run that takes minutes (a `<game>.bot` run, `core.device restart`, a cold start), so a failure reaches you while it runs and not when it exits (Rule 7, `core/notes/UI.md`): start it with the Bash tool's background option, its output going to a file, then watch that file with the Monitor tool (`timeout_ms` 1800000). Read the error screen only when one is logged. An `unknown screen:` WARNING names a capture nothing explained, saved before the bot acted on it (§9): it is the screen to map, where the error screen may show what came after.
 

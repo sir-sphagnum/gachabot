@@ -1,12 +1,14 @@
-"""Connect to a running BlueStacks instance over ADB. Usage: python -m core.adb"""
+"""Connect over ADB to the Android the bot runs on: Waydroid while its session
+runs, else the Android Studio emulator. Usage: python -m core.adb"""
 
-import glob
+import os
+import re
 import subprocess
 from functools import cache
 from pathlib import Path
 
-# Seconds any one command may take. Without a limit a call that never returns
-# (seen when BlueStacks ran out of memory) froze a whole run with no log line.
+# Seconds any one command may take. Without a limit, a call that never returns
+# (an emulator out of memory) freezes a whole run with no log line.
 TIMEOUT = 20
 
 
@@ -27,46 +29,66 @@ def run_bytes(*cmd, timeout=TIMEOUT):
                          f"no answer in {timeout}s") from None
 
 
+def sdk():
+    """The Android SDK folder: $ANDROID_HOME, else Android Studio's default."""
+    home = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+    return Path(home) if home else Path.home() / "Android" / "Sdk"
+
+
 def find_adb():
-    """BlueStacks ships its own adb; use that one."""
-    paths = glob.glob(r"C:\Program Files\BlueStacks*\HD-Adb.exe")
-    if not paths:
-        raise RuntimeError("HD-Adb.exe not found. Is BlueStacks installed?")
-    return paths[0]
+    """The SDK's adb, not one on PATH: an adb of another version restarts the
+    adb server as its own, dropping the connections of the one running."""
+    path = sdk() / "platform-tools" / "adb"
+    if not path.exists():
+        raise RuntimeError(f"{path} not found. Is the Android SDK installed?")
+    return str(path)
 
 
-def player_pids():
-    """Process IDs of BlueStacks' emulator windows (HD-Player.exe)."""
-    tasks = run("tasklist", "/FI", "IMAGENAME eq HD-Player.exe", "/FO", "CSV", "/NH")
-    return {line.split('","')[1] for line in tasks.splitlines() if "HD-Player" in line}
+WAYDROID_PORT = 5555  # Waydroid's adbd listens on its container IP at this port
 
 
-def find_ports():
-    """Ports that BlueStacks (HD-Player.exe) is listening on."""
-    pids = player_pids()
-
-    ports = []
-    for line in run("netstat", "-ano", "-p", "TCP").splitlines():
-        cols = line.split()  # Proto, Local Address, Foreign Address, State, PID
-        if len(cols) == 5 and cols[3] == "LISTENING" and cols[4] in pids:
-            ports.append(cols[1].split(":")[-1])
-    return ports
+def waydroid_ip():
+    """The Waydroid container's IP while its session runs, else None (also
+    when Waydroid isn't installed)."""
+    try:
+        status = run("waydroid", "status")
+    except FileNotFoundError:
+        return None
+    if not re.search(r"^Session:\s+RUNNING", status, re.M):
+        return None
+    ip = re.search(r"^IP address:\s+(\S+)", status, re.M)
+    return ip[1] if ip else None
 
 
 @cache
 def connect():
-    """Return (adb_path, serial) for the first BlueStacks port that accepts ADB."""
+    """Return (adb_path, serial) for the device the bot runs on: Waydroid
+    ("192.168.240.112:5555") while its session runs, else the first emulator
+    adb lists as ready ("emulator-5554").
+
+    Waydroid has to be connected (`adb connect`), and the first connection
+    from this PC waits for "Allow USB debugging" to be accepted in Waydroid.
+    The emulator registers itself."""
     adb = find_adb()
-    for port in find_ports():
-        serial = f"127.0.0.1:{port}"
+    ip = waydroid_ip()
+    if ip:
+        serial = f"{ip}:{WAYDROID_PORT}"
         run(adb, "connect", serial)
-        if run(adb, "-s", serial, "get-state") == "device":
+        state = run(adb, "-s", serial, "get-state")
+        if state != "device":
+            raise RuntimeError(f"Waydroid at {serial} is {state or 'not answering'} over ADB"
+                               " (unauthorized: accept Allow USB debugging in Waydroid)")
+        return adb, serial
+    for line in run(adb, "devices").splitlines()[1:]:
+        serial, _, state = line.partition("\t")
+        if serial.startswith("emulator-") and state == "device":
             return adb, serial
-    raise RuntimeError("Could not connect to BlueStacks over ADB. Is it running with ADB enabled?")
+    raise RuntimeError("No Waydroid session or emulator ready over ADB."
+                       " Start one with: python -m core.device restart")
 
 
 def adb(*args):
-    """Run an adb command on BlueStacks, e.g. adb("shell", "input", "tap", "400", "400")."""
+    """Run an adb command on the device, e.g. adb("shell", "input", "tap", "400", "400")."""
     adb_path, serial = connect()
     return run(adb_path, "-s", serial, *args)
 

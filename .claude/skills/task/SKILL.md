@@ -17,7 +17,7 @@ A task's controls are buttons, saved like any other in the folder of the menu th
 
 1. If you haven't read anything under the game's folder this session, read `<game>/CLAUDE.md` and the notes it imports first.
 2. Name the task: short, lowercase, hyphenated (`claim-forest`). Its routine module uses underscores (`claim_forest`), since Python names can't hold hyphens.
-3. Open this run's log: `python -m core.log start task`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then check `python -m core.device health` (common: BlueStacks memory). On any other failure, tell the user what it says and wait.
+3. Open this run's log: `python -m core.log start task`. If it says `(inside <skill>)` and you didn't start that skill in this conversation, run `python -m core.log end --all`, then start again (`.claude/logging.md` §5). Then check `python -m core.device health` (common: Emulator memory). On any other failure, tell the user what it says and wait.
 4. Get to the task's menu:
    - **The user says to go there first**: follow the navigate skill (its log nests inside this one). Not in the tree: offer to map it (map skill).
    - **Navigation fails** (a button didn't match, the route broke): don't fix the route now. Read the capture navigate took, tap the rest of the way by hand (`python -m core.input tap X Y`, then `python -m core.input screenshot recon/task.png` to check), and carry on. Once the step log has started (step 5), log what failed with `python -m tools.map note <text>`; the route gets fixed at Stop.

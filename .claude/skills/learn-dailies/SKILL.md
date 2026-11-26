@@ -13,7 +13,7 @@ Run all commands from the project root.
 
 - The game has a lobby routine, its `core.lobby` spec (new-game skill). If not, run new-game first.
 - Read `<game>/CLAUDE.md` and the notes it imports, `core/notes/dailies.md`, and the map and task skills (`.claude/skills/map/SKILL.md`, `.claude/skills/task/SKILL.md`): this skill uses their tools and their Stop steps.
-- Open the log: `python -m core.log start learn-dailies` (on `(inside <skill>)` from another conversation: `python -m core.log end --all`, then start again). Check `python -m core.device health` (common: BlueStacks memory), and again every ~30 taps: exploring captures a lot. On any other failure, tell the user what it says and wait.
+- Open the log: `python -m core.log start learn-dailies` (on `(inside <skill>)` from another conversation: `python -m core.log end --all`, then start again). Check `python -m core.device health` (common: Emulator memory), and again every ~30 taps: exploring captures a lot. On any other failure, tell the user what it says and wait.
 
 ## Rules for the taps you choose
 
@@ -21,7 +21,7 @@ Run all commands from the project root.
 - Before tapping, read the button's label and what's around it. A price, a currency icon, a stamina cost, a count that would go down, or a confirm dialog: don't tap it while exploring (§1–§3). A spend is tapped only as a step of a planned row (§5).
 - Never tap anything under "Never automatic" in `core/notes/dailies.md`, even with `--auto` allowing it.
 - Read a fresh capture before each tap (`python -m tools.map shot` when anything may have moved since the last one). `click` refuses a box that changed since the capture it was read from and saves a fresh one to read; it can't catch a box guessed from another screen, so read each box off a capture of the screen in front of you, never from where the control sat on a similar dialog. Read boxes off the full 1920x1080 capture or off `python -m tools.map sheet [CAPTURE...] [--box X Y W H]` (a grid labelled in device pixels), never off a preview you scaled yourself.
-- Act on every warning `click` prints before the next tap: the screen didn't change (drop the line), it still shows HERE (the tap was a `--stay`, or a dialog to log as a state), HERE is no menu `finish` will know, or BlueStacks is over its memory limit.
+- Act on every warning `click` prints before the next tap: the screen didn't change (drop the line), it still shows HERE (the tap was a `--stay`, or a dialog to log as a state), HERE is no menu `finish` will know, or the emulator is over its memory limit.
 - Come back from a menu with `python -m tools.map back`, never Back on the lobby itself (it opens the quit dialog: common: Lobbies).
 - A dialog or popup you don't know: don't close it by guessing. Note it (`python -m tools.map note`) with your guess of its kind (map skill, popup or dialog), close it with its own close or Cancel if it has one, otherwise stop and ask.
 
@@ -113,7 +113,7 @@ The dailies are done once the menu's goal is claimed (§4 step 2), not once the 
 
 First-of-the-day screens can only be met on the next day's first launch (common: First of the day or week), and no session will be waiting then. Offer a scheduled check:
 
-1. Ask the user the game's daily reset time (local) and whether the PC and BlueStacks will be on then.
+1. Ask the user the game's daily reset time (local) and whether the PC and the emulator will be on then.
 2. On their yes, create a scheduled task (`create_scheduled_task`) for ~15 minutes after reset, daily, with this prompt (fill in the game; it must stand on its own):
 
    > In the GachaBot project, run `python -m tools.probe <game> cold`. It force-stops <game>, launches it and runs its lobby routine while recording the screen, then writes recon/probe/report.md. Read the report, then Read each capture it lists under "Screens nothing identifies". Reply with one line per unknown screen: what it shows and whether it looks like a popup over any menu or a dialog of the lobby (core/notes/UI.md, "First of the day or week"). Don't map, tap, close or commit anything: the user maps them with the map skill. If the probe says the health check failed, say so and stop.

@@ -1,18 +1,18 @@
-"""Save a BlueStacks screenshot to recon/ every second, skipping ones that look
+"""Save an emulator screenshot to recon/ every second, skipping ones that look
 the same as the last one saved.
 
 Usage: python -m tools.recon [folder] [--interval S] [--for S]   (Ctrl+C to stop)
        python -m tools.recon --summary [folder]
 
 --interval: seconds between captures (default 1). Every capture adds to
-BlueStacks' load: with a routine capturing too, its memory grew fast (see
-core.device.health), so slow it down for long runs.
+the emulator's load, with a routine capturing too (see core.device.health),
+so slow it down for long runs.
 --for: stop by itself after this many seconds. Give it to every recording
 that serves one step (a start tap, a fight): a recording nobody stops keeps
-capturing, and on Windows a background shell's exit doesn't end it.
+capturing.
 --summary: print how many screenshots the folder holds and their size.
 
-A capture that fails (BlueStacks returning only empty frames, adb not
+A capture that fails (the emulator returning only empty frames, adb not
 answering) doesn't end the recording: it's logged and retried after a pause
 that doubles up to MAX_BACKOFF seconds, until a capture works again.
 """

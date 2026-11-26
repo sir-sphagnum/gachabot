@@ -41,7 +41,7 @@ click   tap the centre of box X Y W H (a button on menu HERE that opens
         earlier click), when the screen didn't change, when it still shows
         HERE's identifier though the click isn't --stay (a tab, claim or
         dialog: log it --stay, and a dialog also as a state), and when
-        BlueStacks is over its memory limit (core.device.health).
+        the emulator is over its memory limit (core.device.health).
 back    press the game's BACK_KEY (<game>/config.py), wait for the screen to
         settle and capture it; it becomes the current one. For coming back
         from a menu opened while exploring.

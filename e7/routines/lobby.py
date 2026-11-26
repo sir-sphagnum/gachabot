@@ -49,7 +49,7 @@ SPEC = Lobby(
                                    LOBBY / "btn_lobby_checkin-received-close_860-1000-200-80.png"),
     },
     idle=Idle(identify=[BARREL], wake=(1869, 49)),  # the main-menu icon's centre
-    launch=45,  # floating window, then black; launch to the start screen took a few seconds
+    launch=45,  # black, then the start screen within a few seconds
     settle=4,   # web-notice opened a few seconds after the lobby
     quiet_after={"patch-update": 300},  # an 18.4 MB patch took under 30 s
 )

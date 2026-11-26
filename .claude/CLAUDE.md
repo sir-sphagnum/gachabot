@@ -4,6 +4,8 @@ Each game's notes live in `<game>/notes/`, one file per topic. Menu notes go in 
 
 If you're about to act on a game (tap, run a routine, map menus) before having read anything under its folder, read `<game>/CLAUDE.md` and the notes it imports first.
 
+The bot drives Waydroid while its session runs (`waydroid show-full-ui` starts it), else the Android Studio emulator (AVD `Gaming`), over the SDK's adb (`core/adb.py`, `connect`). `python -m …` in skills and notes means the project's venv: run `.venv/bin/python -m …` (set up with `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`).
+
 Screens the bot met and nothing in a game's templates explained are saved in `logs/unknown/<game>/` (`python -m core.unknown` lists them). The unknown skill works through them.
 
 ## Rules

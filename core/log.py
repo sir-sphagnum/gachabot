@@ -87,7 +87,7 @@ def setup(debug=False, console=True, run=None):
 
 
 class ErrorScreen(logging.Handler):
-    """On an ERROR line, save the BlueStacks screen as
+    """On an ERROR line, save the emulator screen as
     logs/YYYYMMDD-HHMMSS-error-LOGGER.png and log its path.
 
     An ERROR is a routine giving up (.claude/logging.md §3), and the screen
@@ -114,7 +114,7 @@ class ErrorScreen(logging.Handler):
             LOGS.mkdir(exist_ok=True)
             path = LOGS / f"{now:%Y%m%d-%H%M%S}-error-{record.name}.png"
             save(capture(retries=3), path)
-        except Exception as e:  # BlueStacks down, ADB lost: the ERROR line stands alone
+        except Exception as e:  # emulator down, ADB lost: the ERROR line stands alone
             log.warning(f"error screen not saved: {e}")
             return
         log.info(f"error screen: {_rel(path)}")

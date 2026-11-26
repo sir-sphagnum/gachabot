@@ -12,3 +12,6 @@ __pycache__/
 
 # Skill logs, run logs and error screens (core/log.py)
 /logs/
+
+# Python virtual environment (pip install -r requirements.txt)
+/.venv/

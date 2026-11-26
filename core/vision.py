@@ -1,7 +1,7 @@
 """Find UI elements in screenshots, crop them, and compare screens. No device access.
 
 Usage: python -m core.vision find [--white] ELEMENT [screen.png] [X Y W H]
-           (screen defaults to a live BlueStacks capture)
+           (screen defaults to a live emulator capture)
            --white  match only the white glyphs (text/icons) - for
                     semi-transparent buttons whose background shows through
        python -m core.vision crop screen.png X Y W H out.png
@@ -165,7 +165,7 @@ def is_black(screen):
 
     Measured on E7, as the share of pixels below grey level 3:
     - loading and transition screens: 100% (pure black), or 80% right after
-      launch, when BlueStacks' taskbar and the copyright line are still drawn;
+      launch on BlueStacks, whose taskbar and the copyright line were still drawn;
     - popups and dialogs that dim the screen (quit, date-changed,
       disconnected): at most 53%. Their dim is dark grey, not black, which is
       why the level is 3: counting pixels below 30 puts them at 84%, above

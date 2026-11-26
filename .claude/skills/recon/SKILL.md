@@ -1,11 +1,11 @@
 ---
 name: recon
-description: Record the BlueStacks screen to the recon/ folder (one screenshot per second) and click buttons on request, taking a screenshot after each click. Use when the user says "begin recon", "start recon", "start recording", or similar.
+description: Record the emulator screen to the recon/ folder (one screenshot per second) and click buttons on request, taking a screenshot after each click. Use when the user says "begin recon", "start recon", "start recording", or similar.
 ---
 
 # Recon
 
-Records what happens in BlueStacks while the user asks you to click through the game. All screenshots go in `recon/` at the project root.
+Records what happens in the emulator while the user asks you to click through the game. All screenshots go in `recon/` at the project root.
 
 ## Start
 
@@ -14,12 +14,12 @@ Records what happens in BlueStacks while the user asks you to click through the 
    python -m core.log start recon
    ```
    It prints the log file. If it says `(inside <skill>)` and you didn't start that skill in this conversation, an earlier run never ended: run `python -m core.log end --all`, then start again (`.claude/logging.md` §5).
-2. Check `python -m core.device health` (common: BlueStacks memory). On any other failure, tell the user what it says and wait.
+2. Check `python -m core.device health` (common: Emulator memory). On any other failure, tell the user what it says and wait.
 3. Start the capture loop in the background (run_in_background: true), from the project root:
    ```
    python -m tools.recon
    ```
-   It takes a screenshot every second and saves it as `recon/YYYYMMDD-HHMMSS.png` only if it differs from the last one saved (more than 1% of pixels changed; see `core/vision.py`), until it is stopped. While a routine runs alongside it for a long time, add `--interval 3`: both capturing every second grew BlueStacks' memory until its screenshots came back empty. If it errors right away (BlueStacks not running, ADB off), report the error and stop. A capture that fails later is printed as `Capture failed: …` and retried after a growing pause; if the user asks how it's going and the output shows those, say so and suggest `python -m core.device health`.
+   It takes a screenshot every second and saves it as `recon/YYYYMMDD-HHMMSS.png` only if it differs from the last one saved (more than 1% of pixels changed; see `core/vision.py`), until it is stopped. While a routine runs alongside it for a long time, add `--interval 3`: both capturing every second grew the emulator' memory until its screenshots came back empty. If it errors right away (the emulator not running, ADB off), report the error and stop. A capture that fails later is printed as `Capture failed: …` and retried after a growing pause; if the user asks how it's going and the output shows those, say so and suggest `python -m core.device health`.
 4. Tell the user recon is running and that they can ask you to click things.
 
 ## When the user asks to click a button

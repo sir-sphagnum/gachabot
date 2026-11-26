@@ -11,7 +11,7 @@ walk  for each menu under MENU (default: the lobby), in route order:
       has a button or menu named with a word that can spend
       (core.tree.SPEND_WORDS), so nothing is bought, fought or used up. It
       never presses Back on the lobby (that opens the quit dialog). Stops
-      after N menus (default 40): every capture adds to BlueStacks' memory.
+      after N menus (default 40): every capture adds to the emulator's load.
 cold  force-stop the game, then launch it and run its lobby routine while a
       second thread saves the screen each second it changes. Frames that
       core.nav.describe explains (black, a stop or loading screen, a known

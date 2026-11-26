@@ -1,14 +1,17 @@
-"""The BlueStacks device: which app is in focus, fullscreen, starting/stopping apps.
+"""The Android the bot runs on (Waydroid while its session runs, else the
+Android Studio emulator; core.adb.connect): which app is in focus,
+starting/stopping apps, restarting the device.
 
 Usage: python -m core.device connect
        python -m core.device focus
-       python -m core.device fullscreen
-       python -m core.device health      exits 1 when BlueStacks needs a restart
-                                         or Windows is low on memory
+       python -m core.device health      exits 1 when the emulator needs a restart
+                                         or the PC is low on memory
        python -m core.device restart [game ...]
-           closes the running apps, then BlueStacks, opens it again and waits
-           for Android to boot, then starts the games given (none if no game
-           is given) one after another, each closing the one before, and runs
+           closes the running apps, then the device (Waydroid's session,
+           or the emulator if only it is running), boots it again (or just
+           starts it if it wasn't running) and waits for Android, then
+           starts the games given (none if no game is given) one after
+           another, each closing the one before, and runs
            each one's lobby routine, if it has one, so each ends in its
            lobby; the last one is left running. While a game's
            lobby isn't reached, with no stop screen, load or popup showing
@@ -20,16 +23,17 @@ Usage: python -m core.device connect
        game is a short name from GAMES (e.g. e7) or a package name.
 """
 
-import ctypes
-import glob
 import importlib
+import os
 import re
+import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
 
-from core.adb import AdbTimeout, adb, connect, player_pids, run
-from core.input import BlankScreen, capture, tap
+from core.adb import AdbTimeout, adb, connect, run, sdk, waydroid_ip
+from core.input import BlankScreen, capture
 from core.log import logger, setup
 
 log = logger(__file__)
@@ -80,74 +84,6 @@ def focused_app():
     return package, activity
 
 
-# --- fullscreen -------------------------------------------------------------
-
-# A visible floating app task and its bounds, e.g.
-#   * Task{5dd1090 #45 type=standard A=10118:com.stove.epic7.google U=0 ... visible=true ... mode=freeform ...}
-#     mBounds=Rect(269, 113 - 1651, 890)
-# Lines end in \r\n on some adb connections (seen after a BlueStacks restart).
-FLOATING = re.compile(r"Task\{\S+ #(\d+) type=standard A=\d+:(\S+) [^}]*?visible=true [^}]*?mode=freeform"
-                      r"[^}]*\}\s*mBounds=Rect\((\d+), (\d+)")
-
-# BlueStacks window-menu taps, relative to the floating window's top-left corner.
-ARROW = (75, 23)             # down arrow in the title bar: opens the window menu
-FULLSCREEN_ICON = (49, 131)  # first icon in the menu
-# dumpsys reports the task fullscreen before the screen shows it: captures
-# still showed the floating window 0.5 s later and the fullscreen game at 1.3 s.
-FULLSCREEN_DRAW = 1.5        # seconds
-
-
-def floating_window():
-    """(task_id, left, top) of the focused app if it is floating, else None."""
-    focus = focused_app()
-    if not focus:
-        return None
-    tasks = adb("shell", "dumpsys", "activity", "activities")
-    for task, package, left, top in FLOATING.findall(tasks):
-        if package == focus[0]:
-            return task, int(left), int(top)
-    return None
-
-
-def menu_open(task):
-    """True while the window menu (the one with the Fullscreen icon) is showing.
-
-    The menu has no window of its own in `dumpsys window`, but SurfaceFlinger
-    lists a "Handle menu of task=<id>" layer while it is up.
-    """
-    return f"Handle menu of task={task}#" in adb("shell", "dumpsys", "SurfaceFlinger", "--list")
-
-
-def fullscreen(attempts=3, timeout=5):
-    """Fullscreen the focused app. Returns True once it isn't floating and the
-    screen shows it fullscreen.
-
-    Waits for the menu to actually appear before tapping Fullscreen (a slow,
-    still-loading game can take over a second), checks the result, and retries.
-    """
-    for _ in range(attempts):
-        window = floating_window()
-        if not window:
-            return True
-        task, left, top = window
-        if not menu_open(task):
-            tap(left + ARROW[0], top + ARROW[1])
-            if not wait_until(lambda: menu_open(task), timeout):
-                continue
-            time.sleep(0.5)  # the layer appears before the open animation finishes
-        tap(left + FULLSCREEN_ICON[0], top + FULLSCREEN_ICON[1])
-        if wait_until(lambda: not _floating(task), timeout):
-            time.sleep(FULLSCREEN_DRAW)
-            return True
-    return False
-
-
-def _floating(task):
-    """Whether this task is still a visible floating window."""
-    tasks = adb("shell", "dumpsys", "activity", "activities")
-    return any(t == task for t, *_ in FLOATING.findall(tasks))
-
-
 # --- starting and stopping games --------------------------------------------
 
 
@@ -178,10 +114,9 @@ def start_game(game, timeout=30):
     """Launch a game (or bring it to the front if it's already running),
     after closing every other game in GAMES that is running.
 
-    Waits until it is the app in focus, then fullscreens it: templates are cut
-    from the fullscreen screen, so nothing matches in a floating window.
-    Returns True on success, False if another game didn't stop, the game
-    didn't come to the front within `timeout` seconds, or it stayed floating.
+    Waits until it is the app in focus. Returns True on success, False if
+    another game didn't stop or the game didn't come to the front within
+    `timeout` seconds.
     """
     pkg = package(game)
     others = [p for p in running_apps() if p in GAMES.values() and p != pkg]
@@ -197,9 +132,7 @@ def start_game(game, timeout=30):
     if "/" not in component:
         raise ValueError(f"{pkg} is not installed or has no launcher activity")
     adb("shell", "am", "start", "-n", component)
-    if not wait_until(lambda: (focused_app() or ("",))[0] == pkg, timeout, interval=0.5):
-        return False
-    return fullscreen()
+    return bool(wait_until(lambda: (focused_app() or ("",))[0] == pkg, timeout, interval=0.5))
 
 
 def stop_game(game, timeout=10):
@@ -219,7 +152,7 @@ def running_apps():
 
 # Seconds the apps get in the background before they are force-stopped. Going
 # home first gives them Android's pause/stop callbacks, where an app saves and
-# closes what it has open; a force-stop or a killed BlueStacks gives them none.
+# closes what it has open; a force-stop or a killed emulator gives them none.
 BACKGROUND_WAIT = 3
 
 
@@ -238,82 +171,78 @@ def close_apps(apps=None):
 
 # --- health -----------------------------------------------------------------
 
-# BlueStacks' own memory grows while the bot captures the screen (9.6 GB to
-# 22 GB in ~45 min with two processes capturing every second). At 22 GB
-# every screencap came back empty; at 27 GB Windows ran out of memory and
-# adb couldn't start. Both cleared only with a BlueStacks restart.
-PLAYER_MAX_GB = 18
-FREE_MIN_GB = 4  # Windows' free commit space (RAM plus page file)
+# The emulator's guest RAM is the AVD's hw.ramSize (8 GB for Gaming), and its
+# qemu process holds that plus the GPU's memory and its own. Past this limit
+# it holds more than that explains. A guess until a long run's `health` lines
+# show how it grows.
+EMULATOR_MAX_GB = 12
+FREE_MIN_GB = 4  # the PC's available memory (MemAvailable)
+EMULATOR_PROCESS = "qemu-system-x86"  # qemu-system-x86_64, cut to 15 characters by the kernel
 
 
 def health():
-    """(ok, message): whether BlueStacks' memory and Windows' free memory
-    leave room for a long run."""
-    free = _free_commit_gb()
-    player = player_gb()
-    if player is None:
-        return False, "BlueStacks isn't running"
+    """(ok, message): whether the emulator's memory and the PC's free memory
+    leave room for a long run. On Waydroid only the PC's free memory is
+    checked: its Android shares the PC's kernel, with no qemu process to
+    measure."""
+    free = _available_gb()
+    used = None if on_waydroid() else emulator_gb()
+    if used is None and not on_waydroid():
+        return False, "Neither Waydroid nor the emulator is running"
     problems = []
-    if player > PLAYER_MAX_GB:
-        problems.append(f"BlueStacks uses {player:.1f} GB (over {PLAYER_MAX_GB}): "
+    if used is not None and used > EMULATOR_MAX_GB:
+        problems.append(f"Emulator uses {used:.1f} GB (over {EMULATOR_MAX_GB}): "
                         "restart it (python -m core.device restart)")
     if free < FREE_MIN_GB:
         problems.append(f"only {free:.1f} GB of memory free (under {FREE_MIN_GB}): close other apps")
     if problems:
         return False, "; ".join(problems)
-    return True, f"OK: BlueStacks uses {player:.1f} GB, {free:.1f} GB free"
+    device = "Waydroid" if used is None else f"emulator uses {used:.1f} GB"
+    return True, f"OK: {device}, {free:.1f} GB free"
 
 
-def player_gb():
-    """Memory BlueStacks' emulator has committed, in GB, or None if it isn't running."""
-    sizes = [_commit_gb(int(pid)) for pid in player_pids()]
+def emulator_pids():
+    """Process IDs of the running emulator (its qemu process)."""
+    return [int(pid) for pid in run("pgrep", "-x", EMULATOR_PROCESS).split()]
+
+
+def emulator_gb():
+    """Memory the emulator holds in RAM, in GB, or None if it isn't running."""
+    sizes = [_rss_gb(pid) for pid in emulator_pids()]
     return max(sizes) if sizes else None
 
 
-class _MemoryStatus(ctypes.Structure):
-    _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
-                ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
-                ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
-                ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
-                ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
-
-
-class _ProcessMemory(ctypes.Structure):
-    _fields_ = [("cb", ctypes.c_ulong), ("PageFaultCount", ctypes.c_ulong),
-                ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
-                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-                ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
-
-
-def _free_commit_gb():
-    status = _MemoryStatus(dwLength=ctypes.sizeof(_MemoryStatus))
-    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status))
-    return status.ullAvailPageFile / 2**30
-
-
-def _commit_gb(pid):
-    """Memory process `pid` has committed (its private bytes), in GB."""
-    query = 0x1000  # PROCESS_QUERY_LIMITED_INFORMATION
-    handle = ctypes.windll.kernel32.OpenProcess(query, False, pid)
-    if not handle:
-        return 0.0
+def _rss_gb(pid):
+    """Resident memory of process `pid` (VmRSS), in GB; 0 once it is gone."""
     try:
-        counters = _ProcessMemory(cb=ctypes.sizeof(_ProcessMemory))
-        ctypes.windll.psapi.GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb)
-        return counters.PagefileUsage / 2**30
-    finally:
-        ctypes.windll.kernel32.CloseHandle(handle)
+        status = Path(f"/proc/{pid}/status").read_text()
+    except FileNotFoundError:
+        return 0.0
+    kb = re.search(r"^VmRSS:\s+(\d+) kB", status, re.M)
+    return int(kb[1]) / 2**20 if kb else 0.0
 
 
-# --- restarting BlueStacks --------------------------------------------------
+def _available_gb():
+    kb = re.search(r"^MemAvailable:\s+(\d+) kB", Path("/proc/meminfo").read_text(), re.M)
+    return int(kb[1]) / 2**20
 
-CLOSE_TIMEOUT = 15   # seconds for BlueStacks to be gone after it is forced closed
-BOOT_TIMEOUT = 120   # seconds from opening BlueStacks to Android having booted
-# The arguments of BlueStacks' own "BlueStacks Desktop" shortcut. With
-# `--instance <name>` instead, HD-Player opened only a tooltip window and
-# Android never booted.
-PLAYER_ARGS = ["--guest", "--present=embed", "--chrome=windows"]
+
+# --- restarting the device --------------------------------------------------
+
+
+def on_waydroid():
+    """Whether restart() restarts Waydroid rather than the emulator: while its
+    session runs (connect() uses it then), or when the emulator isn't running
+    either, so a cold start boots Waydroid."""
+    return bool(waydroid_ip()) or not emulator_pids()
+
+
+AVD = "Gaming"       # the Android Studio virtual device the bot runs on
+CLOSE_TIMEOUT = 30   # seconds for the emulator to be gone after `emu kill`, before it is killed
+BOOT_TIMEOUT = 180   # seconds from opening the emulator to Android having booted
+# Cold boot: a quick-boot snapshot would bring back the apps and memory of
+# whenever it was saved, and a restart is for a fresh Android.
+EMULATOR_ARGS = ["-avd", AVD, "-no-snapshot"]
 # A game can come up after a restart laid out for another screen size, where
 # nothing matches, and a further restart sets it right (e7/notes/UI.md,
 # start-screen, Wrong layout). So a lobby missed after a restart is retried
@@ -322,56 +251,80 @@ RESTART_TRIES = 3
 
 
 def restart(boot_timeout=BOOT_TIMEOUT):
-    """(ok, message): close the running apps, close BlueStacks, open it again,
-    and wait until Android has booted and adb answers. Frees the memory
-    BlueStacks builds up while the bot captures the screen. Games are not
-    started."""
-    player = _player_exe()
-    if player_pids():
+    """(ok, message): close the running apps, close the device (on_waydroid
+    picks which), start it again (or just start it if it wasn't running),
+    and wait until Android has booted and adb answers. Games are not started."""
+    if on_waydroid():
+        return _restart_waydroid(boot_timeout)
+    emulator = _emulator_exe()
+    if emulator_pids():
         _close_apps_before_restart()
-    if not _close_player():
-        return False, "BlueStacks still open after closing it"
-    connect.cache_clear()  # the cached serial belongs to the closed BlueStacks
-    # Detached, so BlueStacks outlives this process.
-    subprocess.Popen([player, *PLAYER_ARGS],
-                     creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+    if not _close_emulator():
+        return False, "Emulator still open after closing it"
+    connect.cache_clear()  # the cached serial belongs to the closed emulator
+    # In its own session, so the emulator outlives this process.
+    subprocess.Popen([emulator, *EMULATOR_ARGS], start_new_session=True,
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL, close_fds=True)
     log.info("closed, opening")
     if not wait_until(_booted, boot_timeout, interval=2):
-        return False, f"BlueStacks not booted {boot_timeout}s after opening it"
-    return True, "BlueStacks restarted"
+        return False, f"Emulator not booted {boot_timeout}s after opening it"
+    return True, "Emulator restarted"
+
+
+WAYDROID_STOP_TIMEOUT = 30  # seconds for `waydroid session stop` to end the session
+
+
+def _restart_waydroid(boot_timeout):
+    """restart() for Waydroid: stop its session and open its full UI, which
+    starts a new session (its window is where the game shows)."""
+    if waydroid_ip():
+        _close_apps_before_restart()
+        try:
+            run("waydroid", "session", "stop", timeout=WAYDROID_STOP_TIMEOUT)
+        except AdbTimeout as e:
+            log.warning(f"{e}")
+        if not wait_until(lambda: not waydroid_ip(), 10, interval=0.5):
+            return False, "Waydroid session still running after stopping it"
+    connect.cache_clear()  # the cached serial belongs to the stopped session
+    subprocess.Popen(["waydroid", "show-full-ui"], start_new_session=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, close_fds=True)
+    log.info("Waydroid stopped, starting it")
+    if not wait_until(_booted, boot_timeout, interval=2):
+        return False, f"Waydroid not booted {boot_timeout}s after starting it"
+    return True, "Waydroid restarted"
 
 
 def with_room(game, routine):
-    """Run routine() with BlueStacks' memory kept in check, and return its
+    """Run routine() with the device's memory kept in check, and return its
     result (False when a restart failed).
 
-    Before it: when BlueStacks is over PLAYER_MAX_GB, restart it and bring
-    `game` back to its lobby. During it: if it stops on blank screenshots
-    (core.input.BlankScreen) or on ADB not answering (core.adb.AdbTimeout,
-    seen at 19.5 GB when a cold start pushed it past the limit mid-routine),
-    do the same and run it once more. A rerun is safe because routines start
+    Before it: when the emulator is over EMULATOR_MAX_GB, restart it and bring
+    `game` back to its lobby (on Waydroid there is no emulator to measure).
+    During it: if it stops on blank screenshots (core.input.BlankScreen) or on
+    ADB not answering (core.adb.AdbTimeout), restart the device (restart())
+    the same way and run it once more. A rerun is safe because routines start
     by going to their menu from wherever the game is and read what is left
-    to do from the screen. One daily routine alone grew BlueStacks by up to
-    ~7 GB, so the check runs before each.
+    to do from the screen. The check runs before each routine, since a cold
+    start or a long routine can take the emulator past the limit.
     """
-    player = player_gb()
-    if player is not None and player > PLAYER_MAX_GB:
-        log.info(f"BlueStacks uses {player:.1f} GB (over {PLAYER_MAX_GB}), restarting it first")
+    used = None if waydroid_ip() else emulator_gb()
+    if used is not None and used > EMULATOR_MAX_GB:
+        log.info(f"the emulator uses {used:.1f} GB (over {EMULATOR_MAX_GB}), restarting it first")
         if not _restart_with(game):
             return False
     try:
         return routine()
     except (BlankScreen, AdbTimeout) as e:
-        log.warning(f"{e}: restarting BlueStacks and running it again")
+        log.warning(f"{e}: restarting the device and running it again")
     if not _restart_with(game):
         return False
     return routine()
 
 
 def _restart_with(game, tries=RESTART_TRIES):
-    """Restart BlueStacks, start `game` and take it to its lobby, restarting
+    """Restart the device, start `game` and take it to its lobby, restarting
     again while the lobby isn't reached, `tries` restarts in all. True on
     success."""
     for attempt in range(1, tries + 1):
@@ -448,34 +401,47 @@ def run_to_lobby(game):
 
 
 def _close_apps_before_restart():
-    """Close the apps, logging what happened. Never stops the restart: a
-    BlueStacks that needs restarting may not answer adb."""
+    """Close the apps, logging what happened. Never stops the restart: an
+    emulator that needs restarting may not answer adb."""
     try:
         ok, apps = close_apps()
     except RuntimeError as e:  # includes AdbTimeout
-        log.warning(f"apps not closed: {e}, closing BlueStacks anyway")
+        log.warning(f"apps not closed: {e}, closing the emulator anyway")
         return
     if not ok:
-        log.warning(f"not all of {', '.join(apps)} stopped, closing BlueStacks anyway")
+        log.warning(f"not all of {', '.join(apps)} stopped, closing the emulator anyway")
     elif apps:
         log.info(f"closed {', '.join(apps)}")
 
 
-def _player_exe():
-    paths = glob.glob(r"C:\Program Files\BlueStacks*\HD-Player.exe")
-    if not paths:
-        raise RuntimeError("HD-Player.exe not found. Is BlueStacks installed?")
-    return paths[0]
+def _emulator_exe():
+    path = sdk() / "emulator" / "emulator"
+    if not path.exists():
+        raise RuntimeError(f"{path} not found. Is the Android emulator installed?")
+    return str(path)
 
 
-def _close_player(timeout=CLOSE_TIMEOUT):
-    """Force-close every HD-Player.exe. Returns True once none is left.
+def _close_emulator(timeout=CLOSE_TIMEOUT):
+    """Close the emulator. Returns True once its process is gone.
 
-    Forced straight away: asked to close (taskkill without /F), BlueStacks
-    stayed open every time. It booted normally after each forced close."""
-    for pid in player_pids():
-        run("taskkill", "/F", "/PID", pid)
-    return bool(wait_until(lambda: not player_pids(), timeout, interval=0.5))
+    Asks first (`adb emu kill`, which lets it shut down cleanly), and kills
+    the process only if it is still there `timeout` seconds later or adb
+    can't reach it."""
+    if not emulator_pids():
+        return True
+    try:
+        adb("emu", "kill")
+    except RuntimeError as e:  # includes AdbTimeout
+        log.warning(f"emu kill failed: {e}")
+    if wait_until(lambda: not emulator_pids(), timeout, interval=0.5):
+        return True
+    log.warning(f"the emulator still open {timeout}s after emu kill, killing it")
+    for pid in emulator_pids():
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return bool(wait_until(lambda: not emulator_pids(), 10, interval=0.5))
 
 
 def _booted():
@@ -500,20 +466,18 @@ if __name__ == "__main__":
     elif cmd == "focus":
         focus = focused_app()
         _answer(f"{focus[0]}  ({focus[1]})" if focus else "Nothing in focus")
-    elif cmd == "fullscreen":
-        ok = fullscreen()
-        _answer("Fullscreen" if ok else "Still floating", ok)
     elif cmd == "health":
         ok, msg = health()
         _answer(msg, ok)
         sys.exit(0 if ok else 1)
     elif cmd == "restart":
-        before = player_gb()
+        before = emulator_gb()
         for attempt in range(1, RESTART_TRIES + 1):
             ok, msg = restart()
-            if ok:
+            now = emulator_gb()
+            if ok and now is not None:
                 was = f"{before:.1f} GB before" if before is not None else "wasn't running"
-                msg += f": {was}, {player_gb():.1f} GB now"
+                msg += f": {was}, {now:.1f} GB now"
             _answer(msg, ok)
             missed = stuck = False
             for game in args if ok else []:
@@ -532,7 +496,7 @@ if __name__ == "__main__":
             if not missed or stuck or attempt == RESTART_TRIES:
                 break
             print(f"Restarting again ({attempt + 1}/{RESTART_TRIES})")
-            before = player_gb()
+            before = emulator_gb()
         sys.exit(0 if ok else 1)
     elif cmd == "start":
         if len(args) != 1:

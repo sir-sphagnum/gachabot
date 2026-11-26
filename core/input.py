@@ -1,4 +1,4 @@
-"""Send input to BlueStacks and read its screen.
+"""Send input to the emulator and read its screen.
 
 Usage: python -m core.input tap X Y
        python -m core.input back [escape]
@@ -70,20 +70,16 @@ RETRY_S = 0.5  # pause between screencap retries
 
 
 def capture(retries=10):
-    """Return the current BlueStacks screen as a BGR array (height x width x 3).
+    """Return the current emulator screen as a BGR array (height x width x 3).
 
-    Takes the raw frame (`screencap` without -p): 0.24 s against 0.82 s for a
-    PNG, which BlueStacks spends compressing. The raw frame is a header
+    Takes the raw frame (`screencap` without -p): 0.17 s against 0.79 s for a
+    PNG, which the emulator spends compressing. The raw frame is a header
     (width, height, format as little-endian uint32, then a colour-space field
     on newer Android, so 12 or 16 bytes) followed by the pixels.
 
-    BlueStacks' screencap intermittently returns an empty frame (every pixel
-    RGBA 0); those are retried, as are short reads. Empty frames can come in
-    bursts longer than `retries` back-to-back reads (seen during an arena
-    battle with recon capturing too), so retries are spaced RETRY_S apart.
-    Minimising the BlueStacks window doesn't cause them alone: frames stayed
-    full over 12 minutes minimised (by its own minimise command and by
-    ShowWindow).
+    An emulator can return an empty frame (every pixel RGBA 0) or a short
+    read; both are retried. Empty frames can come in bursts longer than
+    `retries` back-to-back reads, so retries are spaced RETRY_S apart.
     """
     adb_path, serial = connect()
     for attempt in range(retries):
@@ -94,12 +90,12 @@ def capture(retries=10):
         img = _frame(raw)
         if img is not None and img.any():
             return cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
-    raise BlankScreen(f"BlueStacks returned {retries} blank screenshots in a row")
+    raise BlankScreen(f"the emulator returned {retries} blank screenshots in a row")
 
 
 class BlankScreen(RuntimeError):
-    """capture() got only empty frames. Seen once BlueStacks' memory is past
-    ~22 GB; a BlueStacks restart clears it (core.device.with_room)."""
+    """capture() got only empty frames. Seen when the emulator's memory had
+    grown too far; an emulator restart clears it (core.device.with_room)."""
 
 
 def _frame(raw):
@@ -116,7 +112,7 @@ def _frame(raw):
 
 
 def screenshot(path="screenshot.png"):
-    """Save the current BlueStacks screen as a PNG and return the path."""
+    """Save the current emulator screen as a PNG and return the path."""
     save(capture(), path)
     return path
 

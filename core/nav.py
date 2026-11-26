@@ -47,7 +47,7 @@ screen or on a saved CAPTURE. More than one menu can match (shared
 identifiers, a menu under a popup's dim). Exits 1 when nothing matches.
 
 goto and tap stop with an error, before tapping anything, unless GAME is the
-app in focus and fullscreen (not floating).
+app in focus.
 """
 
 import argparse
@@ -61,7 +61,7 @@ from pathlib import Path
 import cv2
 
 from core import ROOT, steps, templates_dir, tree
-from core.device import floating_window, focused_app, is_running, package, wait_until
+from core.device import focused_app, is_running, package, wait_until
 from core.input import capture, swipe, tap
 from core.log import logger, setup
 from core.tree import ELEMENT, load_popups, load_stops
@@ -78,13 +78,12 @@ BLACK_WAIT = 30  # seconds to wait out a black loading or transition screen
 
 
 class NotInFocus(RuntimeError):
-    """The game isn't the app in focus, fullscreen. Not in focus, taps and Back
-    presses land on whatever app is; floating, the screen is scaled down and
-    templates (cut from 1920x1080 captures) don't match it."""
+    """The game isn't the app in focus, so taps and Back presses would land
+    on whatever app is."""
 
 
 def check_focus(game):
-    """Raise NotInFocus unless `game` is the app in focus and fullscreen."""
+    """Raise NotInFocus unless `game` is the app in focus."""
     pkg = package(game)
     focus = focused_app()
     if not focus or focus[0] != pkg:
@@ -92,9 +91,6 @@ def check_focus(game):
         front = focus[0] if focus else "nothing"
         raise NotInFocus(f"{game} ({pkg}) {state}; in focus: {front}. "
                          f"Start it with: python -m core.device start {game}")
-    if floating_window():
-        raise NotInFocus(f"{game} ({pkg}) is in focus but in a floating window, not "
-                         f"fullscreen. Fullscreen it with: python -m core.device fullscreen")
 
 
 def tap_until(button, expected, delay=1.5, tries=5, popups=True, first=True):
@@ -697,8 +693,7 @@ def goto(game, target, here=None, attempts=2, delay=1.5, tries=5):
     Each step is a tap_until on the button, expecting identity(next menu),
     with the game's popups closed on the way.
     Returns True once `target` is on screen, False otherwise. Raises
-    NotInFocus, before touching anything, unless `game` is the app in focus
-    and fullscreen.
+    NotInFocus, before touching anything, unless `game` is the app in focus.
     """
     menus, _ = tree.load(game)
     for name in (target, here, HOME):

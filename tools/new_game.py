@@ -60,7 +60,7 @@ BACK_KEY = "back"
     "bot.py": '''\
 """{title} bot entry point.
 
-Usage: python -m {game}.bot start          launch {title} (or bring it to the front), fullscreen, closing any other running game
+Usage: python -m {game}.bot start          launch {title} (or bring it to the front), closing any other running game
        python -m {game}.bot stop           force-stop {title}
        python -m {game}.bot back           close the current menu
        python -m {game}.bot ROUTINE ...    run routines from {game}.routines.ROUTINES, in order
@@ -80,7 +80,7 @@ log = logger(__file__)
 
 
 def start():
-    """Launch {title} fullscreen. Returns True once it is in focus and fullscreen."""
+    """Launch {title}. Returns True once it is in focus."""
     return device.start_game(GAME)
 
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         print("Routines:", ", ".join(ROUTINES) or "(none yet)")
         sys.exit(1)
     for name in names:
-        # Routines run with BlueStacks' memory kept in check (core.device.with_room).
+        # Routines run with the emulator's memory kept in check (core.device.with_room).
         result = COMMANDS[name]() if name in COMMANDS else device.with_room(GAME, ROUTINES[name])
         if result is False:
             log.error(f"{{name}}: failed")
